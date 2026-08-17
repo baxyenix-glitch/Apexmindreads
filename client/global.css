@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+@layer base {
+  :root {
+    --background: 39 42% 95%;
+    --foreground: 150 16% 17%;
+    --card: 40 100% 98%;
+    --card-foreground: 150 16% 17%;
+    --popover: 40 100% 98%;
+    --popover-foreground: 150 16% 17%;
+    --primary: 150 16% 17%;
+    --primary-foreground: 40 100% 98%;
+    --secondary: 37 32% 90%;
+    --secondary-foreground: 150 16% 17%;
+    --muted: 37 32% 90%;
+    --muted-foreground: 28 12% 46%;
+    --accent: 15 64% 56%;
+    --accent-foreground: 40 100% 98%;
+    --destructive: 0 64% 52%;
+    --destructive-foreground: 40 100% 98%;
+    --border: 33 23% 85%;
+    --input: 33 23% 85%;
+    --ring: 15 64% 56%;
+    --radius: 1rem;
+    --sidebar-background: 150 16% 17%;
+    --sidebar-foreground: 39 42% 95%;
+    --sidebar-primary: 15 64% 56%;
+    --sidebar-primary-foreground: 40 100% 98%;
+    --sidebar-accent: 150 12% 25%;
+    --sidebar-accent-foreground: 39 42% 95%;
+    --sidebar-border: 150 12% 25%;
+    --sidebar-ring: 15 64% 56%;
+  }
+
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; }
+  body { @apply bg-background text-foreground; font-family: "Inter", sans-serif; }
+  button, a, input { -webkit-tap-highlight-color: transparent; }
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) { overflow-wrap: anywhere; word-break: break-word; }
+  pre, code { overflow-x: auto; white-space: pre; }
+}
+
+@layer components {
+  .nav-link { @apply relative text-xs font-bold uppercase tracking-[0.13em] text-[#736b61] transition-colors hover:text-[#d86f45]; }
+  .nav-link::after { content: ""; @apply absolute -bottom-2 left-0 h-px w-0 bg-[#d86f45] transition-all; }
+  .nav-link:hover::after, .nav-link-active::after { @apply w-full; }
+  .section-kicker { @apply text-[10px] font-bold uppercase tracking-[0.18em] text-[#d86f45]; }
+  .section-title { @apply font-serif text-[3.2rem] leading-[0.88] tracking-[-0.07em] text-[#26332f] sm:text-[4.6rem]; }
+  .cover-pattern-grid { background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px); background-size: 28px 28px; mask-image: linear-gradient(135deg, rgba(0,0,0,.9), transparent 65%); }
+  .cover-pattern-lines { background: repeating-linear-gradient(125deg, transparent 0 24px, currentColor 25px 26px, transparent 27px 48px); mask-image: linear-gradient(135deg, rgba(0,0,0,.9), transparent 80%); }
+  .cover-pattern-circle { background: radial-gradient(circle at 85% 15%, currentColor 0 16%, transparent 16.5%), radial-gradient(circle at 12% 88%, currentColor 0 24%, transparent 24.5%), radial-gradient(circle at 85% 90%, currentColor 0 9%, transparent 9.5%); }
+  .cover-pattern-sun { background: repeating-conic-gradient(from 10deg at 85% 15%, currentColor 0 4deg, transparent 4deg 12deg); mask-image: radial-gradient(circle at 85% 15%, black, transparent 62%); }
+}

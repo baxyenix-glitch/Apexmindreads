@@ -1,0 +1,41 @@
+{
+  "products": [],
+  "users": [],
+  "admins": [
+    {
+      "id": "admin-001",
+      "email": "admin@apexmindreads.com",
+      "name": "Amara O.",
+      "passwordHash": "66ecb7cc4bfbb7cd5968b973223de6d9583130d2eee136f7657e82eb630f6ac1"
+    }
+  ],
+  "orders": [
+    {
+      "id": "AMR-2040",
+      "customerEmail": "bennychinecherem53@gmail.com",
+      "customerName": "bennychinecherem53",
+      "country": "NG",
+      "items": [
+        {
+          "productId": "p-3a5d7750c91f",
+          "title": "ikeji",
+          "price": 8900
+        }
+      ],
+      "total": 8900,
+      "status": "Pending",
+      "createdAt": "2026-08-15T16:59:35.076Z"
+    }
+  ],
+  "promotions": [],
+  "settings": {
+    "storeName": "ApexMindReads",
+    "supportEmail": "hello@apexmindreads.com",
+    "downloadMode": "instant",
+    "currency": "NGN"
+  },
+  "sessions": {},
+  "adminSessions": {
+    "ee4bce13e598ebd176470e977c25743b219dd0cad4ba2a48226a62266d936457": "admin-001"
+  }
+}
