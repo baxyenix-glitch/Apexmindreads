@@ -25,10 +25,16 @@ if (!serviceAccount) {
   }
 }
 
-if (!getApps().length && serviceAccount) {
-  initializeApp({
-    credential: cert(serviceAccount)
-  });
+if (!getApps().length) {
+  if (serviceAccount) {
+    initializeApp({
+      credential: cert(serviceAccount)
+    });
+  } else {
+    initializeApp({
+      projectId: "apexmind-a81d0"
+    });
+  }
 }
 
 export const adminAuth = getAuth();
