@@ -3,20 +3,28 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Ensure upload directories exist
-const uploadDir = path.join(process.cwd(), "client/public/uploads");
-const ebooksDir = path.join(process.cwd(), "client/public/uploads/ebooks");
+// Ensure upload directories exist safely (supports Vercel serverless /tmp)
+const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadDir = isVercel ? "/tmp/uploads" : path.join(process.cwd(), "client/public/uploads");
+const ebooksDir = isVercel ? "/tmp/uploads/ebooks" : path.join(process.cwd(), "client/public/uploads/ebooks");
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-if (!fs.existsSync(ebooksDir)) {
-  fs.mkdirSync(ebooksDir, { recursive: true });
+function ensureDirs() {
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    if (!fs.existsSync(ebooksDir)) {
+      fs.mkdirSync(ebooksDir, { recursive: true });
+    }
+  } catch (e) {
+    // Ignore read-only filesystem errors during cold start
+  }
 }
 
 // Storage for cover images
 const imageStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
+    ensureDirs();
     cb(null, uploadDir);
   },
   filename: (_req, file, cb) => {
@@ -36,6 +44,7 @@ export const upload = multer({
 // Storage for PDF ebooks
 const pdfStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
+    ensureDirs();
     cb(null, ebooksDir);
   },
   filename: (_req, file, cb) => {

@@ -4,29 +4,50 @@ import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
 
-// Load service account key from env variable or local file
-let serviceAccount: any;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+function parseServiceAccount(raw: string): any {
+  if (!raw) return null;
+  // 1. Direct JSON parse
   try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  } catch {
-    try {
-      serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf-8"));
-    } catch (e) {
-      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT env:", e);
-    }
+    return JSON.parse(raw);
+  } catch {}
+
+  // 2. Base64 decoded JSON parse
+  try {
+    const decoded = Buffer.from(raw, "base64").toString("utf-8");
+    return JSON.parse(decoded);
+  } catch {}
+
+  // 3. Normalized string parse
+  try {
+    const sanitized = raw.trim();
+    return JSON.parse(sanitized);
+  } catch (e) {
+    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT env variable:", e);
+    return null;
   }
+}
+
+let serviceAccount: any = null;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  serviceAccount = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
 }
 
 if (!serviceAccount) {
   const serviceAccountPath = path.join(process.cwd(), "server/data/firebase-admin-key.json");
   if (fs.existsSync(serviceAccountPath)) {
-    serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+    try {
+      serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+    } catch (e) {
+      console.error("Failed to read local service account file:", e);
+    }
   }
 }
 
 if (!getApps().length) {
   if (serviceAccount) {
+    if (typeof serviceAccount.private_key === "string") {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+    }
     initializeApp({
       credential: cert(serviceAccount)
     });
@@ -45,3 +66,4 @@ try {
 } catch {
   // Already initialized
 }
+
