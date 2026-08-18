@@ -510,20 +510,12 @@ function ProductsSection({ currency }: { currency: Currency }) {
         <div className="divide-y divide-[#eae7e0]">
           {products.map((product) => (
             <div key={product.id} className="flex items-center gap-3 p-5 sm:px-7">
-              <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#e2dfd8] shadow-sm flex items-center justify-center" style={{ background: product.cover?.tone || "#d86f45" }}>
-                {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = "none";
-                    }}
-                  />
-                ) : null}
-                <span className="text-[9px] font-bold text-white uppercase text-center select-none px-0.5">
-                  {product.title?.slice(0, 3)}
-                </span>
+              <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#e2dfd8] shadow-sm">
+                <img
+                  src={product.imageUrl || "/placeholder.svg"}
+                  alt={product.title}
+                  className="h-full w-full object-cover"
+                />
               </div>
 
               <div className="min-w-0 flex-1">
@@ -613,33 +605,56 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 
   const autoSlug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      setUploadingImage(true);
-      setError("");
-      const headers = await adminAuthHeaders();
-      const res = await fetch("/api/admin/upload-image", {
-        method: "POST",
-        headers,
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Image upload failed" }));
-        throw new Error(err.error || "Image upload failed");
-      }
-      const data = await res.json();
-      setImageUrl(data.url);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setUploadingImage(false);
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (JPG, PNG, WebP)");
+      return;
     }
+
+    setUploadingImage(true);
+    setError("");
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 1200;
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const optimizedUrl = canvas.toDataURL("image/webp", 0.9);
+          setImageUrl(optimizedUrl);
+        } else {
+          setImageUrl(rawDataUrl);
+        }
+        setUploadingImage(false);
+      };
+      img.onerror = () => {
+        setImageUrl(rawDataUrl);
+        setUploadingImage(false);
+      };
+      img.src = rawDataUrl;
+    };
+    reader.onerror = () => {
+      setError("Failed to read image file");
+      setUploadingImage(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -926,26 +941,79 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
           />
         </div>
 
-        <div className="lg:col-span-2 rounded-2xl border border-[#e2dfd8] bg-white p-5">
-          <label className="mb-3 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
-            Product Image (Optional cover photo)
-          </label>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://image-url..."
-                className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-white px-4 text-sm outline-none focus:border-[#d86f45]"
-              />
+        <div className="lg:col-span-2 rounded-2xl border-2 border-[#e2dfd8] bg-white p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <UploadCloud className="text-[#d86f45]" size={18} />
+                <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#26332f]">
+                  Product Cover Image
+                </label>
+              </div>
+              <p className="text-xs text-[#8b8175] mt-1">
+                Upload your product cover photo from your computer (JPG, PNG, WebP) or paste an image link.
+              </p>
             </div>
-            <label className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#d8d0c6] bg-[#fbfaf7] px-4 py-3 text-xs font-bold text-[#26332f] hover:bg-[#eee7dc]">
-              {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
-              {uploadingImage ? "Uploading..." : "Upload Image"}
-              <input type="file" accept="image/*" disabled={uploadingImage} onChange={handleImageUpload} className="hidden" />
-            </label>
+            {imageUrl && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1eb] px-3 py-1 text-[11px] font-bold text-[#5e8c67]">
+                <FileCheck size={13} /> Cover Selected
+              </span>
+            )}
           </div>
+
+          {imageUrl ? (
+            <div className="flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-[#b8c7b2] bg-[#f8f6f0] p-4">
+              <img
+                src={imageUrl}
+                alt="Cover Preview"
+                className="h-28 w-20 object-cover rounded-lg shadow-sm border border-[#d8d0c6]"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-[#26332f]">Product Cover Photo</p>
+                <p className="text-xs text-[#8b8175] mt-0.5 truncate max-w-md">
+                  {imageUrl.startsWith("data:") ? "Image loaded from computer (ready to publish)" : imageUrl}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImageUrl("")}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] bg-[#fff5f5] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] transition hover:bg-[#fee2e2]"
+              >
+                <Trash2 size={13} /> Change / Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] bg-[#fcfbf9] p-6 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee7dc] text-[#d86f45] mb-2">
+                  {uploadingImage ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={20} />}
+                </div>
+                <span className="text-sm font-semibold text-[#26332f]">
+                  {uploadingImage ? "Processing image..." : "Click or drag to select cover image from your computer"}
+                </span>
+                <span className="text-xs text-[#8b8175] mt-0.5">
+                  Supports JPG, PNG, or WebP
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingImage}
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#8b8175]">Or image URL:</span>
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="h-10 flex-1 rounded-xl border border-[#d8d0c6] bg-white px-3 text-xs outline-none focus:border-[#d86f45]"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 flex flex-wrap items-center gap-6 py-2">
