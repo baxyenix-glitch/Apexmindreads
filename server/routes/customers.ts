@@ -65,7 +65,8 @@ export const handleListCustomers: RequestHandler = async (_req, res) => {
 
     const customers = [...customerMap.values()].sort((a, b) => b.totalSpent - a.totalSpent);
     res.json({ customers });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch customers" });
+  } catch (err: any) {
+    console.error("Failed to fetch customers:", err);
+    res.status(500).json({ error: err.message || "Failed to fetch customers" });
   }
 };

@@ -90,7 +90,8 @@ export const handleAnalytics: RequestHandler = async (_req, res) => {
       revenueOverTime,
       topProducts,
     });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch analytics" });
+  } catch (err: any) {
+    console.error("Failed to fetch analytics:", err);
+    res.status(500).json({ error: err.message || "Failed to fetch analytics" });
   }
 };

@@ -7,8 +7,9 @@ export const handleListProducts: RequestHandler = async (_req, res) => {
   try {
     const products = await getProducts();
     res.json({ products });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch products" });
+  } catch (err: any) {
+    console.error("Failed to fetch products:", err);
+    res.status(500).json({ error: err.message || "Failed to fetch products" });
   }
 };
 
@@ -21,8 +22,9 @@ export const handleGetProduct: RequestHandler = async (req, res) => {
       return;
     }
     res.json({ product });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch product" });
+  } catch (err: any) {
+    console.error("Failed to fetch product:", err);
+    res.status(500).json({ error: err.message || "Failed to fetch product" });
   }
 };
 
