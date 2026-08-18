@@ -8,18 +8,33 @@ export function generateId(prefix: string): string {
 
 // ─── Products ─────────────────────────────────────────────
 export async function getProducts(): Promise<Product[]> {
-  const snapshot = await adminDb.collection("products").get();
-  return snapshot.docs.map((doc) => doc.data() as Product);
+  try {
+    const snapshot = await adminDb.collection("products").get();
+    return snapshot.docs.map((doc) => doc.data() as Product);
+  } catch (err: any) {
+    console.error("Error fetching products from Firestore:", err);
+    return [];
+  }
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const doc = await adminDb.collection("products").doc(id).get();
-  return doc.exists ? (doc.data() as Product) : null;
+  try {
+    const doc = await adminDb.collection("products").doc(id).get();
+    return doc.exists ? (doc.data() as Product) : null;
+  } catch (err: any) {
+    console.error("Error fetching product by id:", err);
+    return null;
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const snapshot = await adminDb.collection("products").where("slug", "==", slug).limit(1).get();
-  return snapshot.empty ? null : (snapshot.docs[0].data() as Product);
+  try {
+    const snapshot = await adminDb.collection("products").where("slug", "==", slug).limit(1).get();
+    return snapshot.empty ? null : (snapshot.docs[0].data() as Product);
+  } catch (err: any) {
+    console.error("Error fetching product by slug:", err);
+    return null;
+  }
 }
 
 export async function createProduct(product: Product): Promise<void> {
@@ -42,15 +57,24 @@ export async function getOrders(): Promise<Order[]> {
     const snapshot = await adminDb.collection("orders").orderBy("createdAt", "desc").get();
     return snapshot.docs.map((doc) => doc.data() as Order);
   } catch (err) {
-    // If index is not yet built, fallback to non-ordered fetch
-    const snapshot = await adminDb.collection("orders").get();
-    return snapshot.docs.map((doc) => doc.data() as Order).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    try {
+      const snapshot = await adminDb.collection("orders").get();
+      return snapshot.docs.map((doc) => doc.data() as Order).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    } catch (e) {
+      console.error("Error fetching orders from Firestore:", e);
+      return [];
+    }
   }
 }
 
 export async function getOrderById(id: string): Promise<Order | null> {
-  const doc = await adminDb.collection("orders").doc(id).get();
-  return doc.exists ? (doc.data() as Order) : null;
+  try {
+    const doc = await adminDb.collection("orders").doc(id).get();
+    return doc.exists ? (doc.data() as Order) : null;
+  } catch (err: any) {
+    console.error("Error fetching order by id:", err);
+    return null;
+  }
 }
 
 export async function createOrder(order: Order): Promise<void> {
@@ -64,8 +88,13 @@ export async function updateOrder(id: string, updates: Partial<Order>): Promise<
 }
 
 export async function getUserOrders(email: string): Promise<Order[]> {
-  const snapshot = await adminDb.collection("orders").where("customerEmail", "==", email).get();
-  return snapshot.docs.map((doc) => doc.data() as Order).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  try {
+    const snapshot = await adminDb.collection("orders").where("customerEmail", "==", email).get();
+    return snapshot.docs.map((doc) => doc.data() as Order).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  } catch (e) {
+    console.error("Error fetching user orders from Firestore:", e);
+    return [];
+  }
 }
 
 // ─── Promotions ───────────────────────────────────────────
@@ -74,14 +103,24 @@ export async function getPromotions(): Promise<Promotion[]> {
     const snapshot = await adminDb.collection("promotions").orderBy("createdAt", "desc").get();
     return snapshot.docs.map((doc) => doc.data() as Promotion);
   } catch {
-    const snapshot = await adminDb.collection("promotions").get();
-    return snapshot.docs.map((doc) => doc.data() as Promotion);
+    try {
+      const snapshot = await adminDb.collection("promotions").get();
+      return snapshot.docs.map((doc) => doc.data() as Promotion);
+    } catch (e) {
+      console.error("Error fetching promotions from Firestore:", e);
+      return [];
+    }
   }
 }
 
 export async function getPromotionById(id: string): Promise<Promotion | null> {
-  const doc = await adminDb.collection("promotions").doc(id).get();
-  return doc.exists ? (doc.data() as Promotion) : null;
+  try {
+    const doc = await adminDb.collection("promotions").doc(id).get();
+    return doc.exists ? (doc.data() as Promotion) : null;
+  } catch (err: any) {
+    console.error("Error fetching promotion by id:", err);
+    return null;
+  }
 }
 
 export async function createPromotion(promo: Promotion): Promise<void> {
@@ -100,22 +139,31 @@ export async function deletePromotion(id: string): Promise<void> {
 
 // ─── Settings ─────────────────────────────────────────────
 export async function getSettings(): Promise<StoreSettings> {
-  const doc = await adminDb.collection("settings").doc("store").get();
-  if (doc.exists) {
-    return doc.data() as StoreSettings;
-  }
   const defaults: StoreSettings = {
     storeName: "ApexMindReads",
     supportEmail: "support@apexmindreads.com",
     downloadMode: "instant",
     currency: "NGN",
   };
-  await adminDb.collection("settings").doc("store").set(defaults);
-  return defaults;
+  try {
+    const doc = await adminDb.collection("settings").doc("store").get();
+    if (doc.exists) {
+      return doc.data() as StoreSettings;
+    }
+    await adminDb.collection("settings").doc("store").set(defaults).catch(() => {});
+    return defaults;
+  } catch (e) {
+    console.error("Error fetching settings from Firestore:", e);
+    return defaults;
+  }
 }
 
 export async function updateSettings(updates: Partial<StoreSettings>): Promise<StoreSettings> {
   const clean = JSON.parse(JSON.stringify(updates));
-  await adminDb.collection("settings").doc("store").set(clean, { merge: true });
+  try {
+    await adminDb.collection("settings").doc("store").set(clean, { merge: true });
+  } catch (e) {
+    console.error("Error updating settings in Firestore:", e);
+  }
   return getSettings();
 }
