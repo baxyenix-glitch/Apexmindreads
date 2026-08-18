@@ -6,7 +6,7 @@ const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_35d86e07111d
 // Supported direct transaction currencies in Paystack
 const NATIVE_PAYSTACK_CURRENCIES = ["NGN", "USD", "GHS", "ZAR", "KES"];
 
-// Conversion rates to NGN baseline (used for global payment fallback)
+// 1 Foreign Unit = X NGN baseline rate
 const NGN_RATES: Record<string, number> = {
   NGN: 1,
   USD: 1550,
@@ -50,18 +50,27 @@ export const handleInitializePaystack: RequestHandler = async (req, res) => {
     }
 
     const requestedCurrency = String(currency).toUpperCase();
-    let targetCurrency = NATIVE_PAYSTACK_CURRENCIES.includes(requestedCurrency) ? requestedCurrency : "NGN";
-    let targetAmount = Number(amount);
+    const baseNgnAmount = Number(amount);
 
-    // If requested currency is not directly accepted by Paystack (e.g. GBP, EUR, CAD, AUD, AED),
-    // convert it to NGN so Paystack processes it seamlessly with international cards
-    if (!NATIVE_PAYSTACK_CURRENCIES.includes(requestedCurrency)) {
-      const rate = NGN_RATES[requestedCurrency] || 1550;
-      targetAmount = Math.round(targetAmount * rate);
+    let targetCurrency = "NGN";
+    let amountInMinor = Math.round(baseNgnAmount * 100);
+
+    // If customer selected a currency natively supported by Paystack (USD, GHS, ZAR, KES, NGN)
+    if (NATIVE_PAYSTACK_CURRENCIES.includes(requestedCurrency)) {
+      targetCurrency = requestedCurrency;
+      if (requestedCurrency === "NGN") {
+        amountInMinor = Math.round(baseNgnAmount * 100);
+      } else {
+        const rate = NGN_RATES[requestedCurrency] || 1550;
+        const converted = baseNgnAmount / rate;
+        // Minor units (e.g. cents, pesewas)
+        amountInMinor = Math.max(1, Math.round(converted * 100));
+      }
+    } else {
+      // For all other global currencies (GBP, EUR, CAD, etc.), charge in NGN so international cards process seamlessly
       targetCurrency = "NGN";
+      amountInMinor = Math.round(baseNgnAmount * 100);
     }
-
-    const amountInMinor = Math.round(targetAmount * 100);
 
     const makePaystackInit = async (curr: string, amtMinor: number) => {
       return fetch("https://api.paystack.co/transaction/initialize", {
@@ -80,11 +89,13 @@ export const handleInitializePaystack: RequestHandler = async (req, res) => {
             orderId,
             customerName: order.customerName,
             originalCurrency: requestedCurrency,
-            originalAmount: amount,
+            baseNgnAmount,
+            chargedCurrency: curr,
+            chargedAmountMinor: amtMinor,
             custom_fields: [
               { display_name: "Order ID", variable_name: "order_id", value: orderId },
               { display_name: "Customer Name", variable_name: "customer_name", value: order.customerName },
-              { display_name: "Original Currency", variable_name: "original_currency", value: requestedCurrency },
+              { display_name: "Selected Currency", variable_name: "selected_currency", value: requestedCurrency },
             ],
           },
         }),
@@ -94,13 +105,12 @@ export const handleInitializePaystack: RequestHandler = async (req, res) => {
     let paystackRes = await makePaystackInit(targetCurrency, amountInMinor);
     let data = await paystackRes.json();
 
-    // If merchant account does not have foreign currency enabled (e.g. USD/GHS/ZAR not enabled),
-    // automatically fallback to NGN so the customer's international card is charged without error!
+    // If merchant account does not have foreign currency enabled yet (pending Paystack compliance review),
+    // automatically fallback to NGN (base amount) so international cards can still complete payment without crashing!
     if (!data.status && targetCurrency !== "NGN") {
-      console.warn(`Paystack returned error for ${targetCurrency}: ${data.message}. Falling back to NGN.`);
-      const rate = NGN_RATES[targetCurrency] || 1550;
-      const ngnAmountMinor = Math.round(Number(amount) * rate * 100);
-      paystackRes = await makePaystackInit("NGN", ngnAmountMinor);
+      console.warn(`Paystack rejected ${targetCurrency} (${data.message}). Falling back to NGN.`);
+      const fallbackNgnMinor = Math.round(baseNgnAmount * 100);
+      paystackRes = await makePaystackInit("NGN", fallbackNgnMinor);
       data = await paystackRes.json();
     }
 

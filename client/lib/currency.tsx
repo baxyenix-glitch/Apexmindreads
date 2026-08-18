@@ -49,7 +49,7 @@ export const currencyOptions: CurrencyOption[] = currencyCodes.map((code) => ({
 }));
 
 // Country code to primary Currency ISO mapping
-const countryToCurrencyMap: Record<string, Currency> = {
+export const countryToCurrencyMap: Record<string, Currency> = {
   NG: "NGN",
   US: "USD",
   GB: "GBP",
@@ -131,8 +131,8 @@ const countryToCurrencyMap: Record<string, Currency> = {
   CM: "XAF", CF: "XAF", TD: "XAF", CG: "XAF", GQ: "XAF", GA: "XAF",
 };
 
-// Rates mapping from baseline NGN
-const ratesFromNGN: Partial<Record<Currency, number>> = {
+// Rates mapping from baseline NGN (1 NGN = X foreign currency)
+export const ratesFromNGN: Partial<Record<Currency, number>> = {
   NGN: 1,
   USD: 1 / 1550,
   GBP: 1 / 1980,
@@ -214,11 +214,89 @@ export function formatCurrency(valueInNGN: number, currency: Currency) {
   }).format(valueInNGN * rate);
 }
 
-// Helper to deduce country/currency from browser locale & timezone without network
-function getBrowserLocaleFallback(): { country: string; currency: Currency } {
+export function getConvertedAmount(valueInNGN: number, currency: Currency): number {
+  const rate = ratesFromNGN[currency] ?? 1 / 1550;
+  return Number((valueInNGN * rate).toFixed(2));
+}
+
+// Instant browser timezone & locale deduction
+export function getBrowserLocaleFallback(): { country: string; currency: Currency } {
   try {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-    if (timeZone.startsWith("Africa/Lagos")) return { country: "NG", currency: "NGN" };
+    
+    // Americas
+    if (
+      timeZone.startsWith("America/New_York") ||
+      timeZone.startsWith("America/Chicago") ||
+      timeZone.startsWith("America/Los_Angeles") ||
+      timeZone.startsWith("America/Denver") ||
+      timeZone.startsWith("America/Phoenix") ||
+      timeZone.startsWith("America/Detroit") ||
+      timeZone.startsWith("America/Indiana") ||
+      timeZone.startsWith("America/Boise") ||
+      timeZone.startsWith("US/") ||
+      timeZone.startsWith("Pacific/Honolulu") ||
+      timeZone.startsWith("America/Anchorage")
+    ) {
+      return { country: "US", currency: "USD" };
+    }
+    if (
+      timeZone.startsWith("America/Toronto") ||
+      timeZone.startsWith("America/Vancouver") ||
+      timeZone.startsWith("America/Montreal") ||
+      timeZone.startsWith("America/Edmonton") ||
+      timeZone.startsWith("America/Winnipeg") ||
+      timeZone.startsWith("America/Halifax") ||
+      timeZone.startsWith("Canada/")
+    ) {
+      return { country: "CA", currency: "CAD" };
+    }
+    if (
+      timeZone.startsWith("America/Mexico_City") ||
+      timeZone.startsWith("America/Cancun") ||
+      timeZone.startsWith("America/Monterrey") ||
+      timeZone.startsWith("America/Tijuana")
+    ) {
+      return { country: "MX", currency: "MXN" };
+    }
+    if (
+      timeZone.startsWith("America/Sao_Paulo") ||
+      timeZone.startsWith("America/Bahia") ||
+      timeZone.startsWith("America/Fortaleza") ||
+      timeZone.startsWith("America/Manaus") ||
+      timeZone.startsWith("Brazil/")
+    ) {
+      return { country: "BR", currency: "BRL" };
+    }
+
+    // UK & Europe
+    if (timeZone.startsWith("Europe/London") || timeZone.startsWith("GB") || timeZone.startsWith("Europe/Belfast")) {
+      return { country: "GB", currency: "GBP" };
+    }
+    if (
+      timeZone.startsWith("Europe/Berlin") ||
+      timeZone.startsWith("Europe/Paris") ||
+      timeZone.startsWith("Europe/Madrid") ||
+      timeZone.startsWith("Europe/Rome") ||
+      timeZone.startsWith("Europe/Amsterdam") ||
+      timeZone.startsWith("Europe/Brussels") ||
+      timeZone.startsWith("Europe/Vienna") ||
+      timeZone.startsWith("Europe/Dublin") ||
+      timeZone.startsWith("Europe/Lisbon") ||
+      timeZone.startsWith("Europe/Helsinki") ||
+      timeZone.startsWith("Europe/Athens")
+    ) {
+      return { country: "DE", currency: "EUR" };
+    }
+    if (timeZone.startsWith("Europe/Zurich")) return { country: "CH", currency: "CHF" };
+    if (timeZone.startsWith("Europe/Stockholm")) return { country: "SE", currency: "SEK" };
+    if (timeZone.startsWith("Europe/Oslo")) return { country: "NO", currency: "NOK" };
+    if (timeZone.startsWith("Europe/Copenhagen")) return { country: "DK", currency: "DKK" };
+    if (timeZone.startsWith("Europe/Warsaw")) return { country: "PL", currency: "PLN" };
+    if (timeZone.startsWith("Europe/Istanbul")) return { country: "TR", currency: "TRY" };
+
+    // Africa
+    if (timeZone.startsWith("Africa/Lagos") || timeZone.startsWith("Africa/Porto-Novo")) return { country: "NG", currency: "NGN" };
     if (timeZone.startsWith("Africa/Accra")) return { country: "GH", currency: "GHS" };
     if (timeZone.startsWith("Africa/Nairobi")) return { country: "KE", currency: "KES" };
     if (timeZone.startsWith("Africa/Johannesburg")) return { country: "ZA", currency: "ZAR" };
@@ -226,62 +304,81 @@ function getBrowserLocaleFallback(): { country: string; currency: Currency } {
     if (timeZone.startsWith("Africa/Kigali")) return { country: "RW", currency: "RWF" };
     if (timeZone.startsWith("Africa/Kampala")) return { country: "UG", currency: "UGX" };
     if (timeZone.startsWith("Africa/Dar_es_Salaam")) return { country: "TZ", currency: "TZS" };
-    if (timeZone.startsWith("America/New_York") || timeZone.startsWith("America/Chicago") || timeZone.startsWith("America/Los_Angeles") || timeZone.startsWith("America/Denver")) {
-      return { country: "US", currency: "USD" };
-    }
-    if (timeZone.startsWith("America/Toronto") || timeZone.startsWith("America/Vancouver") || timeZone.startsWith("America/Montreal")) {
-      return { country: "CA", currency: "CAD" };
-    }
-    if (timeZone.startsWith("Europe/London")) return { country: "GB", currency: "GBP" };
-    if (timeZone.startsWith("Australia/")) return { country: "AU", currency: "AUD" };
-    if (timeZone.startsWith("Asia/Kolkata")) return { country: "IN", currency: "INR" };
-    if (timeZone.startsWith("Asia/Tokyo")) return { country: "JP", currency: "JPY" };
+    if (timeZone.startsWith("Africa/Lusaka")) return { country: "ZM", currency: "ZMW" };
+    if (timeZone.startsWith("Africa/Harare")) return { country: "ZW", currency: "ZWG" };
+
+    // Asia & Middle East & Oceania
+    if (timeZone.startsWith("Asia/Kolkata") || timeZone.startsWith("Asia/Calcutta")) return { country: "IN", currency: "INR" };
     if (timeZone.startsWith("Asia/Dubai")) return { country: "AE", currency: "AED" };
     if (timeZone.startsWith("Asia/Riyadh")) return { country: "SA", currency: "SAR" };
+    if (timeZone.startsWith("Asia/Qatar")) return { country: "QA", currency: "QAR" };
+    if (timeZone.startsWith("Asia/Kuwait")) return { country: "KW", currency: "KWD" };
     if (timeZone.startsWith("Asia/Singapore")) return { country: "SG", currency: "SGD" };
-    if (timeZone.startsWith("Europe/Berlin") || timeZone.startsWith("Europe/Paris") || timeZone.startsWith("Europe/Madrid") || timeZone.startsWith("Europe/Rome") || timeZone.startsWith("Europe/Amsterdam")) {
-      return { country: "DE", currency: "EUR" };
-    }
+    if (timeZone.startsWith("Asia/Kuala_Lumpur")) return { country: "MY", currency: "MYR" };
+    if (timeZone.startsWith("Asia/Tokyo")) return { country: "JP", currency: "JPY" };
+    if (timeZone.startsWith("Asia/Shanghai") || timeZone.startsWith("Asia/Chongqing") || timeZone.startsWith("Asia/Hong_Kong")) return { country: "CN", currency: "CNY" };
+    if (timeZone.startsWith("Asia/Seoul")) return { country: "KR", currency: "KRW" };
+    if (timeZone.startsWith("Australia/")) return { country: "AU", currency: "AUD" };
+    if (timeZone.startsWith("Pacific/Auckland")) return { country: "NZ", currency: "NZD" };
 
-    const lang = (navigator.language || (navigator.languages && navigator.languages[0]) || "").toUpperCase();
-    const parts = lang.split("-");
-    const countryCode = parts.length > 1 ? parts[1] : parts[0];
-    if (countryCode && countryToCurrencyMap[countryCode]) {
-      return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
+    // Deduce from navigator languages
+    const languages = navigator.languages || [navigator.language || ""];
+    for (const lang of languages) {
+      if (!lang) continue;
+      const parts = lang.split("-");
+      if (parts.length > 1) {
+        const countryCode = parts[1].toUpperCase();
+        if (countryToCurrencyMap[countryCode]) {
+          return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
+        }
+      }
     }
   } catch {
-    // Fallback quietly
+    // Fallback
   }
-  return { country: "NG", currency: "NGN" };
+  return { country: "US", currency: "USD" };
 }
 
-// Fast Geolocation detection with multiple providers and timeout
+// Multi-provider accurate IP Geolocation detection
 async function detectCountryAndCurrency(): Promise<{ country: string; currency: Currency }> {
-  // 1. Try ipapi.co
+  // 1. Try get.geojs.io (Free, CORS enabled, fast, global CDN)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-    const res = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch("https://get.geojs.io/v1/ip/geo.json", { signal: controller.signal });
     clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       const countryCode = (data.country_code || data.country || "").toUpperCase();
-      const detectedCurr = (data.currency || "").toUpperCase() as Currency;
-      if (detectedCurr && currencyCodes.includes(detectedCurr)) {
-        return { country: countryCode || "US", currency: detectedCurr };
-      }
       if (countryCode && countryToCurrencyMap[countryCode]) {
         return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
       }
     }
   } catch {
-    // Try fallback
+    // Try next
   }
 
-  // 2. Try ipwho.is as second fallback
+  // 2. Try api.country.is (Zero auth, CORS enabled, lightweight)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch("https://api.country.is", { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const countryCode = (data.country || "").toUpperCase();
+      if (countryCode && countryToCurrencyMap[countryCode]) {
+        return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
+      }
+    }
+  } catch {
+    // Try next
+  }
+
+  // 3. Try ipwho.is
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
     const res = await fetch("https://ipwho.is/", { signal: controller.signal });
     clearTimeout(timeoutId);
     if (res.ok) {
@@ -298,10 +395,10 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
       }
     }
   } catch {
-    // Fallback to locale
+    // Fallback to browser locale
   }
 
-  // 3. Fallback to Browser locale/timezone
+  // 4. Fallback to Browser locale/timezone
   return getBrowserLocaleFallback();
 }
 
@@ -316,21 +413,24 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [detectedCountry, setDetectedCountry] = useState<string>(() => {
-    if (typeof window === "undefined") return "NG";
-    return window.localStorage.getItem("apexmindreads-country") || "NG";
+    if (typeof window === "undefined") return "US";
+    return window.localStorage.getItem("apexmindreads-country") || getBrowserLocaleFallback().country;
   });
 
   const [currency, setCurrencyState] = useState<Currency>(() => {
-    if (typeof window === "undefined") return "NGN";
+    if (typeof window === "undefined") return "USD";
+    const isUserManual = window.localStorage.getItem("apexmindreads-currency-manual") === "true";
     const stored = window.localStorage.getItem("apexmindreads-currency") as Currency | null;
-    if (stored && currencyOptions.some((option) => option.code === stored)) {
+    
+    // Only use stored currency if user explicitly picked it in the dropdown
+    if (isUserManual && stored && currencyOptions.some((option) => option.code === stored)) {
       return stored;
     }
-    // Instant initial estimate from browser environment while async detection runs
+    
+    // Instant initial estimate from browser environment (timezone & language)
     return getBrowserLocaleFallback().currency;
   });
 
-  // Handle explicit user selection vs auto-detection
   const setCurrency = (nextCurrency: Currency, isUserSelection = true) => {
     setCurrencyState(nextCurrency);
     if (typeof window !== "undefined") {
@@ -341,24 +441,24 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Run country and currency detection on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const isUserManual = window.localStorage.getItem("apexmindreads-currency-manual") === "true";
     
-    detectCountryAndCurrency().then(({ country: autoCountry, currency: autoCurrency }) => {
-      setDetectedCountry(autoCountry);
-      window.localStorage.setItem("apexmindreads-country", autoCountry);
+    detectCountryAndCurrency()
+      .then(({ country: autoCountry, currency: autoCurrency }) => {
+        setDetectedCountry(autoCountry);
+        window.localStorage.setItem("apexmindreads-country", autoCountry);
 
-      // If user hasn't explicitly chosen a currency with the manual selector, apply auto-detected currency
-      if (!isUserManual) {
-        setCurrencyState(autoCurrency);
-        window.localStorage.setItem("apexmindreads-currency", autoCurrency);
-      }
-    }).catch(() => {
-      // Ignored, fallback already set
-    });
+        if (!isUserManual) {
+          setCurrencyState(autoCurrency);
+          window.localStorage.setItem("apexmindreads-currency", autoCurrency);
+        }
+      })
+      .catch(() => {
+        // Fallback already in place
+      });
   }, []);
 
   return (

@@ -197,7 +197,6 @@ export default function Checkout() {
       // Step 3: Trigger Paystack Popup or redirect
       if (typeof window !== "undefined" && window.PaystackPop) {
         try {
-          // If Paystack v2 constructor is available
           if (typeof window.PaystackPop === "function") {
             const popup = new window.PaystackPop();
             if (initData.access_code && typeof popup.resumeTransaction === "function") {
@@ -212,36 +211,12 @@ export default function Checkout() {
               return;
             }
           }
-          // Legacy setup fallback if available
-          if (typeof window.PaystackPop.setup === "function") {
-            const handler = window.PaystackPop.setup({
-              key: PAYSTACK_PUBLIC_KEY,
-              email: customerEmail,
-              amount: Math.round(subtotal * 100),
-              currency: currency === "NGN" ? "NGN" : "USD",
-              ref: initData.reference,
-              metadata: {
-                orderId,
-                customerName,
-                userCurrency: currency,
-              },
-              callback: (response: any) => {
-                verifyTransaction(response.reference, orderId);
-              },
-              onClose: () => {
-                setSubmitting(false);
-              },
-            });
-            handler.openIframe();
-            return;
-          }
         } catch (popErr) {
           console.warn("Paystack popup error, falling back to redirect:", popErr);
         }
       }
 
       if (initData.authorization_url) {
-        // Direct redirect (best for mobile and when popup is blocked)
         window.location.href = initData.authorization_url;
       } else {
         throw new Error("Unable to open payment gateway. Please try again.");
