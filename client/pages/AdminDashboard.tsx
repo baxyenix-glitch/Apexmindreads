@@ -510,8 +510,20 @@ function ProductsSection({ currency }: { currency: Currency }) {
         <div className="divide-y divide-[#eae7e0]">
           {products.map((product) => (
             <div key={product.id} className="flex items-center gap-3 p-5 sm:px-7">
-              <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#e2dfd8] shadow-sm" style={{ background: product.imageUrl ? undefined : product.cover.tone }}>
-                {product.imageUrl && <img src={product.imageUrl} alt={product.title} className="absolute inset-0 h-full w-full object-cover" />}
+              <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-[#e2dfd8] shadow-sm flex items-center justify-center" style={{ background: product.cover?.tone || "#d86f45" }}>
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                  />
+                ) : null}
+                <span className="text-[9px] font-bold text-white uppercase text-center select-none px-0.5">
+                  {product.title?.slice(0, 3)}
+                </span>
               </div>
 
               <div className="min-w-0 flex-1">
