@@ -44,7 +44,7 @@ export async function createProduct(product: Product): Promise<void> {
 
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<void> {
   const clean = JSON.parse(JSON.stringify(updates));
-  await adminDb.collection("products").doc(id).update(clean);
+  await adminDb.collection("products").doc(id).set(clean, { merge: true });
 }
 
 export async function deleteProduct(id: string): Promise<void> {

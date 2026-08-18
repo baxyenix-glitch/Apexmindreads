@@ -61,16 +61,13 @@ export const handleUpdateProduct: RequestHandler = async (req, res) => {
   }
 
   try {
-    const existing = await getProductById(req.params.id as string);
-    if (!existing) {
-      res.status(404).json({ error: "Product not found" });
-      return;
-    }
-
-    await updateProduct(req.params.id as string, parsed.data);
-    res.json({ product: { ...existing, ...parsed.data } });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to update product" });
+    const id = req.params.id as string;
+    await updateProduct(id, parsed.data);
+    const existing = await getProductById(id);
+    res.json({ product: existing || { id, ...parsed.data } });
+  } catch (err: any) {
+    console.error("Failed to update product:", err);
+    res.status(500).json({ error: err?.message || "Failed to update product" });
   }
 };
 
