@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { getOrders, getProducts } from "../data/db";
+import { getOrders, getProducts } from "../data/db.js";
 
 /** GET /api/admin/analytics */
 export const handleAnalytics: RequestHandler = async (_req, res) => {

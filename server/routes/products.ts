@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { getProducts, getProductBySlug, createProduct, updateProduct, deleteProduct, generateId, getProductById } from "../data/db";
-import { CreateProductInputSchema, UpdateProductInputSchema } from "../../shared/schema";
+import { getProducts, getProductBySlug, createProduct, updateProduct, deleteProduct, generateId, getProductById } from "../data/db.js";
+import { CreateProductInputSchema, UpdateProductInputSchema } from "../../shared/schema.js";
 
 /** GET /api/products — public */
 export const handleListProducts: RequestHandler = async (_req, res) => {

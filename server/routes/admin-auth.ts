@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { adminAuth } from "../lib/firebase-admin";
+import { adminAuth } from "../lib/firebase-admin.js";
 
 // Admin emails are no longer hardcoded
 /** Middleware to protect admin routes */

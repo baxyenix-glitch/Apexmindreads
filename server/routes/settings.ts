@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { getSettings, updateSettings } from "../data/db";
-import { UpdateSettingsInputSchema } from "../../shared/schema";
+import { getSettings, updateSettings } from "../data/db.js";
+import { UpdateSettingsInputSchema } from "../../shared/schema.js";
 
 /** GET /api/admin/settings */
 export const handleGetSettings: RequestHandler = async (_req, res) => {

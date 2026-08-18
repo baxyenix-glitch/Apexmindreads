@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { getPromotions, getPromotionById, createPromotion, updatePromotion, deletePromotion, generateId } from "../data/db";
-import { CreatePromotionInputSchema, UpdatePromotionInputSchema } from "../../shared/schema";
+import { getPromotions, getPromotionById, createPromotion, updatePromotion, deletePromotion, generateId } from "../data/db.js";
+import { CreatePromotionInputSchema, UpdatePromotionInputSchema } from "../../shared/schema.js";
 
 /** GET /api/admin/promotions */
 export const handleListPromotions: RequestHandler = async (_req, res) => {

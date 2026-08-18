@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { adminAuth } from "../lib/firebase-admin";
+import { adminAuth } from "../lib/firebase-admin.js";
 
 export const handleUpdateCredentials: RequestHandler = async (req, res) => {
   const { email, password } = req.body;

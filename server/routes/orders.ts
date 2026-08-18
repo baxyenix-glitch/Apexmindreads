@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
-import { getOrders, getOrderById, updateOrder, createOrder, getUserOrders } from "../data/db";
-import { CreateOrderInputSchema } from "../../shared/schema";
-import { adminAuth } from "../lib/firebase-admin";
+import { getOrders, getOrderById, updateOrder, createOrder, getUserOrders } from "../data/db.js";
+import { CreateOrderInputSchema } from "../../shared/schema.js";
+import { adminAuth } from "../lib/firebase-admin.js";
 
 /** GET /api/admin/orders — admin only */
 export const handleListOrders: RequestHandler = async (_req, res) => {

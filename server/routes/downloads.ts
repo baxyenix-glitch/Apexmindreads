@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { getOrderById, getProductById } from "../data/db";
+import { getOrderById, getProductById } from "../data/db.js";
 import fs from "fs";
 import path from "path";
 

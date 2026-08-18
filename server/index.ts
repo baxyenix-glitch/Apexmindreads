@@ -1,18 +1,18 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { handleDemo } from "./routes/demo";
-import { requireAdmin } from "./routes/admin-auth";
-import { handleListProducts, handleGetProduct, handleCreateProduct, handleUpdateProduct, handleDeleteProduct } from "./routes/products";
-import { handleListOrders, handleGetOrder, handleUpdateOrderStatus, handleCreateOrder, handleUserOrders } from "./routes/orders";
-import { handleListCustomers } from "./routes/customers";
-import { handleListPromotions, handleCreatePromotion, handleUpdatePromotion, handleDeletePromotion } from "./routes/promotions";
-import { handleAnalytics } from "./routes/analytics";
-import { handleGetSettings, handleUpdateSettings } from "./routes/settings";
-import { handleUploadImage, handleUploadPdf, upload, uploadPdf } from "./routes/upload";
-import { handleUpdateCredentials } from "./routes/admin";
-import { handleInitializePaystack, handleVerifyPaystack } from "./routes/paystack";
-import { handleDownloadGuide } from "./routes/downloads";
+import { handleDemo } from "./routes/demo.js";
+import { requireAdmin } from "./routes/admin-auth.js";
+import { handleListProducts, handleGetProduct, handleCreateProduct, handleUpdateProduct, handleDeleteProduct } from "./routes/products.js";
+import { handleListOrders, handleGetOrder, handleUpdateOrderStatus, handleCreateOrder, handleUserOrders } from "./routes/orders.js";
+import { handleListCustomers } from "./routes/customers.js";
+import { handleListPromotions, handleCreatePromotion, handleUpdatePromotion, handleDeletePromotion } from "./routes/promotions.js";
+import { handleAnalytics } from "./routes/analytics.js";
+import { handleGetSettings, handleUpdateSettings } from "./routes/settings.js";
+import { handleUploadImage, handleUploadPdf, upload, uploadPdf } from "./routes/upload.js";
+import { handleUpdateCredentials } from "./routes/admin.js";
+import { handleInitializePaystack, handleVerifyPaystack } from "./routes/paystack.js";
+import { handleDownloadGuide } from "./routes/downloads.js";
 import path from "path";
 
 export function createServer() {

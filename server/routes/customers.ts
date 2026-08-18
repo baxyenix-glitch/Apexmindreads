@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { getOrders } from "../data/db";
-import { adminAuth } from "../lib/firebase-admin";
+import { getOrders } from "../data/db.js";
+import { adminAuth } from "../lib/firebase-admin.js";
 import type { CustomerView } from "../../shared/schema";
 
 /** GET /api/admin/customers — admin only */

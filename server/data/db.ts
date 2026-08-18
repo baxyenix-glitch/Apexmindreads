@@ -1,4 +1,4 @@
-import { adminDb } from "../lib/firebase-admin";
+import { adminDb } from "../lib/firebase-admin.js";
 import type { Product, Order, Promotion, StoreSettings } from "../../shared/schema";
 import crypto from "node:crypto";
 
