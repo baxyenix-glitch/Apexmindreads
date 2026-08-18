@@ -3,8 +3,15 @@ let cachedApp: any = null;
 export default async function handler(req: any, res: any) {
   try {
     if (!cachedApp) {
-      const serverModule = await import("../server");
-      cachedApp = serverModule.createServer();
+      let createServerFn;
+      try {
+        const bundle = await import("../dist/server/node-build.mjs");
+        createServerFn = bundle.createServer;
+      } catch {
+        const src = await import("../server/index.js");
+        createServerFn = src.createServer;
+      }
+      cachedApp = createServerFn();
     }
     return cachedApp(req, res);
   } catch (err: any) {

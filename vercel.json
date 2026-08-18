@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "pnpm build:client",
+  "buildCommand": "pnpm build",
   "outputDirectory": "dist/spa",
   "rewrites": [
     {
