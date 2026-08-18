@@ -58,10 +58,10 @@ export default function Index() {
         <div className="mx-auto max-w-[1320px] px-4 pb-10 pt-10 sm:px-5 sm:pb-14 sm:pt-14 lg:px-10 lg:pb-16 lg:pt-16">
           <div className="mx-auto max-w-[780px] text-center">
             <h1 className="font-serif text-[3.35rem] leading-[0.92] tracking-[-0.065em] text-[#26332f] sm:text-[4.7rem] lg:text-[5.7rem]">
-              Clarity & Wisdom for the <span className="relative inline-block text-[#d86f45]">Journey of Life<span className="absolute -bottom-1 left-1/2 h-1.5 w-[92%] -translate-x-1/2 rotate-[-2deg] rounded-[50%] border-b-2 border-[#f0bc58]" />.</span>
+              Practical Guides for <span className="relative inline-block text-[#d86f45]">Real-Life Problems<span className="absolute -bottom-1 left-1/2 h-1.5 w-[92%] -translate-x-1/2 rotate-[-2deg] rounded-[50%] border-b-2 border-[#f0bc58]" />.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-[580px] text-sm leading-6 text-[#736b61] sm:mt-6 sm:text-base sm:leading-7">
-              Practical Guides for Real-Life Problems. Simple, actionable digital guides designed to help you solve everyday challenges in money, relationships, personal growth, parenting, career and more.
+              Simple, actionable digital guides designed to help you solve everyday challenges in money, relationships, personal growth, parenting, career and more.
             </p>
             <div className="mt-7 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <a href="#shop" className="group flex items-center justify-center gap-3 rounded-full bg-[#d86f45] px-5 py-3.5 text-xs font-bold uppercase tracking-[0.13em] text-white transition hover:bg-[#bf5937]">
