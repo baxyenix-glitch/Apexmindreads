@@ -4,7 +4,6 @@ import {
   BarChart3, 
   BookOpen, 
   Check, 
-  CheckCircle2,
   ChevronDown, 
   Download, 
   Eye, 
@@ -16,13 +15,11 @@ import {
   Menu, 
   MoreHorizontal, 
   Package, 
-  Palette,
   Pencil, 
   Plus, 
   Search, 
   Settings, 
   ShoppingBag, 
-  Sparkles,
   Star,
   Trash2, 
   UploadCloud, 
@@ -33,7 +30,6 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { currencyOptions, formatCurrency, useCurrency, type Currency } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
-import { useTheme, THEMES, type ThemeId, type ThemeDefinition } from "@/lib/theme";
 import type { AnalyticsResponse, OrderListResponse, CustomerListResponse, PromotionListResponse, ProductListResponse, SettingsResponse } from "@shared/api";
 import type { Product, Order, CustomerView, Promotion, StoreSettings } from "@shared/schema";
 
@@ -44,11 +40,10 @@ const navItems = [
   { label: "Customers", path: "/admin/customers", icon: Users },
   { label: "Analytics", path: "/admin/analytics", icon: BarChart3 },
   { label: "Promotions", path: "/admin/promotions", icon: Package },
-  { label: "Themes", path: "/admin/themes", icon: Palette },
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
-type Section = "Overview" | "Orders" | "Products" | "Customers" | "Analytics" | "Promotions" | "Themes" | "Settings";
+type Section = "Overview" | "Orders" | "Products" | "Customers" | "Analytics" | "Promotions" | "Settings";
 
 const sectionIntro: Record<Section, string> = {
   Overview: "",
@@ -57,7 +52,6 @@ const sectionIntro: Record<Section, string> = {
   Customers: "Know who is buying from you.",
   Analytics: "Understand what is working.",
   Promotions: "Keep offers clear and current.",
-  Themes: "Select from 10 luxury brand themes to instantly transform your entire store aesthetic.",
   Settings: "Set the details for your store.",
 };
 
@@ -159,7 +153,6 @@ export default function AdminDashboard() {
           {active === "Customers" && <CustomersSection currency={currency} />}
           {active === "Analytics" && <AnalyticsSection currency={currency} />}
           {active === "Promotions" && <PromotionsSection />}
-          {active === "Themes" && <ThemesSection />}
           {active === "Settings" && <SettingsSection />}
         </main>
       </div>
@@ -1291,213 +1284,9 @@ function PromoForm({ promo, onSaved, onCancel }: { promo: Promotion | null; onSa
 }
 
 // ═══════════════════════════════════════════════════════════
-// THEMES SECTION
-// ═══════════════════════════════════════════════════════════
-function ThemesSection() {
-  const { currentTheme, themeId, previewTheme, saveTheme, themes, isSaving } = useTheme();
-  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(themeId);
-  const [previewingId, setPreviewingId] = useState<ThemeId | null>(null);
-  const [savedSuccess, setSavedSuccess] = useState(false);
-
-  const handlePreview = (id: ThemeId) => {
-    setPreviewingId(id);
-    previewTheme(id);
-  };
-
-  const handleSave = async (id: ThemeId) => {
-    setSelectedThemeId(id);
-    await saveTheme(id);
-    setPreviewingId(null);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Top Banner */}
-      <div className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d86f45] text-white">
-                <Palette size={16} />
-              </span>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Brand Theme Customizer</p>
-            </div>
-            <h3 className="mt-2 font-serif text-2xl sm:text-3xl tracking-[-0.05em]">
-              Active Theme: <span className="text-[#d86f45]">{currentTheme.name}</span>
-            </h3>
-            <p className="mt-1 text-xs text-[#8b8175]">
-              Choose from 10 luxury brand themes below. Click "Preview" to test the colors live on your screen, or click "Apply & Save" to make it live for all customers worldwide.
-            </p>
-          </div>
-          {savedSuccess && (
-            <div className="flex items-center gap-2 rounded-full bg-[#ecfdf5] px-4 py-2 text-xs font-bold text-[#059669] border border-[#a7f3d0] animate-in fade-in">
-              <CheckCircle2 size={16} /> Theme Saved & Live Worldwide!
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Grid of 10 Themes */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {themes.map((t) => {
-          const isActive = themeId === t.id;
-          const isPreviewing = previewingId === t.id;
-
-          return (
-            <div
-              key={t.id}
-              className={`flex flex-col justify-between rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
-                isActive
-                  ? "border-[#d86f45] ring-2 ring-[#d86f45]/20 bg-white"
-                  : "border-[#e2dfd8] bg-[#fbfaf7] hover:border-[#d8d0c6]"
-              }`}
-            >
-              <div className="p-5 sm:p-6">
-                {/* Header with Title & Badge */}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-serif text-xl sm:text-2xl tracking-tight text-[#26332f]">
-                        {t.name}
-                      </h4>
-                      {t.isDark ? (
-                        <span className="rounded-full bg-[#0b0f17] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                          Dark Mode
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-[#f0ede6] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#736b61]">
-                          Light Mode
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1.5 text-xs text-[#736b61] leading-relaxed">
-                      {t.tagline}
-                    </p>
-                  </div>
-                  {isActive && (
-                    <span className="shrink-0 flex items-center gap-1 rounded-full bg-[#ecfdf5] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#059669] border border-[#a7f3d0]">
-                      <Check size={12} strokeWidth={3} /> Active
-                    </span>
-                  )}
-                </div>
-
-                {/* Color Swatches Palette */}
-                <div className="mt-5">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8b8175]">Color Palette Swatches</p>
-                  <div className="mt-2 flex items-center gap-2 flex-wrap">
-                    {t.swatches.map((hex, idx) => (
-                      <div key={idx} className="group relative flex flex-col items-center">
-                        <div
-                          className="h-8 w-8 rounded-full border border-black/10 shadow-inner transition-transform group-hover:scale-110"
-                          style={{ backgroundColor: hex }}
-                        />
-                        <span className="mt-1 font-mono text-[9px] uppercase text-[#8b8175] opacity-75">
-                          {hex}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Miniature Live Storefront Mockup Card */}
-                <div
-                  className="mt-6 rounded-xl border p-4 transition-colors"
-                  style={{
-                    backgroundColor: t.colors.bg,
-                    borderColor: t.colors.border,
-                    color: t.colors.text,
-                  }}
-                >
-                  {/* Mock Navbar */}
-                  <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: t.colors.border }}>
-                    <span className="font-serif text-xs font-bold" style={{ color: t.colors.text }}>
-                      ApexMind<span style={{ color: t.colors.accent }}>Reads</span>
-                    </span>
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[9px] font-bold text-white shadow-xs"
-                      style={{ backgroundColor: t.colors.accent }}
-                    >
-                      Basket
-                    </span>
-                  </div>
-
-                  {/* Mock Hero Headline & Button */}
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[8px] font-bold uppercase tracking-wider" style={{ color: t.colors.kicker }}>
-                        Featured Guide
-                      </p>
-                      <p className="font-serif text-sm font-semibold leading-tight mt-0.5" style={{ color: t.colors.text }}>
-                        The Art of Clear Thinking
-                      </p>
-                      <p className="text-[10px] mt-1 opacity-70">
-                        Instant PDF Access · $4.99
-                      </p>
-                    </div>
-                    <div
-                      className="h-10 w-10 shrink-0 rounded-lg shadow-sm flex items-center justify-center text-[10px] font-bold"
-                      style={{
-                        backgroundColor: t.colors.bgCard,
-                        borderColor: t.colors.border,
-                        borderWidth: 1,
-                        color: t.colors.accent,
-                      }}
-                    >
-                      PDF
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 border-t border-[#e2dfd8] bg-[#f8f7f4] px-5 py-4 sm:px-6">
-                <button
-                  type="button"
-                  onClick={() => handlePreview(t.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[#d8d0c6] bg-white py-2.5 text-xs font-bold uppercase tracking-wider text-[#26332f] transition hover:bg-[#eee7dc] ${
-                    isPreviewing ? "ring-2 ring-[#d86f45]" : ""
-                  }`}
-                >
-                  <Eye size={14} /> {isPreviewing ? "Previewing" : "Preview Theme"}
-                </button>
-                <button
-                  type="button"
-                  disabled={isSaving || isActive}
-                  onClick={() => handleSave(t.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition disabled:opacity-60 ${
-                    isActive ? "bg-[#5e8c67] cursor-default" : "bg-[#d86f45] hover:bg-[#bf5937]"
-                  }`}
-                >
-                  {isSaving && selectedThemeId === t.id ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" /> Saving...
-                    </>
-                  ) : isActive ? (
-                    <>
-                      <Check size={14} strokeWidth={3} /> Applied
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={14} /> Apply & Save
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
 // SETTINGS SECTION
 // ═══════════════════════════════════════════════════════════
 function SettingsSection() {
-  const { currentTheme, themeId, saveTheme, themes, isSaving: themeSaving } = useTheme();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1505,7 +1294,6 @@ function SettingsSection() {
   const [supportEmail, setSupportEmail] = useState("");
   const [downloadMode, setDownloadMode] = useState<"instant" | "email">("instant");
   const [storeCurrency, setStoreCurrency] = useState<Currency>("NGN");
-  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(themeId);
   
   // Credentials update state
   const [adminEmail, setAdminEmail] = useState("");
@@ -1522,9 +1310,6 @@ function SettingsSection() {
         setSupportEmail(data.settings.supportEmail);
         setDownloadMode(data.settings.downloadMode);
         setStoreCurrency((data.settings.currency as Currency) || "NGN");
-        if (data.settings.theme) {
-          setSelectedTheme(data.settings.theme as ThemeId);
-        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -1534,12 +1319,9 @@ function SettingsSection() {
     try {
       const data = await apiFetch<SettingsResponse>("/api/admin/settings", {
         method: "PUT",
-        body: JSON.stringify({ storeName, supportEmail, downloadMode, currency: storeCurrency, theme: selectedTheme }),
+        body: JSON.stringify({ storeName, supportEmail, downloadMode, currency: storeCurrency }),
       });
       setSettings(data.settings);
-      if (selectedTheme !== themeId) {
-        await saveTheme(selectedTheme);
-      }
     } catch (e: any) { alert(e.message); }
     finally { setSaving(false); }
   };
@@ -1580,16 +1362,6 @@ function SettingsSection() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">Store Theme</label>
-            <select value={selectedTheme} onChange={(e) => setSelectedTheme(e.target.value as ThemeId)} className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-white px-4 text-sm outline-none focus:border-[#d86f45]">
-              {themes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.isDark ? "Dark" : "Light"})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">Download access</label>
             <select value={downloadMode} onChange={(e) => setDownloadMode(e.target.value as "instant" | "email")} className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-white px-4 text-sm outline-none focus:border-[#d86f45]">
               <option value="instant">Instant after payment</option>
@@ -1607,7 +1379,6 @@ function SettingsSection() {
         <div className="mt-6 space-y-5">
           <div><p className="text-xs text-[#8b8175]">Store name</p><p className="mt-1 font-semibold">{settings?.storeName ?? "—"}</p></div>
           <div><p className="text-xs text-[#8b8175]">Support email</p><p className="mt-1 font-semibold">{settings?.supportEmail ?? "—"}</p></div>
-          <div><p className="text-xs text-[#8b8175]">Active theme</p><p className="mt-1 font-semibold text-[#d86f45]">{currentTheme.name}</p></div>
           <div><p className="text-xs text-[#8b8175]">Download access</p><p className="mt-1 font-semibold capitalize">{settings?.downloadMode ?? "—"}</p></div>
           <div><p className="text-xs text-[#8b8175]">Currency</p><p className="mt-1 font-semibold">{settings?.currency ?? "—"}</p></div>
         </div>

@@ -298,14 +298,14 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--theme-bg)", color: "var(--theme-text)" }}>
-      <header className="border-b" style={{ backgroundColor: "var(--theme-bg)", borderColor: "var(--theme-border)" }}>
+    <div className="min-h-screen bg-[#f8f4ec] text-[#26332f]">
+      <header className="border-b border-[#e5ddd2] bg-[#f8f4ec]">
         <div className="mx-auto flex h-[66px] max-w-[1180px] items-center justify-between px-3.5 sm:h-[74px] sm:px-6 lg:px-10">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-serif text-[1.15rem] font-semibold tracking-[-0.04em] sm:text-[1.35rem]">
             <img src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" alt="ApexMindReads logo" className="h-8 w-8 shrink-0 object-contain sm:h-9 sm:w-9" />
-            <span className="whitespace-nowrap">ApexMind<span style={{ color: "var(--theme-accent)" }}>Reads</span></span>
+            <span className="whitespace-nowrap">ApexMind<span className="text-[#d86f45]">Reads</span></span>
           </Link>
-          <Link to="/" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.1em] transition hover:opacity-80 sm:text-xs sm:tracking-[0.12em]" style={{ color: "var(--theme-text-muted)" }}>
+          <Link to="/" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.1em] text-[#8b8175] transition hover:text-[#d86f45] sm:text-xs sm:tracking-[0.12em]">
             <ArrowLeft size={14} />
             <span className="hidden sm:inline">Continue shopping</span>
             <span className="sm:hidden">Back to shop</span>
@@ -316,23 +316,23 @@ export default function Checkout() {
       <main className="mx-auto grid max-w-[1180px] gap-8 px-5 py-10 lg:grid-cols-[1fr_390px] lg:px-10 lg:py-16">
         <div>
           <p className="section-kicker">Global Secure Checkout</p>
-          <h1 className="mt-3 font-serif text-5xl leading-[0.88] tracking-[-0.06em] sm:text-6xl" style={{ color: "var(--theme-text)" }}>
+          <h1 className="mt-3 font-serif text-5xl leading-[0.88] tracking-[-0.06em] sm:text-6xl">
             Your journey<br />
             <em>begins here.</em>
           </h1>
-          <p className="mt-5 max-w-lg text-sm leading-6" style={{ color: "var(--theme-text-muted)" }}>
+          <p className="mt-5 max-w-lg text-sm leading-6 text-[#736b61]">
             Complete your purchase securely from anywhere in the world. You'll receive instant download access to your PDF guides immediately after payment.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-10 max-w-[650px] rounded-[1.5rem] border p-6 sm:p-8 shadow-sm" style={{ backgroundColor: "var(--theme-bg-card)", borderColor: "var(--theme-border)" }}>
-            <div className="mb-7 flex items-center justify-between border-b pb-5" style={{ borderColor: "var(--theme-border)" }}>
+          <form onSubmit={handleSubmit} className="mt-10 max-w-[650px] rounded-[1.5rem] border border-[#e5ddd2] bg-[#fffaf2] p-6 sm:p-8">
+            <div className="mb-7 flex items-center justify-between border-b border-[#e5ddd2] pb-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: "var(--theme-text)", color: "var(--theme-bg)" }}>
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
                   1
                 </span>
                 <div>
-                  <h2 className="font-serif text-2xl" style={{ color: "var(--theme-text)" }}>Your details</h2>
-                  <p className="text-xs" style={{ color: "var(--theme-text-muted)" }}>Where should we send your download receipt?</p>
+                  <h2 className="font-serif text-2xl">Your details</h2>
+                  <p className="text-xs text-[#8b8175]">Where should we send your download receipt?</p>
                 </div>
               </div>
 
@@ -351,7 +351,7 @@ export default function Checkout() {
 
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="sm:col-span-2">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em]" style={{ color: "var(--theme-text-muted)" }}>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
                   Email address
                 </span>
                 <input
@@ -360,12 +360,11 @@ export default function Checkout() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="h-12 w-full rounded-xl border px-4 text-sm outline-none"
-                  style={{ backgroundColor: "var(--theme-bg)", borderColor: "var(--theme-border)", color: "var(--theme-text)" }}
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
                 />
               </label>
               <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em]" style={{ color: "var(--theme-text-muted)" }}>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
                   Full name
                 </span>
                 <input
@@ -373,22 +372,20 @@ export default function Checkout() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Amara"
-                  className="h-12 w-full rounded-xl border px-4 text-sm outline-none"
-                  style={{ backgroundColor: "var(--theme-bg)", borderColor: "var(--theme-border)", color: "var(--theme-text)" }}
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
                 />
               </label>
               <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em]" style={{ color: "var(--theme-text-muted)" }}>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
                   Country
                 </span>
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="h-12 w-full rounded-xl border px-4 text-sm outline-none"
-                  style={{ backgroundColor: "var(--theme-bg)", borderColor: "var(--theme-border)", color: "var(--theme-text)" }}
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
                 >
                   {GLOBAL_COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code} className="bg-white text-black">
+                    <option key={c.code} value={c.code}>
                       {c.name}
                     </option>
                   ))}
@@ -396,14 +393,14 @@ export default function Checkout() {
               </label>
             </div>
 
-            <div className="my-8 flex items-center justify-between border-y py-5" style={{ borderColor: "var(--theme-border)" }}>
+            <div className="my-8 flex items-center justify-between border-y border-[#e5ddd2] py-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: "var(--theme-text)", color: "var(--theme-bg)" }}>
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
                   2
                 </span>
                 <div>
-                  <h2 className="font-serif text-2xl" style={{ color: "var(--theme-text)" }}>Payment method</h2>
-                  <p className="text-xs" style={{ color: "var(--theme-text-muted)" }}>International Cards (Visa, Mastercard, Amex), Apple Pay & Bank</p>
+                  <h2 className="font-serif text-2xl">Payment method</h2>
+                  <p className="text-xs text-[#8b8175]">International Cards (Visa, Mastercard, Amex), Apple Pay & Bank</p>
                 </div>
               </div>
               <img
@@ -417,8 +414,7 @@ export default function Checkout() {
             <button
               type="submit"
               disabled={submitting || cart.length === 0}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-full text-xs font-bold uppercase tracking-[0.14em] text-white shadow-md transition hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
-              style={{ backgroundColor: "var(--theme-accent)" }}
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#d86f45] text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#bf5937] active:scale-[0.99] disabled:opacity-60"
             >
               {submitting ? (
                 <span className="inline-flex items-center gap-2">
@@ -431,19 +427,19 @@ export default function Checkout() {
               )}
             </button>
 
-            <div className="mt-4 flex items-center justify-center gap-2 text-[11px]" style={{ color: "var(--theme-text-muted)" }}>
+            <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-[#8b8175]">
               <LockKeyhole size={13} /> 256-bit encrypted secure checkout · Worldwide payments accepted
             </div>
           </form>
         </div>
 
-        <aside className="h-fit rounded-[1.5rem] p-6 shadow-md lg:sticky lg:top-6" style={{ backgroundColor: "var(--theme-text)", color: "var(--theme-bg)" }}>
+        <aside className="h-fit rounded-[1.5rem] bg-[#26332f] p-6 text-[#f8f4ec] lg:sticky lg:top-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.17em]" style={{ color: "var(--theme-accent-badge)" }}>Order summary</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#f0bc58]">Order summary</p>
               <h2 className="mt-2 font-serif text-3xl tracking-[-0.05em]">Your guides</h2>
             </div>
-            <ShoppingBag size={20} style={{ color: "var(--theme-accent-badge)" }} />
+            <ShoppingBag size={20} className="text-[#f0bc58]" />
           </div>
 
           <div className="my-7 space-y-5">
@@ -453,7 +449,7 @@ export default function Checkout() {
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
                   <p className="font-serif text-lg leading-none">{product.title}</p>
                   <div className="flex items-end justify-between gap-2">
-                    <span className="text-xs opacity-70">PDF guide</span>
+                    <span className="text-xs text-[#aeb9b0]">PDF guide</span>
                     <span className="text-sm font-semibold">{formatCurrency(product.price, currency)}</span>
                   </div>
                 </div>
@@ -461,23 +457,23 @@ export default function Checkout() {
             ))}
           </div>
 
-          <div className="space-y-3 border-t pt-5 text-sm" style={{ borderColor: "rgba(255,255,255,0.2)" }}>
-            <div className="flex justify-between opacity-80">
+          <div className="space-y-3 border-t border-[#53625b] pt-5 text-sm">
+            <div className="flex justify-between text-[#bec5bb]">
               <span>Subtotal ({currency})</span>
               <span>{formatCurrency(subtotal, currency)}</span>
             </div>
-            <div className="flex justify-between opacity-80">
+            <div className="flex justify-between text-[#bec5bb]">
               <span>Delivery</span>
-              <span style={{ color: "var(--theme-accent-badge)" }}>Instant PDF Download</span>
+              <span className="text-[#b8c7b2]">Instant PDF Download</span>
             </div>
-            <div className="flex justify-between border-t pt-4 text-lg font-semibold" style={{ borderColor: "rgba(255,255,255,0.2)" }}>
+            <div className="flex justify-between border-t border-[#53625b] pt-4 text-lg font-semibold">
               <span>Total</span>
               <span>{formatCurrency(subtotal, currency)}</span>
             </div>
           </div>
 
-          <div className="mt-7 flex gap-2 text-xs leading-5 opacity-80">
-            <ShieldCheck size={16} className="mt-0.5 shrink-0" style={{ color: "var(--theme-accent-badge)" }} /> Worldwide secure payment & instant digital delivery.
+          <div className="mt-7 flex gap-2 text-xs leading-5 text-[#bec5bb]">
+            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#b8c7b2]" /> Worldwide secure payment & instant digital delivery.
           </div>
         </aside>
       </main>

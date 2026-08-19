@@ -119,7 +119,6 @@ export const StoreSettingsSchema = z.object({
   supportEmail: z.string().email(),
   downloadMode: z.enum(["instant", "email"]),
   currency: z.string(),
-  theme: z.string().optional(),
 });
 
 export type StoreSettings = z.infer<typeof StoreSettingsSchema>;

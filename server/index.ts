@@ -34,8 +34,7 @@ export function createServer() {
   });
   router.get("/demo", handleDemo);
 
-  // ─── Public product & store settings routes ────────────
-  router.get("/settings", handleGetSettings);
+  // ─── Public product routes ─────────────────────────────
   router.get("/products", handleListProducts);
   router.get("/products/:slug", handleGetProduct);
 

@@ -54,41 +54,40 @@ export default function Index() {
   return (
     <StorefrontShell cart={cart} onRemove={removeFromCart}>
       {/* ─── Hero Section ─── */}
-      <section className="relative overflow-hidden border-b transition-colors" style={{ backgroundColor: "var(--theme-bg-hero)", borderColor: "var(--theme-border)" }}>
+      <section className="relative overflow-hidden border-b border-[#e5ddd2] bg-[#f8f4ec]">
         <div className="mx-auto max-w-[1320px] px-4 pb-10 pt-10 sm:px-5 sm:pb-14 sm:pt-14 lg:px-10 lg:pb-16 lg:pt-16">
           <div className="mx-auto max-w-[780px] text-center">
-            <h1 className="font-serif text-[2.25rem] leading-[1.06] tracking-[-0.04em] min-[380px]:text-[2.55rem] min-[420px]:text-[2.85rem] sm:text-[4.7rem] sm:leading-[0.92] sm:tracking-[-0.065em] lg:text-[5.7rem]" style={{ color: "var(--theme-text)" }}>
+            <h1 className="font-serif text-[2.25rem] leading-[1.06] tracking-[-0.04em] text-[#26332f] min-[380px]:text-[2.55rem] min-[420px]:text-[2.85rem] sm:text-[4.7rem] sm:leading-[0.92] sm:tracking-[-0.065em] lg:text-[5.7rem]">
               <span className="block sm:inline">Practical Guides for </span>
-              <span className="relative inline-block" style={{ color: "var(--theme-accent)" }}>
-                Real-Life Problems
-                <span className="absolute -bottom-1 left-1/2 h-1.5 w-[92%] -translate-x-1/2 rotate-[-2deg] rounded-[50%] border-b-2" style={{ borderColor: "var(--theme-accent-badge)" }} />.
+              <span className="relative inline-block text-[#d86f45]">
+                Real-Life Problems<span className="absolute -bottom-1 left-1/2 h-1.5 w-[92%] -translate-x-1/2 rotate-[-2deg] rounded-[50%] border-b-2 border-[#f0bc58]" />.
               </span>
             </h1>
-            <p className="mx-auto mt-5 max-w-[580px] text-sm leading-6 sm:mt-6 sm:text-base sm:leading-7" style={{ color: "var(--theme-text-muted)" }}>
+            <p className="mx-auto mt-5 max-w-[580px] text-sm leading-6 text-[#736b61] sm:mt-6 sm:text-base sm:leading-7">
               Simple, actionable digital guides designed to help you solve everyday challenges in money, relationships, personal growth, parenting, career and more.
             </p>
             <div className="mt-7 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <a href="#shop" className="group flex items-center justify-center gap-3 rounded-full px-5 py-3.5 text-xs font-bold uppercase tracking-[0.13em] text-white transition hover:opacity-90 shadow-md" style={{ backgroundColor: "var(--theme-accent)" }}>
+              <a href="#shop" className="group flex items-center justify-center gap-3 rounded-full bg-[#d86f45] px-5 py-3.5 text-xs font-bold uppercase tracking-[0.13em] text-white transition hover:bg-[#bf5937]">
                 Explore the Collection <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
               </a>
-              <a href="#focus-categories" className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] transition hover:opacity-80" style={{ color: "var(--theme-text-muted)" }}>
+              <a href="#focus-categories" className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] transition hover:text-[#d86f45]">
                 Explore Categories <ArrowRight size={14} />
               </a>
             </div>
-            <div className="mx-auto mt-8 flex max-w-[430px] items-center justify-center gap-5 border-t pt-5 sm:gap-8" style={{ borderColor: "var(--theme-border)" }}>
+            <div className="mx-auto mt-8 flex max-w-[430px] items-center justify-center gap-5 border-t border-[#e5ddd2] pt-5 sm:gap-8">
               <div>
                 <p className="font-serif text-3xl tracking-[-0.05em]">{products.length > 0 ? `${products.length}+` : "50+"}</p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em]" style={{ color: "var(--theme-text-muted)" }}>Premium guides</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">Premium guides</p>
               </div>
               <div>
-                <p className="font-serif text-3xl tracking-[-0.05em]">4.9<span className="text-lg" style={{ color: "var(--theme-accent)" }}>/5</span></p>
-                <p className="mt-1 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.13em]" style={{ color: "var(--theme-text-muted)" }}>
-                  <Star size={11} fill="currentColor" style={{ color: "var(--theme-star)" }} /> Reader rated
+                <p className="font-serif text-3xl tracking-[-0.05em]">4.9<span className="text-lg text-[#d86f45]">/5</span></p>
+                <p className="mt-1 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">
+                  <Star size={11} fill="currentColor" className="text-[#e4a83d]" /> Reader rated
                 </p>
               </div>
               <div>
                 <p className="font-serif text-3xl tracking-[-0.05em]">12k</p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em]" style={{ color: "var(--theme-text-muted)" }}>Empowered readers</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">Empowered readers</p>
               </div>
             </div>
           </div>
@@ -102,34 +101,25 @@ export default function Index() {
             <p className="section-kicker">Our Collection</p>
             <h2 className="section-title mt-3">Wisdom for every<br /><em>chapter of your life.</em></h2>
           </div>
-          <p className="max-w-sm text-sm leading-6 lg:pb-1" style={{ color: "var(--theme-text-muted)" }}>
+          <p className="max-w-sm text-sm leading-6 text-[#736b61] lg:pb-1">
             Expertly curated digital books designed to offer clarity, inspire growth, and provide actionable advice for your most important decisions.
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-2 border-y py-5 sm:flex sm:flex-wrap" style={{ borderColor: "var(--theme-border)" }}>
+        <div className="mt-10 grid grid-cols-2 gap-2 border-y border-[#e5ddd2] py-5 sm:flex sm:flex-wrap">
           <button 
             onClick={() => setActiveCategory("All guides")} 
-            className="truncate rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition sm:px-4 sm:text-[11px] border"
-            style={activeCategory === "All guides" 
-              ? { backgroundColor: "var(--theme-text)", color: "var(--theme-bg)", borderColor: "var(--theme-text)" }
-              : { backgroundColor: "var(--theme-bg-card)", borderColor: "var(--theme-border)", color: "var(--theme-text-muted)" }
-            }
+            className={`truncate rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition sm:px-4 sm:text-[11px] ${activeCategory === "All guides" ? "bg-[#26332f] text-[#fffaf2]" : "bg-white border border-[#d8d0c6] text-[#736b61] hover:bg-[#eee7dc]"}`}
           >
             All guides ({products.length})
           </button>
           {categories.map((category) => {
             const count = getCategoryCount(category.name, category.slug);
-            const isSelected = activeCategory === category.name;
             return (
               <button 
                 key={category.slug} 
                 onClick={() => setActiveCategory(category.name)} 
-                className="truncate rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition sm:px-4 sm:text-[11px] border"
-                style={isSelected
-                  ? { backgroundColor: "var(--theme-text)", color: "var(--theme-bg)", borderColor: "var(--theme-text)" }
-                  : { backgroundColor: "var(--theme-bg-card)", borderColor: "var(--theme-border)", color: "var(--theme-text-muted)" }
-                }
+                className={`truncate rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition sm:px-4 sm:text-[11px] ${activeCategory === category.name ? "bg-[#26332f] text-[#fffaf2]" : "bg-white border border-[#d8d0c6] text-[#736b61] hover:bg-[#eee7dc]"}`}
               >
                 {category.name} ({count})
               </button>
@@ -144,13 +134,12 @@ export default function Index() {
             ))}
           </div>
         ) : (
-          <div className="mt-10 rounded-3xl border border-dashed px-6 py-20 text-center" style={{ borderColor: "var(--theme-border)", backgroundColor: "var(--theme-bg-card)" }}>
+          <div className="mt-10 rounded-3xl border border-dashed border-[#d8d0c6] px-6 py-20 text-center">
             <p className="font-serif text-3xl">No guides found in this category.</p>
-            <p className="mt-3 text-sm" style={{ color: "var(--theme-text-muted)" }}>Try selecting another category or browsing all available guides.</p>
+            <p className="mt-3 text-sm text-[#736b61]">Try selecting another category or browsing all available guides.</p>
             <button 
               onClick={() => { setQuery(""); setActiveCategory("All guides"); }} 
-              className="mt-6 rounded-full px-5 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:opacity-90 shadow-sm"
-              style={{ backgroundColor: "var(--theme-accent)" }}
+              className="mt-6 rounded-full bg-[#26332f] px-5 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[#3b4b45]"
             >
               Show all guides
             </button>
@@ -160,8 +149,7 @@ export default function Index() {
         <div className="mt-12 text-center">
           <button 
             onClick={() => { setQuery(""); setActiveCategory("All guides"); }} 
-            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] transition hover:opacity-80"
-            style={{ color: "var(--theme-accent)" }}
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45] transition hover:text-[#26332f]"
           >
             View all guides <ChevronRight size={16} />
           </button>
@@ -169,7 +157,7 @@ export default function Index() {
       </section>
 
       {/* ─── Discover What Matters Most To You Today ─── */}
-      <section id="focus-categories" className="scroll-mt-20 border-y px-5 py-16 lg:px-10 lg:py-20" style={{ backgroundColor: "var(--theme-bg-muted)", borderColor: "var(--theme-border)" }}>
+      <section id="focus-categories" className="scroll-mt-20 border-y border-[#e5ddd2] bg-[#eee7dc] px-5 py-16 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-[1320px]">
           <div>
             <p className="section-kicker">Find Your Focus</p>
@@ -218,71 +206,71 @@ export default function Index() {
       </section>
 
       {/* ─── Story / Why ApexMindReads ─── */}
-      <section id="story" className="scroll-mt-20 border-y px-5 py-20 lg:px-10 lg:py-28" style={{ backgroundColor: "var(--theme-text)", borderColor: "var(--theme-border)", color: "var(--theme-bg)" }}>
+      <section id="story" className="scroll-mt-20 border-y border-[#e5ddd2] bg-[#26332f] px-5 py-20 text-[#f8f4ec] lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-[1320px] gap-14 lg:grid-cols-[.8fr_1.2fr] lg:items-center lg:gap-28">
           <div>
-            <p className="section-kicker" style={{ color: "var(--theme-accent-badge)" }}>Why ApexMindReads</p>
+            <p className="section-kicker text-[#f0bc58]">Why ApexMindReads</p>
             <h2 className="mt-4 max-w-md font-serif text-[3.6rem] leading-[0.88] tracking-[-0.07em] sm:text-[5rem]">
-              Transformative insights, <em style={{ color: "var(--theme-accent)" }}>beautifully delivered.</em>
+              Transformative insights, <em className="text-[#e58a61]">beautifully delivered.</em>
             </h2>
           </div>
           <div className="grid gap-9 sm:grid-cols-2">
-            <div className="border-t pt-5" style={{ borderColor: "rgba(255,255,255,0.2)" }}>
-              <Zap size={22} style={{ color: "var(--theme-accent-badge)" }} />
+            <div className="border-t border-[#53625b] pt-5">
+              <Zap size={22} className="text-[#f0bc58]" />
               <h3 className="mt-5 font-serif text-2xl">Rooted in Real Experience</h3>
-              <p className="mt-3 text-sm leading-6 opacity-80">Our guides are crafted with deep empathy and practical wisdom. Dive in, find the exact guidance you need, and start experiencing meaningful change.</p>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">Our guides are crafted with deep empathy and practical wisdom. Dive in, find the exact guidance you need, and start experiencing meaningful change.</p>
             </div>
-            <div className="border-t pt-5" style={{ borderColor: "rgba(255,255,255,0.2)" }}>
-              <ShieldCheck size={22} style={{ color: "var(--theme-accent-badge)" }} />
+            <div className="border-t border-[#53625b] pt-5">
+              <ShieldCheck size={22} className="text-[#f0bc58]" />
               <h3 className="mt-5 font-serif text-2xl">Instant Access Anywhere</h3>
-              <p className="mt-3 text-sm leading-6 opacity-80">Secure your purchase and receive immediate lifetime access to your digital library. Your wisdom is always just a tap away, whenever you need it.</p>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">Secure your purchase and receive immediate lifetime access to your digital library. Your wisdom is always just a tap away, whenever you need it.</p>
             </div>
-            <div className="border-t pt-5" style={{ borderColor: "rgba(255,255,255,0.2)" }}>
-              <Sparkles size={22} style={{ color: "var(--theme-accent-badge)" }} />
+            <div className="border-t border-[#53625b] pt-5">
+              <Sparkles size={22} className="text-[#f0bc58]" />
               <h3 className="mt-5 font-serif text-2xl">Actionable & Empowering</h3>
-              <p className="mt-3 text-sm leading-6 opacity-80">Every book is designed to move you forward. Expect thought-provoking exercises, clear strategies, and gentle nudges toward a better you.</p>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">Every book is designed to move you forward. Expect thought-provoking exercises, clear strategies, and gentle nudges toward a better you.</p>
             </div>
-            <div className="border-t pt-5" style={{ borderColor: "rgba(255,255,255,0.2)" }}>
-              <span className="font-serif text-2xl" style={{ color: "var(--theme-accent-badge)" }}>✦</span>
+            <div className="border-t border-[#53625b] pt-5">
+              <span className="font-serif text-2xl text-[#f0bc58]">✦</span>
               <h3 className="mt-5 font-serif text-2xl">Designed for Your Growth</h3>
-              <p className="mt-3 text-sm leading-6 opacity-80">We believe in authentic personal development. Our mission isn't perfection—it's helping you cultivate a richer, more peaceful, and fulfilling life.</p>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">We believe in authentic personal development. Our mission isn't perfection—it's helping you cultivate a richer, more peaceful, and fulfilling life.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Testimonials ─── */}
+      {/* ─── Testimonials (Categories & Results Focused) ─── */}
       <section className="mx-auto max-w-[1320px] px-5 py-20 lg:px-10 lg:py-28">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-kicker">Trusted by Thousands</p>
             <h2 className="section-title mt-3">Real stories from people<br /><em>just like you.</em></h2>
           </div>
-          <div className="flex gap-1 pb-1" style={{ color: "var(--theme-star)" }}>
+          <div className="flex gap-1 pb-1 text-[#e4a83d]">
             {[1, 2, 3, 4, 5].map((item) => <Star key={item} size={15} fill="currentColor" />)}
           </div>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {testimonials.map((testimonial) => (
-            <blockquote key={testimonial.name} className="flex min-h-[280px] flex-col justify-between rounded-[1.4rem] border p-6 sm:p-7 shadow-sm transition hover:-translate-y-1" style={{ backgroundColor: "var(--theme-bg-card)", borderColor: "var(--theme-border)" }}>
+            <blockquote key={testimonial.name} className="flex min-h-[280px] flex-col justify-between rounded-[1.4rem] border border-[#e5ddd2] bg-[#fffaf2] p-6 sm:p-7 shadow-sm transition hover:-translate-y-1">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em]" style={{ backgroundColor: "var(--theme-bg-muted)", color: "var(--theme-text)" }}>
+                  <span className="inline-flex rounded-full bg-[#f2ecdf] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#26332f]">
                     {testimonial.category}
                   </span>
-                  <div className="flex gap-1" style={{ color: "var(--theme-star)" }}>
+                  <div className="flex gap-1 text-[#e4a83d]">
                     {[1, 2, 3, 4, 5].map((item) => <Star key={item} size={12} fill="currentColor" />)}
                   </div>
                 </div>
                 <p className="mt-6 font-serif text-[1.35rem] leading-[1.12] tracking-[-0.03em]">“{testimonial.quote}”</p>
               </div>
-              <footer className="mt-8 flex items-center gap-3 border-t pt-4" style={{ borderColor: "var(--theme-border)" }}>
+              <footer className="mt-8 flex items-center gap-3 border-t border-[#f0eae0] pt-4">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm" style={{ backgroundColor: testimonial.color }}>
                   {testimonial.initials}
                 </span>
                 <span>
                   <cite className="block text-sm font-bold not-italic">{testimonial.name}</cite>
-                  <span className="mt-0.5 block text-xs" style={{ color: "var(--theme-text-muted)" }}>{testimonial.role}</span>
+                  <span className="mt-0.5 block text-xs text-[#8b8175]">{testimonial.role}</span>
                 </span>
               </footer>
             </blockquote>
@@ -291,34 +279,34 @@ export default function Index() {
       </section>
 
       {/* ─── Newsletter ─── */}
-      <section className="mx-5 mb-16 overflow-hidden rounded-[1.6rem] px-6 py-14 sm:px-12 lg:mx-10 lg:mb-24 lg:px-20 lg:py-16 shadow-lg" style={{ backgroundColor: "var(--theme-accent)", color: "#ffffff" }}>
+      <section className="mx-5 mb-16 overflow-hidden rounded-[1.6rem] bg-[#f0bc58] px-6 py-14 sm:px-12 lg:mx-10 lg:mb-24 lg:px-20 lg:py-16">
         <div className="mx-auto flex max-w-[1120px] flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-white/80">Join Our Inner Circle</p>
-            <h2 className="mt-3 max-w-lg font-serif text-[3.3rem] leading-[0.88] tracking-[-0.07em] text-white sm:text-[4.5rem]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#26332f]/60">Join Our Inner Circle</p>
+            <h2 className="mt-3 max-w-lg font-serif text-[3.3rem] leading-[0.88] tracking-[-0.07em] text-[#26332f] sm:text-[4.5rem]">
               Inspiration delivered<br /><em>directly to you.</em>
             </h2>
-            <p className="mt-5 max-w-md text-sm leading-6 text-white/90">
+            <p className="mt-5 max-w-md text-sm leading-6 text-[#26332f]/70">
               Receive early access to our newest guides, exclusive insights, and gentle reminders to prioritize your growth.
             </p>
           </div>
           <div className="w-full max-w-md">
             {subscribed ? (
-              <div className="flex items-center gap-3 rounded-2xl p-4 text-white" style={{ backgroundColor: "rgba(0,0,0,0.25)" }}>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black"><Check size={17} /></span>
+              <div className="flex items-center gap-3 rounded-2xl bg-[#26332f] p-4 text-[#fffaf2]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#b8c7b2] text-[#26332f]"><Check size={17} /></span>
                 <div>
                   <p className="font-semibold">You are on the list.</p>
-                  <p className="mt-1 text-xs opacity-80">Welcome to the family. Watch your inbox for inspiration.</p>
+                  <p className="mt-1 text-xs text-[#bec5bb]">Welcome to the family. Watch your inbox for inspiration.</p>
                 </div>
               </div>
             ) : (
               <form onSubmit={(event) => { event.preventDefault(); if (email) setSubscribed(true); }} className="flex flex-col gap-2 sm:flex-row">
                 <label className="sr-only" htmlFor="newsletter-email">Email address</label>
-                <input id="newsletter-email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" className="h-14 min-w-0 flex-1 rounded-full border border-white/30 bg-white/20 px-5 text-sm text-white outline-none placeholder:text-white/70 focus:border-white focus:bg-white/30" />
-                <button type="submit" className="h-14 rounded-full px-6 text-xs font-bold uppercase tracking-[0.12em] transition hover:opacity-90 shadow-md" style={{ backgroundColor: "var(--theme-text)", color: "var(--theme-bg)" }}>Join the list</button>
+                <input id="newsletter-email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" className="h-14 min-w-0 flex-1 rounded-full border border-[#26332f]/20 bg-[#f8f4ec]/70 px-5 text-sm text-[#26332f] outline-none placeholder:text-[#736b61] focus:border-[#26332f]" />
+                <button type="submit" className="h-14 rounded-full bg-[#26332f] px-6 text-xs font-bold uppercase tracking-[0.12em] text-[#fffaf2] transition hover:bg-[#d86f45]">Join the list</button>
               </form>
             )}
-            <p className="mt-3 text-[10px] text-white/75">We respect your peace. Unsubscribe at any time.</p>
+            <p className="mt-3 text-[10px] text-[#26332f]/55">We respect your peace. Unsubscribe at any time.</p>
           </div>
         </div>
       </section>
