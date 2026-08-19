@@ -144,11 +144,12 @@ export async function getSettings(): Promise<StoreSettings> {
     supportEmail: "support@apexmindreads.com",
     downloadMode: "instant",
     currency: "NGN",
+    theme: "warm-editorial",
   };
   try {
     const doc = await adminDb.collection("settings").doc("store").get();
     if (doc.exists) {
-      return doc.data() as StoreSettings;
+      return { ...defaults, ...doc.data() } as StoreSettings;
     }
     await adminDb.collection("settings").doc("store").set(defaults).catch(() => {});
     return defaults;

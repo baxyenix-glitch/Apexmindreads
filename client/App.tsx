@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import MyOrders from "./pages/MyOrders";
 import { CurrencyProvider } from "@/lib/currency";
+import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
 import { AdminAuthProvider, RequireAdmin } from "@/lib/admin-auth";
 import NotFound from "./pages/NotFound";
@@ -26,10 +27,11 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <CurrencyProvider>
-      <AuthProvider>
-        <AdminAuthProvider>
-          <TooltipProvider>
+    <ThemeProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <AdminAuthProvider>
+            <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -54,6 +56,7 @@ const App = () => (
         </AdminAuthProvider>
       </AuthProvider>
     </CurrencyProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
