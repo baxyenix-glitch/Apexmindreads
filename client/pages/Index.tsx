@@ -1,592 +1,315 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Check,
-  ChevronRight,
-  Download,
-  Eye,
-  Filter,
-  Globe,
-  LockKeyhole,
-  Search,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Star,
-  X,
-  Zap,
-} from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Check, ChevronRight, Search, ShieldCheck, Sparkles, Star, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
 import { StorefrontShell } from "@/components/storefront/StorefrontShell";
 import { ProductCard } from "@/components/storefront/ProductCard";
-import { CoverArt } from "@/components/storefront/CoverArt";
 import { categories, useProducts, testimonials, type Product } from "@/lib/store";
-import { formatCurrency, useCurrency } from "@/lib/currency";
 import { loadCart, saveCart } from "@/lib/cart";
-
-type SortOption = "featured" | "price-asc" | "price-desc" | "rating" | "newest";
 
 export default function Index() {
   const [cart, setCart] = useState<Product[]>(loadCart);
   useEffect(() => saveCart(cart), [cart]);
-
   const [activeCategory, setActiveCategory] = useState("All guides");
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("featured");
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
-
+  
   const { products, loading } = useProducts();
-  const { currency } = useCurrency();
-  const navigate = useNavigate();
 
-  const addToCart = (product: Product) =>
-    setCart((current) =>
-      current.some((item) => item.id === product.id) ? current : [...current, product]
-    );
-
-  const removeFromCart = (productId: string) =>
-    setCart((current) => current.filter((item) => item.id !== productId));
-
-  const handleBuyNow = (product: Product) => {
-    addToCart(product);
-    navigate("/checkout");
-  };
-
+  const addToCart = (product: Product) => setCart((current) => current.some((item) => item.id === product.id) ? current : [...current, product]);
+  const removeFromCart = (productId: string) => setCart((current) => current.filter((item) => item.id !== productId));
+  
   const getCategoryCount = (catName: string, catSlug?: string) => {
     if (!products || products.length === 0) return 0;
     const targetName = catName.trim().toLowerCase();
     const targetSlug = (catSlug || catName).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
+    
     return products.filter((p) => {
       if (!p) return false;
       const pCat = (p.category || "").trim().toLowerCase();
       const pSlug = (p.categorySlug || "").trim().toLowerCase();
       const pSlugGenerated = pCat.replace(/[^a-z0-9]+/g, "-");
-
+      
       return pCat === targetName || pSlug === targetSlug || pSlugGenerated === targetSlug;
     }).length;
   };
 
-  // Top featured hero product (fallback to first bestseller or first item)
-  const heroFeatured = useMemo(() => {
-    if (products.length === 0) return null;
-    return products.find((p) => p.featured || p.bestseller) || products[0];
-  }, [products]);
+  const filteredProducts = useMemo(() => products.filter((product) => {
+    if (!product) return false;
+    const pCat = (product.category || "").trim().toLowerCase();
+    const pSlug = (product.categorySlug || "").trim().toLowerCase();
+    const activeLower = activeCategory.trim().toLowerCase();
+    const activeSlug = activeLower.replace(/[^a-z0-9]+/g, "-");
 
-  const filteredAndSortedProducts = useMemo(() => {
-    let result = products.filter((product) => {
-      if (!product) return false;
-      const pCat = (product.category || "").trim().toLowerCase();
-      const pSlug = (product.categorySlug || "").trim().toLowerCase();
-      const activeLower = activeCategory.trim().toLowerCase();
-      const activeSlug = activeLower.replace(/[^a-z0-9]+/g, "-");
+    const matchesCategory = activeCategory === "All guides" || 
+      pCat === activeLower || 
+      pSlug === activeSlug || 
+      pCat.replace(/[^a-z0-9]+/g, "-") === activeSlug;
 
-      const matchesCategory =
-        activeCategory === "All guides" ||
-        pCat === activeLower ||
-        pSlug === activeSlug ||
-        pCat.replace(/[^a-z0-9]+/g, "-") === activeSlug;
-
-      const normalizedQuery = query.trim().toLowerCase();
-      const matchesQuery =
-        !normalizedQuery ||
-        `${product.title} ${product.description} ${product.category}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-
-      return matchesCategory && matchesQuery;
-    });
-
-    // Apply sorting
-    result = [...result].sort((a, b) => {
-      if (sortBy === "price-asc") return a.price - b.price;
-      if (sortBy === "price-desc") return b.price - a.price;
-      if (sortBy === "rating") return b.rating - a.rating;
-      if (sortBy === "newest") return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
-      // default: featured first
-      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-    });
-
-    return result;
-  }, [products, activeCategory, query, sortBy]);
-
-  const scrollToShopWithCategory = (catName: string) => {
-    setActiveCategory(catName);
-    const el = document.getElementById("shop");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+    const normalizedQuery = query.trim().toLowerCase();
+    const matchesQuery = !normalizedQuery || `${product.title} ${product.description} ${product.category}`.toLowerCase().includes(normalizedQuery);
+    return matchesCategory && matchesQuery;
+  }), [products, activeCategory, query]);
 
   return (
     <StorefrontShell cart={cart} onRemove={removeFromCart}>
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* HERO SECTION */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden border-b border-[#e5ddd2] bg-gradient-to-b from-[#fcfbf9] via-[#f8f4ec] to-[#f4ede2] pt-8 pb-14 sm:pt-12 sm:pb-20 lg:pt-16 lg:pb-24">
-        {/* Ambient warm radial glow */}
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-[#d86f45]/10 via-[#f0bc58]/10 to-transparent blur-3xl" />
-
-        <div className="relative mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-10">
-          <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-            {/* Left Content Column */}
-            <div className="text-center lg:text-left">
-              {/* Trust Badge Pill */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#d8d0c6]/70 bg-white/90 px-3.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#736b61] shadow-sm backdrop-blur-md sm:text-[11px]">
-                <span className="flex h-2 w-2 rounded-full bg-[#5e8c67] animate-pulse" />
-                <span>Instant Digital Guides</span>
-                <span className="text-[#c2b8aa]">·</span>
-                <span className="text-[#d86f45]">4.9★ Rated</span>
+      {/* ─── Hero Section ─── */}
+      <section className="relative overflow-hidden border-b border-[#e5ddd2] bg-[#f8f4ec]">
+        <div className="mx-auto max-w-[1320px] px-4 pb-10 pt-10 sm:px-5 sm:pb-14 sm:pt-14 lg:px-10 lg:pb-16 lg:pt-16">
+          <div className="mx-auto max-w-[780px] text-center">
+            <h1 className="font-serif text-[2.25rem] leading-[1.06] tracking-[-0.04em] text-[#26332f] min-[380px]:text-[2.55rem] min-[420px]:text-[2.85rem] sm:text-[4.7rem] sm:leading-[0.92] sm:tracking-[-0.065em] lg:text-[5.7rem]">
+              <span className="block sm:inline">Practical Guides for </span>
+              <span className="relative inline-block text-[#d86f45]">
+                Real-Life Problems<span className="absolute -bottom-1 left-1/2 h-1.5 w-[92%] -translate-x-1/2 rotate-[-2deg] rounded-[50%] border-b-2 border-[#f0bc58]" />.
+              </span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-[580px] text-sm leading-6 text-[#736b61] sm:mt-6 sm:text-base sm:leading-7">
+              Simple, actionable digital guides designed to help you solve everyday challenges in money, relationships, personal growth, parenting, career and more.
+            </p>
+            <div className="mt-7 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <a href="#shop" className="group flex items-center justify-center gap-3 rounded-full bg-[#d86f45] px-5 py-3.5 text-xs font-bold uppercase tracking-[0.13em] text-white transition hover:bg-[#bf5937]">
+                Explore the Collection <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              </a>
+              <a href="#focus-categories" className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] transition hover:text-[#d86f45]">
+                Explore Categories <ArrowRight size={14} />
+              </a>
+            </div>
+            <div className="mx-auto mt-8 flex max-w-[430px] items-center justify-center gap-5 border-t border-[#e5ddd2] pt-5 sm:gap-8">
+              <div>
+                <p className="font-serif text-3xl tracking-[-0.05em]">{products.length > 0 ? `${products.length}+` : "50+"}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">Premium guides</p>
               </div>
-
-              {/* Main Headline */}
-              <h1 className="mt-5 font-serif text-[2.4rem] leading-[1.06] tracking-[-0.045em] text-[#26332f] min-[380px]:text-[2.75rem] min-[420px]:text-[3rem] sm:text-[4.5rem] sm:leading-[0.92] sm:tracking-[-0.065em] lg:text-[5.4rem]">
-                <span className="block sm:inline">Practical Guides for </span>
-                <span className="relative inline-block text-[#d86f45]">
-                  Real-Life Problems
-                  <span className="absolute -bottom-1 left-1/2 h-1.5 w-[94%] -translate-x-1/2 rotate-[-1.5deg] rounded-[50%] border-b-[3px] border-[#f0bc58]" />
-                </span>
-                .
-              </h1>
-
-              {/* Sub-headline */}
-              <p className="mx-auto mt-6 max-w-[620px] text-sm leading-relaxed text-[#736b61] sm:text-base sm:leading-7 lg:mx-0">
-                Simple, actionable digital guides designed to help you solve everyday challenges in
-                money, relationships, personal growth, parenting, career and more.
-              </p>
-
-              {/* Trending Topic Quick Pills */}
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs font-semibold lg:justify-start">
-                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8b8175]">
-                  Trending:
-                </span>
-                {categories.slice(0, 4).map((c) => (
-                  <button
-                    key={c.slug}
-                    onClick={() => scrollToShopWithCategory(c.name)}
-                    className="rounded-full border border-[#d8d0c6]/80 bg-white/80 px-3 py-1 text-xs text-[#26332f] transition-all hover:border-[#d86f45] hover:bg-[#d86f45] hover:text-white"
-                  >
-                    {c.name}
-                  </button>
-                ))}
+              <div>
+                <p className="font-serif text-3xl tracking-[-0.05em]">4.9<span className="text-lg text-[#d86f45]">/5</span></p>
+                <p className="mt-1 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">
+                  <Star size={11} fill="currentColor" className="text-[#e4a83d]" /> Reader rated
+                </p>
               </div>
-
-              {/* Primary Call to Action Buttons */}
-              <div className="mt-8 flex flex-col items-center justify-center gap-3.5 sm:flex-row lg:justify-start">
-                <a
-                  href="#shop"
-                  className="group flex h-13 w-full items-center justify-center gap-2.5 rounded-full bg-[#d86f45] px-7 text-xs font-extrabold uppercase tracking-[0.13em] text-white shadow-[0_12px_24px_-8px_rgba(216,111,69,0.45)] transition-all hover:bg-[#bf5937] hover:shadow-[0_16px_32px_-8px_rgba(216,111,69,0.55)] active:scale-[0.99] sm:w-auto"
-                >
-                  Explore Collection
-                  <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-                </a>
-                <a
-                  href="#shop"
-                  onClick={() => {
-                    setSortBy("featured");
-                    setActiveCategory("All guides");
-                  }}
-                  className="flex h-13 w-full items-center justify-center gap-2 rounded-full border border-[#26332f]/20 bg-white/70 px-6 text-xs font-bold uppercase tracking-[0.12em] text-[#26332f] backdrop-blur-md transition-colors hover:bg-white hover:border-[#26332f] sm:w-auto"
-                >
-                  <Sparkles size={14} className="text-[#e4a83d]" /> View Bestsellers
-                </a>
-              </div>
-
-              {/* Social Proof & Metrics */}
-              <div className="mx-auto mt-10 grid max-w-[460px] grid-cols-3 gap-4 border-t border-[#e5ddd2]/80 pt-6 text-center lg:mx-0 lg:text-left">
-                <div>
-                  <p className="font-serif text-2xl font-bold tracking-tight text-[#26332f] sm:text-3xl">
-                    {products.length > 0 ? `${products.length}+` : "50+"}
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175]">
-                    Digital Guides
-                  </p>
-                </div>
-                <div>
-                  <p className="font-serif text-2xl font-bold tracking-tight text-[#26332f] sm:text-3xl">
-                    4.9<span className="text-base text-[#d86f45]">/5</span>
-                  </p>
-                  <p className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175] lg:justify-start">
-                    <Star size={11} fill="currentColor" className="text-[#e4a83d]" /> 12k+ Reviews
-                  </p>
-                </div>
-                <div>
-                  <p className="font-serif text-2xl font-bold tracking-tight text-[#26332f] sm:text-3xl">
-                    100%
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175]">
-                    Instant Access
-                  </p>
-                </div>
+              <div>
+                <p className="font-serif text-3xl tracking-[-0.05em]">12k</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">Empowered readers</p>
               </div>
             </div>
-
-            {/* Right Showcase Column (Featured 3D Book Card) */}
-            {heroFeatured && (
-              <div className="relative mx-auto w-full max-w-[420px] lg:mx-0 lg:max-w-none">
-                {/* Decorative Glowing Card Background */}
-                <div className="relative rounded-[2rem] border border-white/60 bg-gradient-to-br from-white/90 via-[#f8f5ee]/90 to-[#ede5d8]/80 p-6 shadow-[0_24px_50px_-20px_rgba(38,51,47,0.18)] backdrop-blur-xl sm:p-8">
-                  {/* Floating Top Tag */}
-                  <div className="mb-5 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#26332f] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-                      <Sparkles size={11} className="text-[#f0bc58]" /> Editor's Choice
-                    </span>
-                    <span className="text-xs font-semibold text-[#8b8175]">
-                      {heroFeatured.category}
-                    </span>
-                  </div>
-
-                  {/* 3D Cover Art */}
-                  <div className="group relative mx-auto w-full max-w-[260px] cursor-pointer">
-                    <Link to={`/products/${heroFeatured.slug}`}>
-                      <CoverArt
-                        cover={heroFeatured.cover}
-                        imageUrl={heroFeatured.imageUrl}
-                        className="rounded-[1.25rem] shadow-[0_20px_40px_-16px_rgba(38,51,47,0.35)] transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-[1deg]"
-                      />
-                    </Link>
-                  </div>
-
-                  {/* Book Card Bottom Details */}
-                  <div className="mt-6 text-center sm:text-left">
-                    <Link
-                      to={`/products/${heroFeatured.slug}`}
-                      className="block font-serif text-xl font-semibold leading-tight text-[#26332f] transition-colors hover:text-[#d86f45] sm:text-2xl"
-                    >
-                      {heroFeatured.title}
-                    </Link>
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-[#736b61]">
-                      {heroFeatured.description}
-                    </p>
-
-                    <div className="mt-5 flex items-center justify-between border-t border-[#e2dad0] pt-4">
-                      <div>
-                        <span className="font-serif text-2xl font-bold text-[#26332f]">
-                          {formatCurrency(heroFeatured.price, currency)}
-                        </span>
-                        {heroFeatured.oldPrice && (
-                          <span className="ml-2 text-xs text-[#a99d91] line-through">
-                            {formatCurrency(heroFeatured.oldPrice, currency)}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleBuyNow(heroFeatured)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-[#26332f] px-4 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white transition hover:bg-[#d86f45]"
-                      >
-                        <ShoppingBag size={13} /> Buy Guide
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* CATALOG & SHOP SECTION */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <section id="shop" className="scroll-mt-20 mx-auto max-w-[1320px] px-4 py-16 sm:px-6 lg:px-10 lg:py-24">
-        {/* Section Header */}
+      {/* ─── Collection / Shop Grid ─── */}
+      <section id="shop" className="scroll-mt-20 mx-auto max-w-[1320px] px-5 py-20 lg:px-10 lg:py-28">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="section-kicker">Digital Library</p>
-            <h2 className="section-title mt-2">
-              Wisdom for every<br />
-              <em>chapter of your life.</em>
-            </h2>
+            <p className="section-kicker">Our Collection</p>
+            <h2 className="section-title mt-3">Wisdom for every<br /><em>chapter of your life.</em></h2>
           </div>
-          <p className="max-w-md text-sm leading-relaxed text-[#736b61]">
-            Expertly crafted digital books designed to deliver clarity, actionable step-by-step
-            strategies, and life-changing perspective.
+          <p className="max-w-sm text-sm leading-6 text-[#736b61] lg:pb-1">
+            Expertly curated digital books designed to offer clarity, inspire growth, and provide actionable advice for your most important decisions.
           </p>
         </div>
 
-        {/* ─── Search & Sort Bar ─── */}
-        <div className="mt-10 flex flex-col gap-4 rounded-2xl border border-[#e5ddd2] bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-4">
-          {/* Live Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b8175]" size={16} />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by topic, keyword, or book title..."
-              className="h-11 w-full rounded-xl bg-[#f8f4ec] pl-10 pr-10 text-xs font-medium text-[#26332f] outline-none placeholder:text-[#8b8175] focus:bg-white focus:ring-2 focus:ring-[#d86f45]/30"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b8175] hover:text-[#26332f]"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-
-          {/* Sort Selector */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-[#8b8175] hidden sm:inline">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="h-11 rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-3.5 text-xs font-semibold text-[#26332f] outline-none focus:border-[#d86f45]"
-            >
-              <option value="featured">Featured First</option>
-              <option value="rating">Highest Rated (★ 5.0)</option>
-              <option value="newest">New Releases</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-            </select>
-          </div>
-        </div>
-
-        {/* ─── Category Filter Tabs ─── */}
-        <div className="mt-6 flex flex-wrap gap-2 border-b border-[#e5ddd2] pb-6">
-          <button
-            onClick={() => setActiveCategory("All guides")}
-            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] transition-all ${
-              activeCategory === "All guides"
-                ? "bg-[#26332f] text-white shadow-sm"
-                : "border border-[#d8d0c6] bg-white text-[#736b61] hover:border-[#26332f] hover:text-[#26332f]"
-            }`}
+        <div className="mt-10 grid grid-cols-2 gap-2 border-y border-[#e5ddd2] py-5 sm:flex sm:flex-wrap">
+          <button 
+            onClick={() => setActiveCategory("All guides")} 
+            className={`truncate rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition sm:px-4 sm:text-[11px] ${activeCategory === "All guides" ? "bg-[#26332f] text-[#fffaf2]" : "bg-white border border-[#d8d0c6] text-[#736b61] hover:bg-[#eee7dc]"}`}
           >
-            All Guides
-            <span
-              className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                activeCategory === "All guides"
-                  ? "bg-white/20 text-white"
-                  : "bg-[#f0ece4] text-[#736b61]"
-              }`}
-            >
-              {products.length}
-            </span>
+            All guides ({products.length})
           </button>
-
           {categories.map((category) => {
             const count = getCategoryCount(category.name, category.slug);
-            const isSelected = activeCategory === category.name;
-
             return (
-              <button
-                key={category.slug}
-                onClick={() => setActiveCategory(category.name)}
-                className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] transition-all ${
-                  isSelected
-                    ? "bg-[#26332f] text-white shadow-sm"
-                    : "border border-[#d8d0c6] bg-white text-[#736b61] hover:border-[#26332f] hover:text-[#26332f]"
-                }`}
+              <button 
+                key={category.slug} 
+                onClick={() => setActiveCategory(category.name)} 
+                className={`truncate rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition sm:px-4 sm:text-[11px] ${activeCategory === category.name ? "bg-[#26332f] text-[#fffaf2]" : "bg-white border border-[#d8d0c6] text-[#736b61] hover:bg-[#eee7dc]"}`}
               >
-                {category.name}
-                <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                    isSelected ? "bg-white/20 text-white" : "bg-[#f0ece4] text-[#736b61]"
-                  }`}
-                >
-                  {count}
-                </span>
+                {category.name} ({count})
               </button>
             );
           })}
         </div>
 
-        {/* ─── Product Cards Grid ─── */}
-        {filteredAndSortedProducts.length > 0 ? (
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
-            {filteredAndSortedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAdd={addToCart}
-                onQuickView={(p) => setQuickViewProduct(p)}
-              />
+        {filteredProducts.length > 0 ? (
+          <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 md:grid-cols-3 lg:gap-x-8 lg:gap-y-16">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} onAdd={addToCart} />
             ))}
           </div>
         ) : (
-          <div className="mt-12 rounded-3xl border-2 border-dashed border-[#d8d0c6] bg-white/50 px-6 py-20 text-center">
-            <p className="font-serif text-2xl text-[#26332f] sm:text-3xl">
-              No digital guides match your search.
-            </p>
-            <p className="mt-2 text-sm text-[#736b61]">
-              Try adjusting your search terms or clearing your category filters.
-            </p>
-            <button
-              onClick={() => {
-                setQuery("");
-                setActiveCategory("All guides");
-              }}
-              className="mt-6 rounded-full bg-[#d86f45] px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[#bf5937]"
+          <div className="mt-10 rounded-3xl border border-dashed border-[#d8d0c6] px-6 py-20 text-center">
+            <p className="font-serif text-3xl">No guides found in this category.</p>
+            <p className="mt-3 text-sm text-[#736b61]">Try selecting another category or browsing all available guides.</p>
+            <button 
+              onClick={() => { setQuery(""); setActiveCategory("All guides"); }} 
+              className="mt-6 rounded-full bg-[#26332f] px-5 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-[#3b4b45]"
             >
-              Reset Filters & Show All
+              Show all guides
             </button>
           </div>
         )}
-      </section>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* 4-PILLAR TRUST & VALUE BANNER */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <section className="border-t border-[#e5ddd2] bg-white py-14">
-        <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-10">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-start gap-4 rounded-2xl bg-[#fcfbf9] p-5 border border-[#eee7dc]">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#d86f45]/10 text-[#d86f45]">
-                <Zap size={22} />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-bold text-[#26332f]">Instant Download</h4>
-                <p className="mt-1 text-xs text-[#736b61]">
-                  Receive high-resolution PDF download links right after checkout.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 rounded-2xl bg-[#fcfbf9] p-5 border border-[#eee7dc]">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#4c7b55]/10 text-[#4c7b55]">
-                <LockKeyhole size={22} />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-bold text-[#26332f]">Paystack 256-bit Security</h4>
-                <p className="mt-1 text-xs text-[#736b61]">
-                  Bank-grade encrypted checkout with global Visa, Mastercard & Apple Pay.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 rounded-2xl bg-[#fcfbf9] p-5 border border-[#eee7dc]">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e4a83d]/10 text-[#e4a83d]">
-                <Globe size={22} />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-bold text-[#26332f]">Worldwide Pricing</h4>
-                <p className="mt-1 text-xs text-[#736b61]">
-                  Auto-detected local currency with zero conversion surprises.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 rounded-2xl bg-[#fcfbf9] p-5 border border-[#eee7dc]">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#26332f]/10 text-[#26332f]">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <h4 className="font-serif text-base font-bold text-[#26332f]">Lifetime Access</h4>
-                <p className="mt-1 text-xs text-[#736b61]">
-                  Read on mobile, iPad, Kindle, or laptop with permanent cloud access.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* QUICK VIEW PREVIEW MODAL */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {quickViewProduct && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity"
-          onClick={() => setQuickViewProduct(null)}
-        >
-          <div
-            className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-[#fbfaf7] p-6 shadow-2xl sm:p-8"
-            onClick={(e) => e.stopPropagation()}
+        <div className="mt-12 text-center">
+          <button 
+            onClick={() => { setQuery(""); setActiveCategory("All guides"); }} 
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45] transition hover:text-[#26332f]"
           >
-            {/* Close Button */}
-            <button
-              onClick={() => setQuickViewProduct(null)}
-              className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#736b61] shadow-sm hover:bg-[#eee7dc] hover:text-[#26332f]"
-            >
-              <X size={18} />
-            </button>
+            View all guides <ChevronRight size={16} />
+          </button>
+        </div>
+      </section>
 
-            <div className="grid gap-6 sm:grid-cols-[180px_1fr] sm:gap-8">
-              <div>
-                <CoverArt
-                  cover={quickViewProduct.cover}
-                  imageUrl={quickViewProduct.imageUrl}
-                  className="rounded-2xl shadow-xl"
-                />
-              </div>
+      {/* ─── Discover What Matters Most To You Today ─── */}
+      <section id="focus-categories" className="scroll-mt-20 border-y border-[#e5ddd2] bg-[#eee7dc] px-5 py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto max-w-[1320px]">
+          <div>
+            <p className="section-kicker">Find Your Focus</p>
+            <h2 className="section-title mt-3">Discover what matters most to you today.</h2>
+          </div>
 
-              <div>
-                <span className="inline-block rounded-full bg-[#eef1eb] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5e8c67]">
-                  {quickViewProduct.category}
-                </span>
+          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 md:gap-4">
+            {categories.map((category) => {
+              const count = getCategoryCount(category.name, category.slug);
+              const countText = loading ? "..." : `${count} ${count === 1 ? "guide" : "guides"}`;
 
-                <h3 className="mt-2 font-serif text-2xl font-bold leading-tight text-[#26332f] sm:text-3xl">
-                  {quickViewProduct.title}
-                </h3>
-
-                <div className="mt-3 flex items-center gap-2 text-xs text-[#736b61]">
-                  <div className="flex items-center text-[#e4a83d]">
-                    <Star size={13} fill="currentColor" />
-                  </div>
-                  <span className="font-bold text-[#26332f]">{quickViewProduct.rating}</span>
-                  <span>({quickViewProduct.reviews} reader reviews)</span>
-                  <span>·</span>
-                  <span>{quickViewProduct.pages} pages PDF</span>
-                </div>
-
-                <p className="mt-4 text-xs leading-relaxed text-[#736b61]">
-                  {quickViewProduct.description}
-                </p>
-
-                {quickViewProduct.benefits && quickViewProduct.benefits.length > 0 && (
-                  <div className="mt-4 space-y-1.5 rounded-xl bg-white p-3.5 border border-[#eee7dc]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#26332f]">
-                      Key Highlights:
-                    </p>
-                    {quickViewProduct.benefits.slice(0, 3).map((b, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-[#736b61]">
-                        <Check size={13} className="text-[#5e8c67] shrink-0" />
-                        <span className="line-clamp-1">{b}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-6 flex items-baseline gap-3">
-                  <span className="font-serif text-3xl font-bold text-[#26332f]">
-                    {formatCurrency(quickViewProduct.price, currency)}
+              return (
+                <button
+                  key={category.slug}
+                  onClick={() => {
+                    setActiveCategory(category.name);
+                    const shopEl = document.getElementById("shop");
+                    if (shopEl) {
+                      shopEl.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                  className="group relative min-h-[150px] overflow-hidden rounded-2xl p-5 text-left transition hover:-translate-y-1 hover:shadow-md md:min-h-[190px]"
+                  style={{ backgroundColor: category.color }}
+                >
+                  <span className="absolute -right-2 -top-6 font-serif text-[8rem] leading-none text-white/20 transition group-hover:scale-110 select-none pointer-events-none">
+                    {category.icon}
                   </span>
-                  {quickViewProduct.oldPrice && (
-                    <span className="text-sm text-[#a99d91] line-through">
-                      {formatCurrency(quickViewProduct.oldPrice, currency)}
+                  <span className="relative flex h-full flex-col justify-between">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/40 text-sm shadow-sm">
+                      {category.icon}
                     </span>
-                  )}
-                </div>
+                    <span>
+                      <span className="block max-w-[8rem] font-serif text-[1.35rem] leading-[0.95] tracking-[-0.04em] text-[#26332f]">
+                        {category.name}
+                      </span>
+                      <span className="mt-2 inline-flex items-center rounded-full bg-white/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#26332f]">
+                        {countText}
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={() => {
-                      addToCart(quickViewProduct);
-                      setQuickViewProduct(null);
-                    }}
-                    className="flex-1 rounded-full border border-[#26332f] bg-white py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-[#26332f] transition hover:bg-[#26332f] hover:text-white"
-                  >
-                    Add to Bag
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleBuyNow(quickViewProduct);
-                      setQuickViewProduct(null);
-                    }}
-                    className="flex-1 rounded-full bg-[#d86f45] py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-white shadow-md transition hover:bg-[#bf5937]"
-                  >
-                    Buy Now
-                  </button>
-                </div>
-              </div>
+      {/* ─── Story / Why ApexMindReads ─── */}
+      <section id="story" className="scroll-mt-20 border-y border-[#e5ddd2] bg-[#26332f] px-5 py-20 text-[#f8f4ec] lg:px-10 lg:py-28">
+        <div className="mx-auto grid max-w-[1320px] gap-14 lg:grid-cols-[.8fr_1.2fr] lg:items-center lg:gap-28">
+          <div>
+            <p className="section-kicker text-[#f0bc58]">Why ApexMindReads</p>
+            <h2 className="mt-4 max-w-md font-serif text-[3.6rem] leading-[0.88] tracking-[-0.07em] sm:text-[5rem]">
+              Transformative insights, <em className="text-[#e58a61]">beautifully delivered.</em>
+            </h2>
+          </div>
+          <div className="grid gap-9 sm:grid-cols-2">
+            <div className="border-t border-[#53625b] pt-5">
+              <Zap size={22} className="text-[#f0bc58]" />
+              <h3 className="mt-5 font-serif text-2xl">Rooted in Real Experience</h3>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">Our guides are crafted with deep empathy and practical wisdom. Dive in, find the exact guidance you need, and start experiencing meaningful change.</p>
+            </div>
+            <div className="border-t border-[#53625b] pt-5">
+              <ShieldCheck size={22} className="text-[#f0bc58]" />
+              <h3 className="mt-5 font-serif text-2xl">Instant Access Anywhere</h3>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">Secure your purchase and receive immediate lifetime access to your digital library. Your wisdom is always just a tap away, whenever you need it.</p>
+            </div>
+            <div className="border-t border-[#53625b] pt-5">
+              <Sparkles size={22} className="text-[#f0bc58]" />
+              <h3 className="mt-5 font-serif text-2xl">Actionable & Empowering</h3>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">Every book is designed to move you forward. Expect thought-provoking exercises, clear strategies, and gentle nudges toward a better you.</p>
+            </div>
+            <div className="border-t border-[#53625b] pt-5">
+              <span className="font-serif text-2xl text-[#f0bc58]">✦</span>
+              <h3 className="mt-5 font-serif text-2xl">Designed for Your Growth</h3>
+              <p className="mt-3 text-sm leading-6 text-[#bec5bb]">We believe in authentic personal development. Our mission isn't perfection—it's helping you cultivate a richer, more peaceful, and fulfilling life.</p>
             </div>
           </div>
         </div>
-      )}
+      </section>
+
+      {/* ─── Testimonials (Categories & Results Focused) ─── */}
+      <section className="mx-auto max-w-[1320px] px-5 py-20 lg:px-10 lg:py-28">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="section-kicker">Trusted by Thousands</p>
+            <h2 className="section-title mt-3">Real stories from people<br /><em>just like you.</em></h2>
+          </div>
+          <div className="flex gap-1 pb-1 text-[#e4a83d]">
+            {[1, 2, 3, 4, 5].map((item) => <Star key={item} size={15} fill="currentColor" />)}
+          </div>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {testimonials.map((testimonial) => (
+            <blockquote key={testimonial.name} className="flex min-h-[280px] flex-col justify-between rounded-[1.4rem] border border-[#e5ddd2] bg-[#fffaf2] p-6 sm:p-7 shadow-sm transition hover:-translate-y-1">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex rounded-full bg-[#f2ecdf] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#26332f]">
+                    {testimonial.category}
+                  </span>
+                  <div className="flex gap-1 text-[#e4a83d]">
+                    {[1, 2, 3, 4, 5].map((item) => <Star key={item} size={12} fill="currentColor" />)}
+                  </div>
+                </div>
+                <p className="mt-6 font-serif text-[1.35rem] leading-[1.12] tracking-[-0.03em]">“{testimonial.quote}”</p>
+              </div>
+              <footer className="mt-8 flex items-center gap-3 border-t border-[#f0eae0] pt-4">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm" style={{ backgroundColor: testimonial.color }}>
+                  {testimonial.initials}
+                </span>
+                <span>
+                  <cite className="block text-sm font-bold not-italic">{testimonial.name}</cite>
+                  <span className="mt-0.5 block text-xs text-[#8b8175]">{testimonial.role}</span>
+                </span>
+              </footer>
+            </blockquote>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── Newsletter ─── */}
+      <section className="mx-5 mb-16 overflow-hidden rounded-[1.6rem] bg-[#f0bc58] px-6 py-14 sm:px-12 lg:mx-10 lg:mb-24 lg:px-20 lg:py-16">
+        <div className="mx-auto flex max-w-[1120px] flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#26332f]/60">Join Our Inner Circle</p>
+            <h2 className="mt-3 max-w-lg font-serif text-[3.3rem] leading-[0.88] tracking-[-0.07em] text-[#26332f] sm:text-[4.5rem]">
+              Inspiration delivered<br /><em>directly to you.</em>
+            </h2>
+            <p className="mt-5 max-w-md text-sm leading-6 text-[#26332f]/70">
+              Receive early access to our newest guides, exclusive insights, and gentle reminders to prioritize your growth.
+            </p>
+          </div>
+          <div className="w-full max-w-md">
+            {subscribed ? (
+              <div className="flex items-center gap-3 rounded-2xl bg-[#26332f] p-4 text-[#fffaf2]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#b8c7b2] text-[#26332f]"><Check size={17} /></span>
+                <div>
+                  <p className="font-semibold">You are on the list.</p>
+                  <p className="mt-1 text-xs text-[#bec5bb]">Welcome to the family. Watch your inbox for inspiration.</p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={(event) => { event.preventDefault(); if (email) setSubscribed(true); }} className="flex flex-col gap-2 sm:flex-row">
+                <label className="sr-only" htmlFor="newsletter-email">Email address</label>
+                <input id="newsletter-email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" className="h-14 min-w-0 flex-1 rounded-full border border-[#26332f]/20 bg-[#f8f4ec]/70 px-5 text-sm text-[#26332f] outline-none placeholder:text-[#736b61] focus:border-[#26332f]" />
+                <button type="submit" className="h-14 rounded-full bg-[#26332f] px-6 text-xs font-bold uppercase tracking-[0.12em] text-[#fffaf2] transition hover:bg-[#d86f45]">Join the list</button>
+              </form>
+            )}
+            <p className="mt-3 text-[10px] text-[#26332f]/55">We respect your peace. Unsubscribe at any time.</p>
+          </div>
+        </div>
+      </section>
     </StorefrontShell>
   );
 }

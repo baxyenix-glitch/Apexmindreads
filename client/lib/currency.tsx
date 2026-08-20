@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { ALL_COUNTRIES, COUNTRY_TO_CURRENCY_MAP, type CountryInfo } from "./countries";
 
 const currencyCodes = [
   "AED", "AFN", "ALL", "AMD", "ANG", "AOA", "ARS", "AUD", "AWG", "AZN",
@@ -25,9 +24,6 @@ const currencyCodes = [
 export type Currency = typeof currencyCodes[number];
 export type CurrencyOption = { code: Currency; label: string; symbol: string };
 
-export const countryToCurrencyMap: Record<string, Currency> = COUNTRY_TO_CURRENCY_MAP;
-export { ALL_COUNTRIES, type CountryInfo };
-
 const currencyNames = new Intl.DisplayNames(["en"], { type: "currency" });
 const currencySymbol = (code: Currency) => {
   try {
@@ -51,6 +47,89 @@ export const currencyOptions: CurrencyOption[] = currencyCodes.map((code) => ({
   label: currencyNames.of(code) ?? code,
   symbol: currencySymbol(code),
 }));
+
+// Country code to primary Currency ISO mapping
+export const countryToCurrencyMap: Record<string, Currency> = {
+  NG: "NGN",
+  US: "USD",
+  GB: "GBP",
+  UK: "GBP",
+  CA: "CAD",
+  GH: "GHS",
+  KE: "KES",
+  ZA: "ZAR",
+  AU: "AUD",
+  NZ: "NZD",
+  IN: "INR",
+  JP: "JPY",
+  CN: "CNY",
+  AE: "AED",
+  SA: "SAR",
+  EG: "EGP",
+  RW: "RWF",
+  UG: "UGX",
+  TZ: "TZS",
+  ZM: "ZMW",
+  ZW: "ZWG",
+  BW: "BWP",
+  NA: "NAD",
+  SZ: "SZL",
+  LS: "LSL",
+  MW: "MWK",
+  MZ: "MZN",
+  AO: "AOA",
+  SL: "SLE",
+  GM: "GMD",
+  LR: "LRD",
+  BR: "BRL",
+  MX: "MXN",
+  AR: "ARS",
+  CL: "CLP",
+  CO: "COP",
+  PE: "PEN",
+  SG: "SGD",
+  MY: "MYR",
+  PH: "PHP",
+  PK: "PKR",
+  BD: "BDT",
+  ID: "IDR",
+  TH: "THB",
+  VN: "VND",
+  KR: "KRW",
+  HK: "HKD",
+  TW: "TWD",
+  IL: "ILS",
+  TR: "TRY",
+  CH: "CHF",
+  SE: "SEK",
+  NO: "NOK",
+  DK: "DKK",
+  PL: "PLN",
+  CZ: "CZK",
+  HU: "HUF",
+  RO: "RON",
+  BG: "BGN",
+  QA: "QAR",
+  KW: "KWD",
+  OM: "OMR",
+  BH: "BHD",
+  JO: "JOD",
+  LB: "LBP",
+  MA: "MAD",
+  TN: "TND",
+  DZ: "DZD",
+  ET: "ETB",
+  MU: "MUR",
+  // Eurozone countries
+  DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR", NL: "EUR", BE: "EUR",
+  AT: "EUR", IE: "EUR", PT: "EUR", FI: "EUR", GR: "EUR", EE: "EUR",
+  LV: "EUR", LT: "EUR", SK: "EUR", SI: "EUR", CY: "EUR", MT: "EUR",
+  LU: "EUR", HR: "EUR",
+  // West & Central African CFA franc
+  BJ: "XOF", BF: "XOF", CI: "XOF", GW: "XOF", ML: "XOF", NE: "XOF",
+  SN: "XOF", TG: "XOF",
+  CM: "XAF", CF: "XAF", TD: "XAF", CG: "XAF", GQ: "XAF", GA: "XAF",
+};
 
 // Rates mapping from baseline NGN (1 NGN = X foreign currency)
 export const ratesFromNGN: Partial<Record<Currency, number>> = {
@@ -84,7 +163,6 @@ export const ratesFromNGN: Partial<Record<Currency, number>> = {
   TRY: 1 / 44,
   XOF: 1 / 2.55,
   XAF: 1 / 2.55,
-  XCD: 1 / 574,
   HKD: 1 / 198,
   KRW: 1 / 1.08,
   MYR: 1 / 350,
@@ -97,76 +175,6 @@ export const ratesFromNGN: Partial<Record<Currency, number>> = {
   KWD: 1 / 5050,
   OMR: 1 / 4020,
   BHD: 1 / 4110,
-  JMD: 1 / 10,
-  TTD: 1 / 228,
-  NAD: 1 / 85,
-  BWP: 1 / 115,
-  LSL: 1 / 85,
-  SZL: 1 / 85,
-  MWK: 1 / 0.89,
-  MZN: 1 / 24,
-  ZMW: 1 / 57,
-  ZWG: 1 / 57,
-  ETB: 1 / 13,
-  MAD: 1 / 155,
-  DZD: 1 / 11.5,
-  TND: 1 / 500,
-  LYD: 1 / 320,
-  JOD: 1 / 2180,
-  ILS: 1 / 420,
-  CLP: 1 / 1.6,
-  COP: 1 / 0.38,
-  PEN: 1 / 415,
-  ARS: 1 / 1.5,
-  UYU: 1 / 38,
-  CRC: 1 / 3.0,
-  DOP: 1 / 26,
-  GTQ: 1 / 200,
-  HNL: 1 / 62,
-  NIO: 1 / 42,
-  PAB: 1 / 1550,
-  PYG: 1 / 0.20,
-  BOB: 1 / 224,
-  GYD: 1 / 7.4,
-  SRD: 1 / 44,
-  BZD: 1 / 770,
-  BSD: 1 / 1550,
-  BMD: 1 / 1550,
-  KYD: 1 / 1860,
-  FJD: 1 / 685,
-  PGK: 1 / 385,
-  SBD: 1 / 180,
-  VUV: 1 / 13,
-  WST: 1 / 560,
-  TOP: 1 / 650,
-  ALL: 1 / 17,
-  BAM: 1 / 864,
-  BGN: 1 / 864,
-  CZK: 1 / 67,
-  HUF: 1 / 4.2,
-  ISK: 1 / 11.2,
-  MDL: 1 / 87,
-  MKD: 1 / 27,
-  RSD: 1 / 14.4,
-  RON: 1 / 340,
-  GEL: 1 / 560,
-  AMD: 1 / 4.0,
-  AZN: 1 / 910,
-  KZT: 1 / 3.1,
-  UZS: 1 / 0.12,
-  TJS: 1 / 142,
-  KGS: 1 / 17.8,
-  TMT: 1 / 442,
-  MNT: 1 / 0.45,
-  LKR: 1 / 5.2,
-  NPR: 1 / 11.6,
-  AFN: 1 / 22,
-  MMK: 1 / 0.74,
-  LAK: 1 / 0.07,
-  KHR: 1 / 0.38,
-  VND: 1 / 0.06,
-  MVR: 1 / 100,
-  TWD: 1 / 48,
 };
 
 const locales: Partial<Record<Currency, string>> = {
@@ -202,19 +210,7 @@ export function formatCurrency(valueInNGN: number, currency: Currency) {
   return new Intl.NumberFormat(locales[currency] ?? "en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits:
-      currency === "NGN" ||
-      currency === "JPY" ||
-      currency === "KRW" ||
-      currency === "UGX" ||
-      currency === "TZS" ||
-      currency === "RWF" ||
-      currency === "VND" ||
-      currency === "IDR" ||
-      currency === "CLP" ||
-      currency === "PYG"
-        ? 0
-        : 2,
+    maximumFractionDigits: currency === "NGN" || currency === "JPY" || currency === "KRW" || currency === "UGX" || currency === "TZS" || currency === "RWF" ? 0 : 2,
   }).format(valueInNGN * rate);
 }
 
@@ -227,7 +223,7 @@ export function getConvertedAmount(valueInNGN: number, currency: Currency): numb
 export function getBrowserLocaleFallback(): { country: string; currency: Currency } {
   try {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-
+    
     // Americas
     if (
       timeZone.startsWith("America/New_York") ||
@@ -425,11 +421,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return "USD";
     const isUserManual = window.localStorage.getItem("apexmindreads-currency-manual") === "true";
     const stored = window.localStorage.getItem("apexmindreads-currency") as Currency | null;
-
+    
+    // Only use stored currency if user explicitly picked it in the dropdown
     if (isUserManual && stored && currencyOptions.some((option) => option.code === stored)) {
       return stored;
     }
-
+    
+    // Instant initial estimate from browser environment (timezone & language)
     return getBrowserLocaleFallback().currency;
   });
 
@@ -447,7 +445,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     const isUserManual = window.localStorage.getItem("apexmindreads-currency-manual") === "true";
-
+    
     detectCountryAndCurrency()
       .then(({ country: autoCountry, currency: autoCurrency }) => {
         setDetectedCountry(autoCountry);
