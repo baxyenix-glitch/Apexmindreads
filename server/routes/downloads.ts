@@ -5,8 +5,9 @@ import path from "path";
 
 /**
  * GET /api/orders/:orderId/download/:productId
- * Securely delivers the actual uploaded PDF guide to the verified customer.
- * Strict: No fallback/mock PDFs are generated.
+ * Streams the exact digital PDF guide to verified buyers.
+ * Handles Firebase Storage, Google Drive, direct Cloud URLs, and local files.
+ * Strict: No placeholder/fallback PDFs are generated.
  */
 export const handleDownloadGuide: RequestHandler = async (req, res) => {
   const orderId = req.params.orderId as string;
@@ -45,7 +46,7 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
     if (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://")) {
       let directUrl = product.pdfFileUrl;
 
-      // Auto-convert Google Drive viewer link to direct download link
+      // Auto-convert Google Drive viewer link to direct download stream
       if (directUrl.includes("drive.google.com/file/d/")) {
         const fileId = directUrl.split("/d/")[1]?.split("/")[0]?.split("?")[0];
         if (fileId) {
@@ -55,11 +56,32 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
         directUrl = directUrl.replace("dl=0", "dl=1");
       }
 
-      res.redirect(directUrl);
-      return;
+      try {
+        const upstream = await fetch(directUrl);
+        if (upstream.ok) {
+          const contentType = upstream.headers.get("content-type") || "application/pdf";
+          res.setHeader("Content-Type", contentType);
+          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+          const contentLength = upstream.headers.get("content-length");
+          if (contentLength) {
+            res.setHeader("Content-Length", contentLength);
+          }
+          const arrayBuffer = await upstream.arrayBuffer();
+          res.send(Buffer.from(arrayBuffer));
+          return;
+        } else {
+          console.warn(`Upstream download returned ${upstream.status}, redirecting to directUrl`);
+          res.redirect(directUrl);
+          return;
+        }
+      } catch (fetchErr) {
+        console.warn("Proxy download failed, redirecting:", fetchErr);
+        res.redirect(directUrl);
+        return;
+      }
     }
 
-    // 2. Base64 Data URL (if stored as Data URL)
+    // 2. Base64 Data URL
     if (product.pdfFileUrl.startsWith("data:")) {
       const base64Data = product.pdfFileUrl.split(",")[1];
       if (base64Data) {
@@ -72,7 +94,7 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // 3. Local Server Disk Path (if hosted locally)
+    // 3. Local Server Disk Path
     const candidates = [
       path.join(process.cwd(), "client/public", product.pdfFileUrl.replace(/^\//, "")),
       path.join(process.cwd(), product.pdfFileUrl.replace(/^\//, "")),

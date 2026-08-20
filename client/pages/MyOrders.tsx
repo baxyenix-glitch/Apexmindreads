@@ -123,9 +123,13 @@ export default function MyOrders() {
                         <span className="text-sm">{item.title}</span>
                       </div>
                       {order.status === "Paid" && (
-                        <button className="flex items-center gap-1.5 text-xs font-bold text-[#d86f45] hover:underline">
+                        <a
+                          href={`/api/orders/${order.id}/download/${item.productId}`}
+                          download
+                          className="flex items-center gap-1.5 text-xs font-bold text-[#d86f45] hover:underline"
+                        >
                           <Download size={13} /> Download
-                        </button>
+                        </a>
                       )}
                     </div>
                   ))}
