@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Download, Globe, LockKeyhole, Loader2, Sh
 import { Link, useSearchParams } from "react-router-dom";
 import { CoverArt } from "@/components/storefront/CoverArt";
 import { type Product } from "@/lib/store";
-import { formatCurrency, useCurrency } from "@/lib/currency";
+import { formatCurrency, useCurrency, ALL_COUNTRIES, countryToCurrencyMap } from "@/lib/currency";
 import { loadCart, saveCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { authHeaders } from "@/lib/firebase";
@@ -17,52 +17,6 @@ declare global {
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_adcfbac2b26d102c6107634886d6c4edbf7e87ef";
 
-const GLOBAL_COUNTRIES = [
-  { code: "NG", name: "Nigeria (NG)" },
-  { code: "US", name: "United States (US)" },
-  { code: "GB", name: "United Kingdom (GB)" },
-  { code: "CA", name: "Canada (CA)" },
-  { code: "GH", name: "Ghana (GH)" },
-  { code: "KE", name: "Kenya (KE)" },
-  { code: "ZA", name: "South Africa (ZA)" },
-  { code: "AU", name: "Australia (AU)" },
-  { code: "DE", name: "Germany (DE)" },
-  { code: "FR", name: "France (FR)" },
-  { code: "IT", name: "Italy (IT)" },
-  { code: "ES", name: "Spain (ES)" },
-  { code: "NL", name: "Netherlands (NL)" },
-  { code: "IE", name: "Ireland (IE)" },
-  { code: "SE", name: "Sweden (SE)" },
-  { code: "NO", name: "Norway (NO)" },
-  { code: "CH", name: "Switzerland (CH)" },
-  { code: "NZ", name: "New Zealand (NZ)" },
-  { code: "AE", name: "United Arab Emirates (AE)" },
-  { code: "SA", name: "Saudi Arabia (SA)" },
-  { code: "QA", name: "Qatar (QA)" },
-  { code: "KW", name: "Kuwait (KW)" },
-  { code: "IN", name: "India (IN)" },
-  { code: "SG", name: "Singapore (SG)" },
-  { code: "MY", name: "Malaysia (MY)" },
-  { code: "JP", name: "Japan (JP)" },
-  { code: "CN", name: "China (CN)" },
-  { code: "BR", name: "Brazil (BR)" },
-  { code: "MX", name: "Mexico (MX)" },
-  { code: "EG", name: "Egypt (EG)" },
-  { code: "RW", name: "Rwanda (RW)" },
-  { code: "UG", name: "Uganda (UG)" },
-  { code: "TZ", name: "Tanzania (TZ)" },
-  { code: "ZM", name: "Zambia (ZM)" },
-  { code: "ZW", name: "Zimbabwe (ZW)" },
-  { code: "BW", name: "Botswana (BW)" },
-  { code: "SL", name: "Sierra Leone (SL)" },
-  { code: "LR", name: "Liberia (LR)" },
-  { code: "GM", name: "Gambia (GM)" },
-  { code: "CM", name: "Cameroon (CM)" },
-  { code: "CI", name: "Ivory Coast (CI)" },
-  { code: "SN", name: "Senegal (SN)" },
-  { code: "OTHER", name: "Other / Worldwide" },
-];
-
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const [cart, setCart] = useState<Product[]>(() => loadCart());
@@ -72,7 +26,7 @@ export default function Checkout() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [downloadLinks, setDownloadLinks] = useState<{ productId: string; title: string; downloadUrl: string }[]>([]);
   const [error, setError] = useState("");
-  const { currency, detectedCountry } = useCurrency();
+  const { currency, setCurrency, detectedCountry } = useCurrency();
   const { user } = useAuth();
   const subtotal = useMemo(() => cart.reduce((total, item) => total + (item.price || 0), 0), [cart]);
 
@@ -95,6 +49,15 @@ export default function Checkout() {
       setName(user.name);
     }
   }, [user]);
+
+  // Automatically update currency when country changes
+  const handleCountryChange = (selectedCountryCode: string) => {
+    setCountry(selectedCountryCode);
+    const mappedCurrency = countryToCurrencyMap[selectedCountryCode];
+    if (mappedCurrency) {
+      setCurrency(mappedCurrency, true);
+    }
+  };
 
   // Check if returning from Paystack redirect (e.g. ?reference=...)
   useEffect(() => {
@@ -223,30 +186,34 @@ export default function Checkout() {
       }
     } catch (err: any) {
       console.error("Checkout error:", err);
-      setError(err.message ?? "Something went wrong during checkout.");
+      setError(err.message || "An unexpected error occurred. Please try again.");
       setSubmitting(false);
     }
   };
 
   if (verifying) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f8f4ec] px-5 text-center text-[#26332f]">
-        <Loader2 size={36} className="animate-spin text-[#d86f45]" />
-        <h2 className="mt-5 font-serif text-3xl">Verifying your payment...</h2>
-        <p className="mt-2 text-sm text-[#736b61]">Unlocking your guide downloads. Please wait a second.</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f4ec] px-5 py-20 text-center">
+        <div className="max-w-md">
+          <Loader2 size={40} className="mx-auto animate-spin text-[#d86f45]" />
+          <h2 className="mt-6 font-serif text-3xl">Confirming your transaction...</h2>
+          <p className="mt-2 text-sm text-[#736b61]">
+            Please wait while we verify your payment with Paystack and prepare your digital ebook downloads.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (submitted && completedOrder) {
     return (
-      <div className="min-h-screen bg-[#f8f4ec] px-5 py-12 text-[#26332f] sm:py-20">
-        <div className="mx-auto max-w-[640px] rounded-[1.8rem] border border-[#e5ddd2] bg-[#fffaf2] p-7 text-center shadow-[0_24px_60px_-36px_rgba(32,35,29,.6)] sm:p-12">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#b8c7b2] text-[#26332f]">
-            <Check size={28} />
-          </span>
+      <div className="min-h-screen bg-[#f8f4ec] px-5 py-16 text-[#26332f]">
+        <div className="mx-auto max-w-xl text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#dcebdd] text-[#4c7b55]">
+            <Check size={32} />
+          </div>
 
-          <div className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[#f0bc58]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-[#9b6e14]">
+          <div className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[#eef1eb] px-3.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#5e8c67]">
             <Sparkles size={13} /> Payment Confirmed
           </div>
 
@@ -320,43 +287,32 @@ export default function Checkout() {
             Your journey<br />
             <em>begins here.</em>
           </h1>
-          <p className="mt-5 max-w-lg text-sm leading-6 text-[#736b61]">
-            Complete your purchase securely from anywhere in the world. You'll receive instant download access to your PDF guides immediately after payment.
-          </p>
 
-          <form onSubmit={handleSubmit} className="mt-10 max-w-[650px] rounded-[1.5rem] border border-[#e5ddd2] bg-[#fffaf2] p-6 sm:p-8">
-            <div className="mb-7 flex items-center justify-between border-b border-[#e5ddd2] pb-5">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
-                  1
-                </span>
-                <div>
-                  <h2 className="font-serif text-2xl">Your details</h2>
-                  <p className="text-xs text-[#8b8175]">Where should we send your download receipt?</p>
-                </div>
+          {error && (
+            <div className="mt-6 rounded-2xl border border-[#fca5a5] bg-[#fff5f5] p-4 text-sm font-medium text-[#b91c1c]">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-10 max-w-xl">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
+                1
+              </span>
+              <div>
+                <h2 className="font-serif text-2xl">Customer information</h2>
+                <p className="text-xs text-[#8b8175]">Your download links will be generated for this name & email.</p>
               </div>
-
-              {user && (
-                <span className="hidden items-center gap-1.5 rounded-full bg-[#b8c7b2]/30 px-3 py-1 text-xs font-semibold text-[#26332f] sm:inline-flex">
-                  <UserCheck size={14} className="text-[#557053]" /> Logged in
-                </span>
-              )}
             </div>
 
-            {error && (
-              <div className="mb-5 rounded-xl bg-[#fef2f2] p-3 text-sm text-[#b91c1c]">
-                {error}
-              </div>
-            )}
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <label className="sm:col-span-2">
+            <div className="space-y-4">
+              <label>
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
                   Email address
                 </span>
                 <input
-                  required
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
@@ -376,17 +332,22 @@ export default function Checkout() {
                 />
               </label>
               <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
-                  Country
-                </span>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
+                    Country
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#8b8175]">
+                    Currency auto-set: <strong className="text-[#d86f45]">{currency}</strong>
+                  </span>
+                </div>
                 <select
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm font-medium outline-none focus:border-[#d86f45]"
                 >
-                  {GLOBAL_COUNTRIES.map((c) => (
+                  {ALL_COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
-                      {c.name}
+                      {c.name} ({c.code}) — {c.currency}
                     </option>
                   ))}
                 </select>
@@ -439,41 +400,55 @@ export default function Checkout() {
               <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#f0bc58]">Order summary</p>
               <h2 className="mt-2 font-serif text-3xl tracking-[-0.05em]">Your guides</h2>
             </div>
-            <ShoppingBag size={20} className="text-[#f0bc58]" />
+            <ShoppingBag size={24} className="text-[#f0bc58]" />
           </div>
 
-          <div className="my-7 space-y-5">
-            {cart.map((product) => (
-              <div key={product.id} className="flex gap-3">
-                <CoverArt cover={product.cover} imageUrl={product.imageUrl} compact className="h-24 w-[72px] shrink-0" />
-                <div className="flex min-w-0 flex-1 flex-col justify-between">
-                  <p className="font-serif text-lg leading-none">{product.title}</p>
-                  <div className="flex items-end justify-between gap-2">
-                    <span className="text-xs text-[#aeb9b0]">PDF guide</span>
-                    <span className="text-sm font-semibold">{formatCurrency(product.price, currency)}</span>
-                  </div>
+          <div className="my-6 space-y-4 divide-y divide-[#384843]">
+            {cart.map((item) => (
+              <div key={item.id} className="flex items-start gap-4 pt-4 first:pt-0">
+                <CoverArt cover={item.cover} imageUrl={item.imageUrl} className="h-20 w-14 shrink-0 rounded-lg shadow-md" compact />
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 font-serif text-base leading-snug">{item.title}</p>
+                  <p className="mt-1 text-xs text-[#a3b3ae]">Digital PDF Edition</p>
+                  <p className="mt-2 font-serif text-base font-bold text-[#f0bc58]">
+                    {formatCurrency(item.price, currency)}
+                  </p>
                 </div>
               </div>
             ))}
+            {cart.length === 0 && (
+              <p className="py-8 text-center text-sm text-[#a3b3ae]">Your basket is empty.</p>
+            )}
           </div>
 
-          <div className="space-y-3 border-t border-[#53625b] pt-5 text-sm">
-            <div className="flex justify-between text-[#bec5bb]">
-              <span>Subtotal ({currency})</span>
+          <div className="border-t border-[#384843] pt-4">
+            <div className="flex items-center justify-between text-xs text-[#a3b3ae]">
+              <span>Subtotal ({cart.length} item{cart.length !== 1 ? "s" : ""})</span>
               <span>{formatCurrency(subtotal, currency)}</span>
             </div>
-            <div className="flex justify-between text-[#bec5bb]">
+            <div className="mt-2 flex items-center justify-between text-xs text-[#a3b3ae]">
               <span>Delivery</span>
-              <span className="text-[#b8c7b2]">Instant PDF Download</span>
+              <span className="font-semibold text-[#82c99b]">Instant Download (Free)</span>
             </div>
-            <div className="flex justify-between border-t border-[#53625b] pt-4 text-lg font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(subtotal, currency)}</span>
+            <div className="mt-4 flex items-baseline justify-between border-t border-[#384843] pt-4 font-serif">
+              <span className="text-lg">Total</span>
+              <span className="text-3xl font-bold text-[#f0bc58]">{formatCurrency(subtotal, currency)}</span>
             </div>
           </div>
 
-          <div className="mt-7 flex gap-2 text-xs leading-5 text-[#bec5bb]">
-            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#b8c7b2]" /> Worldwide secure payment & instant digital delivery.
+          <div className="mt-6 space-y-2.5 rounded-xl bg-[#1d2724] p-4 text-xs text-[#a3b3ae]">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={14} className="text-[#82c99b]" />
+              <span>Official Lifetime Access</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe size={14} className="text-[#82c99b]" />
+              <span>Instant Worldwide PDF Delivery</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <UserCheck size={14} className="text-[#82c99b]" />
+              <span>Paystack Verified Payment Gateway</span>
+            </div>
           </div>
         </aside>
       </main>
