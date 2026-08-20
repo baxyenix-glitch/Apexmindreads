@@ -657,40 +657,31 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
     reader.readAsDataURL(file);
   };
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
+    if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
       setError("Please select a valid .pdf ebook file");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("pdf", file);
+    setUploadingPdf(true);
+    setError("");
 
-    try {
-      setUploadingPdf(true);
-      setError("");
-      const headers = await adminAuthHeaders();
-      const res = await fetch("/api/admin/upload-pdf", {
-        method: "POST",
-        headers,
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "PDF upload failed" }));
-        throw new Error(err.error || "PDF upload failed");
-      }
-      const data = await res.json();
-      setPdfFileUrl(data.url);
-      setPdfFileName(data.fileName || file.name);
-      setPdfFileSize(data.fileSize || file.size);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result as string;
+      setPdfFileUrl(rawDataUrl);
+      setPdfFileName(file.name);
+      setPdfFileSize(file.size);
       setUploadingPdf(false);
-    }
+    };
+    reader.onerror = () => {
+      setError("Failed to read PDF file from device");
+      setUploadingPdf(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -788,12 +779,12 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </label>
               </div>
               <p className="text-xs text-[#8b8175] mt-1">
-                Upload the actual PDF from your computer. Customers will automatically download this file after completing checkout.
+                Upload your actual PDF ebook file or paste a Google Drive / Cloud download link. Verified buyers will receive this exact file upon completing checkout.
               </p>
             </div>
             {pdfFileUrl && (
               <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#eef1eb] px-3 py-1 text-[11px] font-bold text-[#5e8c67]">
-                <FileCheck size={13} /> Attached
+                <FileCheck size={13} /> Ebook Attached
               </span>
             )}
           </div>
@@ -806,10 +797,11 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate text-[#26332f]">
-                    {pdfFileName || "Attached Ebook.pdf"}
+                    {pdfFileName || "Ebook Guide.pdf"}
                   </p>
-                  <p className="text-xs text-[#8b8175] mt-0.5">
-                    {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}Ready for instant customer download
+                  <p className="text-xs text-[#8b8175] mt-0.5 truncate max-w-md">
+                    {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}
+                    {pdfFileUrl.startsWith("data:") ? "Attached from device (ready to publish)" : "Direct Cloud Download Link"}
                   </p>
                 </div>
               </div>
@@ -820,7 +812,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc]"
                 >
-                  <Eye size={13} /> View PDF
+                  <Eye size={13} /> Test / View PDF
                 </a>
                 <button
                   type="button"
@@ -832,16 +824,16 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
               </div>
             </div>
           ) : (
-            <div className="relative">
+            <div className="flex flex-col gap-3">
               <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] bg-[#fcfbf9] p-7 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2]">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#eee7dc] text-[#d86f45] mb-3">
                   {uploadingPdf ? <Loader2 size={24} className="animate-spin" /> : <UploadCloud size={24} />}
                 </div>
                 <span className="text-sm font-semibold text-[#26332f]">
-                  {uploadingPdf ? "Uploading PDF ebook to server..." : "Click or drag to attach PDF ebook from your computer"}
+                  {uploadingPdf ? "Processing PDF ebook..." : "Click or drag to attach PDF ebook from your computer"}
                 </span>
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Supports .pdf files up to 100MB
+                  Supports .pdf files up to 25MB
                 </span>
                 <input
                   type="file"
@@ -851,6 +843,26 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#8b8175] whitespace-nowrap">Or Google Drive / Cloud Link:</span>
+                <input
+                  type="text"
+                  value={pdfFileUrl}
+                  onChange={(e) => {
+                    let val = e.target.value.trim();
+                    if (val.includes("drive.google.com/file/d/")) {
+                      const fileId = val.split("/d/")[1]?.split("/")[0]?.split("?")[0];
+                      if (fileId) {
+                        val = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                      }
+                    }
+                    setPdfFileUrl(val);
+                    if (val && !pdfFileName) setPdfFileName("Google Drive Ebook.pdf");
+                  }}
+                  placeholder="https://drive.google.com/file/d/... or direct PDF link"
+                  className="h-10 flex-1 rounded-xl border border-[#d8d0c6] bg-white px-3 text-xs outline-none focus:border-[#d86f45]"
+                />
+              </div>
             </div>
           )}
         </div>

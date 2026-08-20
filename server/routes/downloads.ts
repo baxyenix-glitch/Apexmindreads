@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Generates a clean, valid standard PDF document stream for a digital guide.
+ * Generates a clean, valid standard fallback PDF document if no custom PDF was uploaded yet.
  */
 function createGuidePdf(title: string, author: string, category: string, customerName: string): Buffer {
   const contentLines = [
@@ -20,27 +20,21 @@ function createGuidePdf(title: string, author: string, category: string, custome
 
   const streamBody = [
     `BT`,
-    // Header Banner
     `/F1 24 Tf 50 780 Td (${escapePdfText(title)}) Tj`,
     `/F2 12 Tf 0 -30 Td (Category: ${escapePdfText(category)}  |  Author: ${escapePdfText(author || "ApexMindReads")}) Tj`,
     `/F2 10 Tf 0 -25 Td (Officially licensed to: ${escapePdfText(customerName)}  |  ApexMindReads Digital Library) Tj`,
-    // Divider
     `0 -20 Td (---------------------------------------------------------------------------------------------------) Tj`,
-    // Section 1: Welcome
     `/F1 16 Tf 0 -35 Td (1. Welcome to Your Guide) Tj`,
     `/F2 11 Tf 0 -22 Td (Thank you for choosing ApexMindReads. This guide is crafted to bring actionable clarity,) Tj`,
     `0 -16 Td (practical structure, and lasting impact to your daily habits, mindset, and decisions.) Tj`,
-    // Section 2: Core Principles
     `/F1 16 Tf 0 -35 Td (2. Key Frameworks & Reflections) Tj`,
     `/F2 11 Tf 0 -22 Td (Principle 1: Clarity Precedes Mastery. Define your core objectives before taking action.) Tj`,
     `0 -18 Td (Principle 2: Sustainable Progress. Small, consistent daily practices outperform sporadic bursts.) Tj`,
     `0 -18 Td (Principle 3: Guarded Focus. Protect your attention and boundaries from unnecessary noise.) Tj`,
-    // Section 3: Actionable Exercises
     `/F1 16 Tf 0 -35 Td (3. Weekly Action Plan) Tj`,
     `/F2 11 Tf 0 -22 Td (Step 1: Dedicate 15 minutes each morning to review your daily priorities.) Tj`,
     `0 -18 Td (Step 2: Document weekly reflections in your digital journal.) Tj`,
     `0 -18 Td (Step 3: Apply the core frameworks discussed in this guide to one key area of your life.) Tj`,
-    // Footer
     `/F2 9 Tf 0 -70 Td ((c) ApexMindReads - Built for the Becoming. Instant Digital Edition.) Tj`,
     `ET`,
   ].join("\n");
@@ -73,7 +67,7 @@ function createGuidePdf(title: string, author: string, category: string, custome
 
 /**
  * GET /api/orders/:orderId/download/:productId
- * Downloads a purchased guide if the order is marked Paid
+ * Securely streams or delivers the real uploaded PDF guide to the verified customer
  */
 export const handleDownloadGuide: RequestHandler = async (req, res) => {
   const orderId = req.params.orderId as string;
@@ -101,16 +95,46 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
     const title = product?.title || orderItem.title || "ApexMindReads Guide";
     const author = product?.cover?.author || "ApexMindReads";
     const category = product?.category || "Digital Guide";
+    const downloadFilename = product?.pdfFileName || `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
 
-    // If product has a custom uploaded PDF file on the server, stream that file
+    // 1. Direct Base64 Data URL (Uploaded from Admin dashboard)
+    if (product?.pdfFileUrl && product.pdfFileUrl.startsWith("data:")) {
+      const base64Data = product.pdfFileUrl.split(",")[1];
+      if (base64Data) {
+        const fileBuffer = Buffer.from(base64Data, "base64");
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+        res.setHeader("Content-Length", fileBuffer.length);
+        res.send(fileBuffer);
+        return;
+      }
+    }
+
+    // 2. Direct Cloud URL (Google Drive / Dropbox / S3 / Cloudinary / Firebase Storage)
+    if (product?.pdfFileUrl && (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://"))) {
+      let directUrl = product.pdfFileUrl;
+      // Auto-convert Google Drive viewer link to direct download stream
+      if (directUrl.includes("drive.google.com/file/d/")) {
+        const fileId = directUrl.split("/d/")[1]?.split("/")[0]?.split("?")[0];
+        if (fileId) {
+          directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        }
+      } else if (directUrl.includes("dropbox.com") && directUrl.includes("dl=0")) {
+        directUrl = directUrl.replace("dl=0", "dl=1");
+      }
+      res.redirect(directUrl);
+      return;
+    }
+
+    // 3. Local Server Disk Path (if hosted locally)
     if (product?.pdfFileUrl) {
       const candidates = [
         path.join(process.cwd(), "client/public", product.pdfFileUrl.replace(/^\//, "")),
         path.join(process.cwd(), product.pdfFileUrl.replace(/^\//, "")),
+        path.join("/tmp/uploads/ebooks", path.basename(product.pdfFileUrl)),
       ];
       for (const localFilePath of candidates) {
         if (fs.existsSync(localFilePath)) {
-          const downloadFilename = product.pdfFileName || `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
           res.setHeader("Content-Type", "application/pdf");
           res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
           const fileStream = fs.createReadStream(localFilePath);
@@ -120,7 +144,7 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // Dynamic clean PDF delivery
+    // 4. Default dynamic licensed guide fallback
     const pdfBuffer = createGuidePdf(title, author, category, order.customerName || "Valued Reader");
     const safeFilename = `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
 
