@@ -6,9 +6,9 @@ import path from "path";
 
 /**
  * GET /api/orders/:orderId/download/:productId
- * Streams the exact digital PDF guide to verified buyers.
- * Handles Chunked Firestore Storage, Google Drive, direct Cloud URLs, and local files.
- * Strict: No placeholder/fallback PDFs are generated.
+ * Delivers the purchased digital PDF guide to verified customers.
+ * Handles /api/ebooks/ files, Cloud URLs, Base64 data, and server files.
+ * Strict: No mock/placeholder PDFs.
  */
 export const handleDownloadGuide: RequestHandler = async (req, res) => {
   const orderId = req.params.orderId as string;
@@ -43,9 +43,17 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       return;
     }
 
-    // 1. Chunked Firestore Ebook Storage (100% persistent on serverless)
-    if (product.pdfFileUrl.startsWith("firestore-file://")) {
-      const fileId = product.pdfFileUrl.replace("firestore-file://", "").trim();
+    // 1. Check if it references a stored ebook file (/api/ebooks/fileId.pdf or firestore-file:// or ebook_...)
+    let fileId: string | null = null;
+    if (product.pdfFileUrl.includes("/ebooks/")) {
+      fileId = product.pdfFileUrl.split("/ebooks/")[1]?.replace(/\.pdf$/i, "")?.split("?")[0] || null;
+    } else if (product.pdfFileUrl.startsWith("firestore-file://")) {
+      fileId = product.pdfFileUrl.replace("firestore-file://", "").trim();
+    } else if (product.pdfFileUrl.startsWith("ebook_")) {
+      fileId = product.pdfFileUrl;
+    }
+
+    if (fileId) {
       const metaDoc = await adminDb.collection("ebook_files").doc(fileId).get();
       if (metaDoc.exists) {
         const chunksSnapshot = await adminDb
@@ -73,15 +81,15 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // 2. Direct Cloud URL (Google Drive / Dropbox / S3 / CDN / Cloud Storage)
+    // 2. Direct Cloud URL (External HTTP/HTTPS)
     if (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://")) {
       let directUrl = product.pdfFileUrl;
 
       // Auto-convert Google Drive viewer link to direct download stream
       if (directUrl.includes("drive.google.com/file/d/")) {
-        const fileId = directUrl.split("/d/")[1]?.split("/")[0]?.split("?")[0];
-        if (fileId) {
-          directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        const parsedFileId = directUrl.split("/d/")[1]?.split("/")[0]?.split("?")[0];
+        if (parsedFileId) {
+          directUrl = `https://drive.google.com/uc?export=download&id=${parsedFileId}`;
         }
       } else if (directUrl.includes("dropbox.com") && directUrl.includes("dl=0")) {
         directUrl = directUrl.replace("dl=0", "dl=1");
@@ -101,7 +109,6 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
           res.send(Buffer.from(arrayBuffer));
           return;
         } else {
-          console.warn(`Upstream download returned ${upstream.status}, redirecting to directUrl`);
           res.redirect(directUrl);
           return;
         }

@@ -795,7 +795,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </label>
               </div>
               <p className="text-xs text-[#8b8175] mt-1">
-                Attach the real PDF ebook file from your computer or paste a direct Google Drive link. Verified buyers will receive this exact file upon completing checkout.
+                Upload the PDF ebook file for this guide. Buyers will receive this file automatically when they complete checkout.
               </p>
             </div>
             {pdfFileUrl && (
@@ -816,19 +816,18 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                     {pdfFileName || "Ebook Guide.pdf"}
                   </p>
                   <p className="text-xs text-[#8b8175] mt-0.5 truncate max-w-md">
-                    {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}
-                    {pdfFileUrl.startsWith("firestore-file://") ? "Uploaded to Secure Cloud Storage (Ready for download)" : "Direct Cloud Download Link"}
+                    {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}Ready for instant buyer download
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <a
-                  href={pdfFileUrl.startsWith("firestore-file://") ? `/api/admin/test-pdf/${pdfFileUrl.replace("firestore-file://", "")}` : pdfFileUrl}
+                  href={pdfFileUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc]"
                 >
-                  <Eye size={13} /> Test / View PDF
+                  <Eye size={13} /> Open / View PDF
                 </a>
                 <button
                   type="button"
@@ -846,10 +845,10 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   {uploadingPdf ? <Loader2 size={24} className="animate-spin" /> : <UploadCloud size={24} />}
                 </div>
                 <span className="text-sm font-semibold text-[#26332f]">
-                  {uploadingPdf ? "Uploading & encrypting PDF ebook..." : "Click or drag to attach PDF ebook from your computer"}
+                  {uploadingPdf ? "Saving PDF ebook..." : "Click or drag to attach PDF ebook from your computer"}
                 </span>
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Supports .pdf files up to 50MB (Stored permanently in cloud database)
+                  Supports .pdf files up to 50MB
                 </span>
                 <input
                   type="file"
@@ -860,7 +859,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 />
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#8b8175] whitespace-nowrap">Or Google Drive / Cloud Link:</span>
+                <span className="text-xs text-[#8b8175] whitespace-nowrap">Or Direct PDF URL:</span>
                 <input
                   type="text"
                   value={pdfFileUrl}
@@ -873,9 +872,9 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                       }
                     }
                     setPdfFileUrl(val);
-                    if (val && !pdfFileName) setPdfFileName("Google Drive Ebook.pdf");
+                    if (val && !pdfFileName) setPdfFileName("Ebook Guide.pdf");
                   }}
-                  placeholder="https://drive.google.com/file/d/... or direct PDF link"
+                  placeholder="https://... direct PDF download link"
                   className="h-10 flex-1 rounded-xl border border-[#d8d0c6] bg-white px-3 text-xs outline-none focus:border-[#d86f45]"
                 />
               </div>

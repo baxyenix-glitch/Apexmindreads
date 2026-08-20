@@ -1,26 +1,9 @@
 import type { RequestHandler } from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { adminDb } from "../lib/firebase-admin.js";
 
-// Ensure upload directories exist safely (supports Vercel serverless /tmp)
-const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const uploadDir = isVercel ? "/tmp/uploads" : path.join(process.cwd(), "client/public/uploads");
-
-function ensureDirs() {
-  try {
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-  } catch (e) {
-    // Ignore read-only filesystem errors during cold start
-  }
-}
-
-// Storage for cover images (memory/disk)
+// Storage for cover images
 const imageStorage = multer.memoryStorage();
-
 export const upload = multer({ 
   storage: imageStorage,
   limits: {
@@ -28,9 +11,8 @@ export const upload = multer({
   }
 });
 
-// Memory storage for PDF ebooks so we can persist in Firestore/Storage with zero serverless container loss
+// Memory storage for PDF ebooks
 const pdfStorage = multer.memoryStorage();
-
 export const uploadPdf = multer({
   storage: pdfStorage,
   limits: {
@@ -52,7 +34,6 @@ export const handleUploadImage: RequestHandler = (req, res) => {
     return;
   }
   
-  // Return base64 data url for images
   const base64 = req.file.buffer.toString("base64");
   const mime = req.file.mimetype || "image/webp";
   const url = `data:${mime};base64,${base64}`;
@@ -61,7 +42,7 @@ export const handleUploadImage: RequestHandler = (req, res) => {
 
 /** 
  * POST /api/admin/upload-pdf — admin only
- * Persists the actual PDF in Firestore chunks permanently so it is never lost on serverless restarts
+ * Saves PDF file safely and returns a direct clean URL: /api/ebooks/:fileId.pdf
  */
 export const handleUploadPdf: RequestHandler = async (req, res) => {
   if (!req.file) {
@@ -75,7 +56,7 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
     const fileSize = req.file.size;
     const fileId = `ebook_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    // Split file into 700KB chunks (safe under Firestore 1MB doc limit)
+    // Split file into 700KB chunks
     const CHUNK_SIZE = 700 * 1024;
     const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
 
@@ -87,7 +68,7 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
       createdAt: new Date().toISOString(),
     });
 
-    // Write all chunks in batches
+    // Write all chunks
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, fileBuffer.length);
@@ -100,7 +81,7 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
       });
     }
 
-    const url = `firestore-file://${fileId}`;
+    const url = `/api/ebooks/${fileId}.pdf`;
     res.json({
       url,
       fileName,
@@ -114,23 +95,30 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
 };
 
 /**
- * GET /api/admin/test-pdf/:fileId — admin only
- * Allows admin to test and view their uploaded PDF directly in a new tab
+ * GET /api/ebooks/:fileId
+ * Streams the PDF ebook directly into the browser tab or download
  */
-export const handleTestPdf: RequestHandler = async (req, res) => {
-  const fileId = req.params.fileId as string;
+export const handleGetEbookFile: RequestHandler = async (req, res) => {
+  let rawId = (req.params.fileId as string) || "";
+  const fileId = rawId.replace(/\.pdf$/i, "");
+  
   try {
     const metaDoc = await adminDb.collection("ebook_files").doc(fileId).get();
     if (!metaDoc.exists) {
-      res.status(404).send("PDF file not found in storage");
+      res.status(404).send("PDF file not found");
       return;
     }
 
     const meta = metaDoc.data()!;
-    const chunksSnapshot = await adminDb.collection("ebook_files").doc(fileId).collection("chunks").orderBy("index", "asc").get();
-    
+    const chunksSnapshot = await adminDb
+      .collection("ebook_files")
+      .doc(fileId)
+      .collection("chunks")
+      .orderBy("index", "asc")
+      .get();
+
     if (chunksSnapshot.empty) {
-      res.status(404).send("PDF file chunks not found");
+      res.status(404).send("PDF content not found");
       return;
     }
 
@@ -143,12 +131,14 @@ export const handleTestPdf: RequestHandler = async (req, res) => {
     }
 
     const fullPdfBuffer = Buffer.concat(chunkBuffers);
+    const fileName = meta.fileName || "guide.pdf";
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(meta.fileName || "ebook.pdf")}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Length", fullPdfBuffer.length);
     res.send(fullPdfBuffer);
   } catch (err: any) {
-    console.error("Test PDF error:", err);
+    console.error("Error reading ebook file:", err);
     res.status(500).send("Error reading PDF file");
   }
 };
