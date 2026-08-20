@@ -118,7 +118,7 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
  * Allows admin to test and view their uploaded PDF directly in a new tab
  */
 export const handleTestPdf: RequestHandler = async (req, res) => {
-  const fileId = req.params.fileId;
+  const fileId = req.params.fileId as string;
   try {
     const metaDoc = await adminDb.collection("ebook_files").doc(fileId).get();
     if (!metaDoc.exists) {
