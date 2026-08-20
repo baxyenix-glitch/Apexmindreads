@@ -571,6 +571,9 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
   const [pdfFileUrl, setPdfFileUrl] = useState(product?.pdfFileUrl ?? "");
   const [pdfFileName, setPdfFileName] = useState(product?.pdfFileName ?? "");
   const [pdfFileSize, setPdfFileSize] = useState<number | undefined>(product?.pdfFileSize);
+  const [pdfSourceMode, setPdfSourceMode] = useState<"automatic" | "manual">(
+    product?.pdfFileUrl?.includes("drive.google.com") || product?.pdfFileUrl?.startsWith("http") ? "manual" : "automatic"
+  );
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -786,23 +789,49 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 
         {/* ─── PDF EBOOK ATTACHMENT SECTION ─── */}
         <div className="lg:col-span-2 rounded-2xl border-2 border-[#e2dfd8] bg-white p-5 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <div>
               <div className="flex items-center gap-2">
                 <FileText className="text-[#d86f45]" size={18} />
                 <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#26332f]">
-                  PDF Ebook File Attachment
+                  PDF Ebook Attachment
                 </label>
               </div>
               <p className="text-xs text-[#8b8175] mt-1">
-                Upload the PDF ebook file for this guide. Buyers will receive this file automatically when they complete checkout.
+                Choose how you want to attach your PDF ebook for instant customer download.
               </p>
             </div>
             {pdfFileUrl && (
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#eef1eb] px-3 py-1 text-[11px] font-bold text-[#5e8c67]">
+              <span className="inline-flex items-center gap-1 self-start sm:self-auto rounded-full bg-[#eef1eb] px-3 py-1 text-[11px] font-bold text-[#5e8c67]">
                 <FileCheck size={13} /> Ebook Attached
               </span>
             )}
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="mb-4 flex rounded-xl border border-[#d8d0c6] bg-[#f8f6f0] p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setPdfSourceMode("automatic")}
+              className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition ${
+                pdfSourceMode === "automatic"
+                  ? "bg-[#26332f] text-[#fffaf2] shadow-sm"
+                  : "text-[#736b61] hover:text-[#26332f]"
+              }`}
+            >
+              ⚡ Automatic (Upload PDF File)
+            </button>
+            <button
+              type="button"
+              onClick={() => setPdfSourceMode("manual")}
+              className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition ${
+                pdfSourceMode === "manual"
+                  ? "bg-[#26332f] text-[#fffaf2] shadow-sm"
+                  : "text-[#736b61] hover:text-[#26332f]"
+              }`}
+            >
+              🔗 Manual (Google Drive Link)
+            </button>
           </div>
 
           {pdfFileUrl ? (
@@ -816,7 +845,8 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                     {pdfFileName || "Ebook Guide.pdf"}
                   </p>
                   <p className="text-xs text-[#8b8175] mt-0.5 truncate max-w-md">
-                    {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}Ready for instant buyer download
+                    {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}
+                    {pdfFileUrl.includes("drive.google.com") ? "Google Drive Link" : "Store Cloud File (Ready to download)"}
                   </p>
                 </div>
               </div>
@@ -827,7 +857,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc]"
                 >
-                  <Eye size={13} /> Open / View PDF
+                  <Eye size={13} /> Test / Open PDF
                 </a>
                 <button
                   type="button"
@@ -838,8 +868,8 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="flex flex-col gap-3">
+          ) : pdfSourceMode === "automatic" ? (
+            <div className="relative">
               <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] bg-[#fcfbf9] p-7 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2]">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#eee7dc] text-[#d86f45] mb-3">
                   {uploadingPdf ? <Loader2 size={24} className="animate-spin" /> : <UploadCloud size={24} />}
@@ -848,7 +878,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   {uploadingPdf ? "Saving PDF ebook..." : "Click or drag to attach PDF ebook from your computer"}
                 </span>
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Supports .pdf files up to 50MB
+                  Supports .pdf files up to 50MB (Stored directly in store)
                 </span>
                 <input
                   type="file"
@@ -858,8 +888,13 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-[#8b8175] whitespace-nowrap">Or Direct PDF URL:</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-xl border border-[#d8d0c6] bg-[#fcfbf9] p-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[#736b61] mb-1">
+                  Google Drive Sharing Link
+                </label>
                 <input
                   type="text"
                   value={pdfFileUrl}
@@ -872,12 +907,15 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                       }
                     }
                     setPdfFileUrl(val);
-                    if (val && !pdfFileName) setPdfFileName("Ebook Guide.pdf");
+                    if (val && !pdfFileName) setPdfFileName(`${title || "Guide"}.pdf`);
                   }}
-                  placeholder="https://... direct PDF download link"
-                  className="h-10 flex-1 rounded-xl border border-[#d8d0c6] bg-white px-3 text-xs outline-none focus:border-[#d86f45]"
+                  placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view?usp=sharing"
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-white px-4 text-sm outline-none focus:border-[#d86f45]"
                 />
               </div>
+              <p className="text-[11px] text-[#8b8175]">
+                💡 Tip: Make sure your Google Drive file's general access is set to <strong>"Anyone with the link can view"</strong> so customers can download it directly.
+              </p>
             </div>
           )}
         </div>
