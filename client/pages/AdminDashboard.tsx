@@ -30,6 +30,8 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { currencyOptions, formatCurrency, useCurrency, type Currency } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
+import { storage, adminStorage } from "@/lib/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { AnalyticsResponse, OrderListResponse, CustomerListResponse, PromotionListResponse, ProductListResponse, SettingsResponse } from "@shared/api";
 import type { Product, Order, CustomerView, Promotion, StoreSettings } from "@shared/schema";
 
@@ -570,6 +572,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
   const [pdfFileName, setPdfFileName] = useState(product?.pdfFileName ?? "");
   const [pdfFileSize, setPdfFileSize] = useState<number | undefined>(product?.pdfFileSize);
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [slug, setSlug] = useState(product?.slug ?? "");
@@ -657,7 +660,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
     reader.readAsDataURL(file);
   };
 
-  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -779,7 +782,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </label>
               </div>
               <p className="text-xs text-[#8b8175] mt-1">
-                Upload your actual PDF ebook file or paste a Google Drive / Cloud download link. Verified buyers will receive this exact file upon completing checkout.
+                Attach the real PDF ebook file from your computer or paste a direct Google Drive link. Verified buyers will receive this exact file upon completing checkout.
               </p>
             </div>
             {pdfFileUrl && (
@@ -801,7 +804,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   </p>
                   <p className="text-xs text-[#8b8175] mt-0.5 truncate max-w-md">
                     {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}
-                    {pdfFileUrl.startsWith("data:") ? "Attached from device (ready to publish)" : "Direct Cloud Download Link"}
+                    {pdfFileUrl.includes("firebasestorage.googleapis.com") ? "Cloud Storage (Ready to download)" : pdfFileUrl.startsWith("data:") ? "Attached from device" : "Direct Cloud Download Link"}
                   </p>
                 </div>
               </div>
@@ -816,7 +819,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </a>
                 <button
                   type="button"
-                  onClick={() => { setPdfFileUrl(""); setPdfFileName(""); setPdfFileSize(undefined); }}
+                  onClick={() => { setPdfFileUrl(""); setPdfFileName(""); setPdfFileSize(undefined); setUploadProgress(0); }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] bg-[#fff5f5] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] transition hover:bg-[#fee2e2]"
                 >
                   <Trash2 size={13} /> Remove
@@ -830,10 +833,10 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   {uploadingPdf ? <Loader2 size={24} className="animate-spin" /> : <UploadCloud size={24} />}
                 </div>
                 <span className="text-sm font-semibold text-[#26332f]">
-                  {uploadingPdf ? "Processing PDF ebook..." : "Click or drag to attach PDF ebook from your computer"}
+                  {uploadingPdf ? `Uploading PDF ebook (${uploadProgress}%)...` : "Click or drag to attach PDF ebook from your computer"}
                 </span>
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Supports .pdf files up to 25MB
+                  Supports .pdf files up to 50MB
                 </span>
                 <input
                   type="file"

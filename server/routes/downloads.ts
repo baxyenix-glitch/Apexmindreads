@@ -4,70 +4,9 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Generates a clean, valid standard fallback PDF document if no custom PDF was uploaded yet.
- */
-function createGuidePdf(title: string, author: string, category: string, customerName: string): Buffer {
-  const contentLines = [
-    `%PDF-1.4`,
-    `1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj`,
-    `2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj`,
-    `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >> endobj`,
-    `5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj`,
-    `6 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj`,
-  ];
-
-  const escapePdfText = (text: string) => text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-
-  const streamBody = [
-    `BT`,
-    `/F1 24 Tf 50 780 Td (${escapePdfText(title)}) Tj`,
-    `/F2 12 Tf 0 -30 Td (Category: ${escapePdfText(category)}  |  Author: ${escapePdfText(author || "ApexMindReads")}) Tj`,
-    `/F2 10 Tf 0 -25 Td (Officially licensed to: ${escapePdfText(customerName)}  |  ApexMindReads Digital Library) Tj`,
-    `0 -20 Td (---------------------------------------------------------------------------------------------------) Tj`,
-    `/F1 16 Tf 0 -35 Td (1. Welcome to Your Guide) Tj`,
-    `/F2 11 Tf 0 -22 Td (Thank you for choosing ApexMindReads. This guide is crafted to bring actionable clarity,) Tj`,
-    `0 -16 Td (practical structure, and lasting impact to your daily habits, mindset, and decisions.) Tj`,
-    `/F1 16 Tf 0 -35 Td (2. Key Frameworks & Reflections) Tj`,
-    `/F2 11 Tf 0 -22 Td (Principle 1: Clarity Precedes Mastery. Define your core objectives before taking action.) Tj`,
-    `0 -18 Td (Principle 2: Sustainable Progress. Small, consistent daily practices outperform sporadic bursts.) Tj`,
-    `0 -18 Td (Principle 3: Guarded Focus. Protect your attention and boundaries from unnecessary noise.) Tj`,
-    `/F1 16 Tf 0 -35 Td (3. Weekly Action Plan) Tj`,
-    `/F2 11 Tf 0 -22 Td (Step 1: Dedicate 15 minutes each morning to review your daily priorities.) Tj`,
-    `0 -18 Td (Step 2: Document weekly reflections in your digital journal.) Tj`,
-    `0 -18 Td (Step 3: Apply the core frameworks discussed in this guide to one key area of your life.) Tj`,
-    `/F2 9 Tf 0 -70 Td ((c) ApexMindReads - Built for the Becoming. Instant Digital Edition.) Tj`,
-    `ET`,
-  ].join("\n");
-
-  const streamLength = Buffer.byteLength(streamBody, "utf-8");
-
-  contentLines.push(
-    `4 0 obj << /Length ${streamLength} >>`,
-    `stream`,
-    streamBody,
-    `endstream`,
-    `endobj`,
-    `xref`,
-    `0 7`,
-    `0000000000 65535 f `,
-    `0000000009 00000 n `,
-    `0000000058 00000 n `,
-    `0000000115 00000 n `,
-    `0000000300 00000 n `,
-    `0000000235 00000 n `,
-    `0000000295 00000 n `,
-    `trailer << /Size 7 /Root 1 0 R >>`,
-    `startxref`,
-    `${contentLines.join("\n").length}`,
-    `%%EOF`
-  );
-
-  return Buffer.from(contentLines.join("\n"), "utf-8");
-}
-
-/**
  * GET /api/orders/:orderId/download/:productId
- * Securely streams or delivers the real uploaded PDF guide to the verified customer
+ * Securely delivers the actual uploaded PDF guide to the verified customer.
+ * Strict: No fallback/mock PDFs are generated.
  */
 export const handleDownloadGuide: RequestHandler = async (req, res) => {
   const orderId = req.params.orderId as string;
@@ -93,12 +32,35 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
 
     const product = await getProductById(productId);
     const title = product?.title || orderItem.title || "ApexMindReads Guide";
-    const author = product?.cover?.author || "ApexMindReads";
-    const category = product?.category || "Digital Guide";
     const downloadFilename = product?.pdfFileName || `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
 
-    // 1. Direct Base64 Data URL (Uploaded from Admin dashboard)
-    if (product?.pdfFileUrl && product.pdfFileUrl.startsWith("data:")) {
+    if (!product?.pdfFileUrl) {
+      res.status(404).json({
+        error: `No PDF ebook file has been attached to "${title}" yet. Please contact support.`,
+      });
+      return;
+    }
+
+    // 1. Direct Cloud URL (Firebase Storage / Google Drive / Dropbox / S3 / CDN)
+    if (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://")) {
+      let directUrl = product.pdfFileUrl;
+
+      // Auto-convert Google Drive viewer link to direct download link
+      if (directUrl.includes("drive.google.com/file/d/")) {
+        const fileId = directUrl.split("/d/")[1]?.split("/")[0]?.split("?")[0];
+        if (fileId) {
+          directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        }
+      } else if (directUrl.includes("dropbox.com") && directUrl.includes("dl=0")) {
+        directUrl = directUrl.replace("dl=0", "dl=1");
+      }
+
+      res.redirect(directUrl);
+      return;
+    }
+
+    // 2. Base64 Data URL (if stored as Data URL)
+    if (product.pdfFileUrl.startsWith("data:")) {
       const base64Data = product.pdfFileUrl.split(",")[1];
       if (base64Data) {
         const fileBuffer = Buffer.from(base64Data, "base64");
@@ -110,48 +72,25 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // 2. Direct Cloud URL (Google Drive / Dropbox / S3 / Cloudinary / Firebase Storage)
-    if (product?.pdfFileUrl && (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://"))) {
-      let directUrl = product.pdfFileUrl;
-      // Auto-convert Google Drive viewer link to direct download stream
-      if (directUrl.includes("drive.google.com/file/d/")) {
-        const fileId = directUrl.split("/d/")[1]?.split("/")[0]?.split("?")[0];
-        if (fileId) {
-          directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-        }
-      } else if (directUrl.includes("dropbox.com") && directUrl.includes("dl=0")) {
-        directUrl = directUrl.replace("dl=0", "dl=1");
-      }
-      res.redirect(directUrl);
-      return;
-    }
-
     // 3. Local Server Disk Path (if hosted locally)
-    if (product?.pdfFileUrl) {
-      const candidates = [
-        path.join(process.cwd(), "client/public", product.pdfFileUrl.replace(/^\//, "")),
-        path.join(process.cwd(), product.pdfFileUrl.replace(/^\//, "")),
-        path.join("/tmp/uploads/ebooks", path.basename(product.pdfFileUrl)),
-      ];
-      for (const localFilePath of candidates) {
-        if (fs.existsSync(localFilePath)) {
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
-          const fileStream = fs.createReadStream(localFilePath);
-          fileStream.pipe(res);
-          return;
-        }
+    const candidates = [
+      path.join(process.cwd(), "client/public", product.pdfFileUrl.replace(/^\//, "")),
+      path.join(process.cwd(), product.pdfFileUrl.replace(/^\//, "")),
+      path.join("/tmp/uploads/ebooks", path.basename(product.pdfFileUrl)),
+    ];
+    for (const localFilePath of candidates) {
+      if (fs.existsSync(localFilePath)) {
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+        const fileStream = fs.createReadStream(localFilePath);
+        fileStream.pipe(res);
+        return;
       }
     }
 
-    // 4. Default dynamic licensed guide fallback
-    const pdfBuffer = createGuidePdf(title, author, category, order.customerName || "Valued Reader");
-    const safeFilename = `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
-    res.setHeader("Content-Length", pdfBuffer.length);
-    res.send(pdfBuffer);
+    res.status(404).json({
+      error: `Could not locate the PDF file for "${title}". Please contact support.`,
+    });
   } catch (err: any) {
     console.error("Download error:", err);
     res.status(500).json({ error: "Failed to download guide" });
