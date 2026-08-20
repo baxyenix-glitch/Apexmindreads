@@ -20,7 +20,18 @@ export async function getProducts(): Promise<Product[]> {
 export async function getProductById(id: string): Promise<Product | null> {
   try {
     const doc = await adminDb.collection("products").doc(id).get();
-    return doc.exists ? (doc.data() as Product) : null;
+    if (doc.exists) {
+      return { id: doc.id, ...doc.data() } as Product;
+    }
+    const byId = await adminDb.collection("products").where("id", "==", id).limit(1).get();
+    if (!byId.empty) {
+      return { id: byId.docs[0].id, ...byId.docs[0].data() } as Product;
+    }
+    const bySlug = await adminDb.collection("products").where("slug", "==", id).limit(1).get();
+    if (!bySlug.empty) {
+      return { id: bySlug.docs[0].id, ...bySlug.docs[0].data() } as Product;
+    }
+    return null;
   } catch (err: any) {
     console.error("Error fetching product by id:", err);
     return null;

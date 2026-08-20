@@ -672,19 +672,32 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
     setUploadingPdf(true);
     setError("");
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const rawDataUrl = event.target?.result as string;
-      setPdfFileUrl(rawDataUrl);
-      setPdfFileName(file.name);
-      setPdfFileSize(file.size);
+    try {
+      const formData = new FormData();
+      formData.append("pdf", file);
+
+      const headers = await adminAuthHeaders();
+      const res = await fetch("/api/admin/upload-pdf", {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "PDF upload failed" }));
+        throw new Error(data.error || "Failed to upload PDF");
+      }
+
+      const data = await res.json();
+      setPdfFileUrl(data.url);
+      setPdfFileName(data.fileName || file.name);
+      setPdfFileSize(data.fileSize || file.size);
+    } catch (err: any) {
+      console.error("PDF upload error:", err);
+      setError(err.message || "Failed to upload PDF ebook");
+    } finally {
       setUploadingPdf(false);
-    };
-    reader.onerror = () => {
-      setError("Failed to read PDF file from device");
-      setUploadingPdf(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -804,13 +817,13 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   </p>
                   <p className="text-xs text-[#8b8175] mt-0.5 truncate max-w-md">
                     {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}
-                    {pdfFileUrl.includes("firebasestorage.googleapis.com") ? "Cloud Storage (Ready to download)" : pdfFileUrl.startsWith("data:") ? "Attached from device" : "Direct Cloud Download Link"}
+                    {pdfFileUrl.startsWith("firestore-file://") ? "Uploaded to Secure Cloud Storage (Ready for download)" : "Direct Cloud Download Link"}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <a
-                  href={pdfFileUrl}
+                  href={pdfFileUrl.startsWith("firestore-file://") ? `/api/admin/test-pdf/${pdfFileUrl.replace("firestore-file://", "")}` : pdfFileUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc]"
@@ -819,7 +832,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                 </a>
                 <button
                   type="button"
-                  onClick={() => { setPdfFileUrl(""); setPdfFileName(""); setPdfFileSize(undefined); setUploadProgress(0); }}
+                  onClick={() => { setPdfFileUrl(""); setPdfFileName(""); setPdfFileSize(undefined); }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] bg-[#fff5f5] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] transition hover:bg-[#fee2e2]"
                 >
                   <Trash2 size={13} /> Remove
@@ -833,10 +846,10 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   {uploadingPdf ? <Loader2 size={24} className="animate-spin" /> : <UploadCloud size={24} />}
                 </div>
                 <span className="text-sm font-semibold text-[#26332f]">
-                  {uploadingPdf ? `Uploading PDF ebook (${uploadProgress}%)...` : "Click or drag to attach PDF ebook from your computer"}
+                  {uploadingPdf ? "Uploading & encrypting PDF ebook..." : "Click or drag to attach PDF ebook from your computer"}
                 </span>
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Supports .pdf files up to 50MB
+                  Supports .pdf files up to 50MB (Stored permanently in cloud database)
                 </span>
                 <input
                   type="file"

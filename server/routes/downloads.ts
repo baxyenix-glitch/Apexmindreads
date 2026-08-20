@@ -1,12 +1,13 @@
 import type { RequestHandler } from "express";
 import { getOrderById, getProductById } from "../data/db.js";
+import { adminDb } from "../lib/firebase-admin.js";
 import fs from "fs";
 import path from "path";
 
 /**
  * GET /api/orders/:orderId/download/:productId
  * Streams the exact digital PDF guide to verified buyers.
- * Handles Firebase Storage, Google Drive, direct Cloud URLs, and local files.
+ * Handles Chunked Firestore Storage, Google Drive, direct Cloud URLs, and local files.
  * Strict: No placeholder/fallback PDFs are generated.
  */
 export const handleDownloadGuide: RequestHandler = async (req, res) => {
@@ -42,7 +43,37 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       return;
     }
 
-    // 1. Direct Cloud URL (Firebase Storage / Google Drive / Dropbox / S3 / CDN)
+    // 1. Chunked Firestore Ebook Storage (100% persistent on serverless)
+    if (product.pdfFileUrl.startsWith("firestore-file://")) {
+      const fileId = product.pdfFileUrl.replace("firestore-file://", "").trim();
+      const metaDoc = await adminDb.collection("ebook_files").doc(fileId).get();
+      if (metaDoc.exists) {
+        const chunksSnapshot = await adminDb
+          .collection("ebook_files")
+          .doc(fileId)
+          .collection("chunks")
+          .orderBy("index", "asc")
+          .get();
+
+        if (!chunksSnapshot.empty) {
+          const chunkBuffers: Buffer[] = [];
+          for (const doc of chunksSnapshot.docs) {
+            const dataBase64 = doc.data().data;
+            if (dataBase64) {
+              chunkBuffers.push(Buffer.from(dataBase64, "base64"));
+            }
+          }
+          const fullPdfBuffer = Buffer.concat(chunkBuffers);
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+          res.setHeader("Content-Length", fullPdfBuffer.length);
+          res.send(fullPdfBuffer);
+          return;
+        }
+      }
+    }
+
+    // 2. Direct Cloud URL (Google Drive / Dropbox / S3 / CDN / Cloud Storage)
     if (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://")) {
       let directUrl = product.pdfFileUrl;
 
@@ -81,7 +112,7 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // 2. Base64 Data URL
+    // 3. Base64 Data URL
     if (product.pdfFileUrl.startsWith("data:")) {
       const base64Data = product.pdfFileUrl.split(",")[1];
       if (base64Data) {
@@ -94,7 +125,7 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // 3. Local Server Disk Path
+    // 4. Local Server Disk Path
     const candidates = [
       path.join(process.cwd(), "client/public", product.pdfFileUrl.replace(/^\//, "")),
       path.join(process.cwd(), product.pdfFileUrl.replace(/^\//, "")),
