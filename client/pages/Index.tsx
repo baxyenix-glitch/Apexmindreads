@@ -128,7 +128,7 @@ export default function Index() {
         </div>
 
         {filteredProducts.length > 0 ? (
-          <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 md:grid-cols-3 lg:gap-x-8 lg:gap-y-16">
+          <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-12">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} onAdd={addToCart} />
             ))}
