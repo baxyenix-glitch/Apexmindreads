@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { getOrderById, updateOrder } from "../data/db.js";
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_35d86e07111d6fe535356200a8dc583824cbc0b1";
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "";
 
 // Supported direct transaction currencies in Paystack
 const NATIVE_PAYSTACK_CURRENCIES = ["NGN", "USD", "GHS", "ZAR", "KES"];

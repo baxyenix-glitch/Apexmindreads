@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_adcfbac2b26d102c6107634886d6c4edbf7e87ef";
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_59aa3a5df5556d85bf2d983a952d26b4b36f1678";
 
 const GLOBAL_COUNTRIES = [
   { code: "NG", name: "Nigeria (NG)" },
