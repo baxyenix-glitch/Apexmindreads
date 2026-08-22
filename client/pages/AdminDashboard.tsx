@@ -917,6 +917,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
     product?.pdfFileUrl?.includes("drive.google.com") || product?.pdfFileUrl?.startsWith("http") ? "manual" : "automatic"
   );
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [slug, setSlug] = useState(product?.slug ?? "");
@@ -1009,42 +1010,98 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
       return;
     }
 
-    // Vercel serverless request body is limited to 4.5MB.
-    // If larger, guide admin seamlessly to Google Drive Link mode for unlimited file sizes!
-    if (file.size > 4.2 * 1024 * 1024) {
+    if (file.size > 100 * 1024 * 1024) {
       setPdfSourceMode("manual");
       setPdfFileName(file.name);
       setPdfFileSize(file.size);
-      setError(`Notice: "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB. For files larger than 4MB, please paste your Google Drive share link in the Manual tab below.`);
+      setError(`Notice: "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB (exceeds 100MB limit). For files over 100MB, please paste your Google Drive link in the Manual tab.`);
       return;
     }
 
     setUploadingPdf(true);
+    setUploadProgress(0);
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("pdf", file);
-
       const headers = await adminAuthHeaders();
-      const res = await fetch("/api/admin/upload-pdf", {
+      const CHUNK_SIZE = 600 * 1024; // 600KB chunk size (smooth & reliable across all cloud gateways)
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+      // 1. Initialize upload session
+      const initRes = await fetch("/api/admin/upload-pdf-init", {
         method: "POST",
-        headers,
-        body: formData,
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          totalChunks,
+        }),
       });
 
-      if (!res.ok) {
-        if (res.status === 413) {
-          setPdfSourceMode("manual");
-          setPdfFileName(file.name);
-          setPdfFileSize(file.size);
-          throw new Error(`File is too large for direct upload (${(file.size / (1024 * 1024)).toFixed(1)} MB). Please paste a Google Drive link in the Manual tab for unlimited file sizes.`);
-        }
-        const data = await res.json().catch(() => ({ error: "PDF upload failed" }));
-        throw new Error(data.error || "Failed to upload PDF");
+      if (!initRes.ok) {
+        const errData = await initRes.json().catch(() => ({ error: "Failed to initialize upload" }));
+        throw new Error(errData.error || "Failed to initialize upload");
       }
 
-      const data = await res.json();
+      const { fileId } = await initRes.json();
+
+      // 2. Upload chunks sequentially
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const slice = file.slice(start, end);
+
+        // Convert slice to base64
+        const chunkBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(",")[1] || "";
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(slice);
+        });
+
+        const chunkRes = await fetch("/api/admin/upload-pdf-chunk", {
+          method: "POST",
+          headers: {
+            ...headers,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileId,
+            chunkIndex: i,
+            data: chunkBase64,
+          }),
+        });
+
+        if (!chunkRes.ok) {
+          throw new Error(`Failed to upload chunk ${i + 1} of ${totalChunks}`);
+        }
+
+        const pct = Math.round(((i + 1) / totalChunks) * 100);
+        setUploadProgress(pct);
+      }
+
+      // 3. Finalize upload
+      const completeRes = await fetch("/api/admin/upload-pdf-complete", {
+        method: "POST",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fileId }),
+      });
+
+      if (!completeRes.ok) {
+        throw new Error("Failed to finalize PDF ebook upload");
+      }
+
+      const data = await completeRes.json();
       setPdfFileUrl(data.url);
       setPdfFileName(data.fileName || file.name);
       setPdfFileSize(data.fileSize || file.size);
@@ -1053,6 +1110,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
       setError(err.message || "Failed to upload PDF ebook");
     } finally {
       setUploadingPdf(false);
+      setUploadProgress(null);
     }
   };
 
@@ -1290,10 +1348,20 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   {uploadingPdf ? <Loader2 size={22} className="animate-spin" /> : <UploadCloud size={22} />}
                 </div>
                 <span className="text-sm font-semibold text-[#26332f]">
-                  {uploadingPdf ? "Saving PDF ebook to store..." : "Click to select PDF file from your device"}
+                  {uploadingPdf 
+                    ? `Uploading PDF ebook... ${uploadProgress !== null ? `${uploadProgress}%` : ""}` 
+                    : "Click to select PDF file from your device"}
                 </span>
+                {uploadingPdf && uploadProgress !== null && (
+                  <div className="my-2.5 w-full max-w-xs overflow-hidden rounded-full bg-[#e5ddd2] h-2">
+                    <div 
+                      className="h-full bg-[#d86f45] transition-all duration-200"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Direct upload for files up to 4MB · For larger files, use the Google Drive Link tab
+                  Automatic chunked upload supports PDF ebooks up to 100MB
                 </span>
               </label>
             </div>

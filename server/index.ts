@@ -9,7 +9,16 @@ import { handleListCustomers } from "./routes/customers.js";
 import { handleListPromotions, handleCreatePromotion, handleUpdatePromotion, handleDeletePromotion } from "./routes/promotions.js";
 import { handleAnalytics } from "./routes/analytics.js";
 import { handleGetSettings, handleUpdateSettings } from "./routes/settings.js";
-import { handleUploadImage, handleUploadPdf, upload, uploadPdf, handleGetEbookFile } from "./routes/upload.js";
+import { 
+  handleUploadImage, 
+  handleUploadPdf, 
+  handleUploadPdfInit, 
+  handleUploadPdfChunk, 
+  handleUploadPdfComplete, 
+  upload, 
+  uploadPdf, 
+  handleGetEbookFile 
+} from "./routes/upload.js";
 import { handleUpdateCredentials } from "./routes/admin.js";
 import { handleInitializePaystack, handleVerifyPaystack } from "./routes/paystack.js";
 import { handleDownloadGuide } from "./routes/downloads.js";
@@ -52,6 +61,9 @@ export function createServer() {
   // ─── Admin-protected routes ────────────────────────────
   router.post("/admin/upload-image", requireAdmin, upload.single("image"), handleUploadImage);
   router.post("/admin/upload-pdf", requireAdmin, uploadPdf.single("pdf"), handleUploadPdf);
+  router.post("/admin/upload-pdf-init", requireAdmin, handleUploadPdfInit);
+  router.post("/admin/upload-pdf-chunk", requireAdmin, handleUploadPdfChunk);
+  router.post("/admin/upload-pdf-complete", requireAdmin, handleUploadPdfComplete);
   
   router.post("/admin/products", requireAdmin, handleCreateProduct);
   router.put("/admin/products/:id", requireAdmin, handleUpdateProduct);

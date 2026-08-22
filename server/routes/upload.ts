@@ -41,8 +41,94 @@ export const handleUploadImage: RequestHandler = (req, res) => {
 };
 
 /** 
+ * POST /api/admin/upload-pdf-init — admin only
+ * Initializes a chunked upload session for large PDF ebooks (up to 100MB+)
+ */
+export const handleUploadPdfInit: RequestHandler = async (req, res) => {
+  try {
+    const { fileName, fileSize, totalChunks } = req.body;
+    if (!fileName || !fileSize || !totalChunks) {
+      res.status(400).json({ error: "Missing required upload metadata (fileName, fileSize, totalChunks)" });
+      return;
+    }
+    const fileId = `ebook_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    await adminDb.collection("ebook_files").doc(fileId).set({
+      fileName,
+      fileSize: Number(fileSize),
+      totalChunks: Number(totalChunks),
+      status: "uploading",
+      createdAt: new Date().toISOString(),
+    });
+    res.json({ fileId });
+  } catch (err: any) {
+    console.error("PDF init error:", err);
+    res.status(500).json({ error: err.message || "Failed to initialize upload" });
+  }
+};
+
+/**
+ * POST /api/admin/upload-pdf-chunk — admin only
+ * Receives and stores a single chunk (< 1MB) safely into Firestore
+ */
+export const handleUploadPdfChunk: RequestHandler = async (req, res) => {
+  try {
+    const { fileId, chunkIndex, data } = req.body;
+    if (!fileId || chunkIndex === undefined || !data) {
+      res.status(400).json({ error: "Missing fileId, chunkIndex, or chunk data" });
+      return;
+    }
+    await adminDb
+      .collection("ebook_files")
+      .doc(fileId)
+      .collection("chunks")
+      .doc(String(chunkIndex).padStart(4, "0"))
+      .set({
+        index: Number(chunkIndex),
+        data: String(data),
+      });
+    res.json({ success: true, chunkIndex });
+  } catch (err: any) {
+    console.error("PDF chunk error:", err);
+    res.status(500).json({ error: err.message || "Failed to store PDF chunk" });
+  }
+};
+
+/**
+ * POST /api/admin/upload-pdf-complete — admin only
+ * Finalizes chunked upload and returns the direct downloadable ebook URL
+ */
+export const handleUploadPdfComplete: RequestHandler = async (req, res) => {
+  try {
+    const { fileId } = req.body;
+    if (!fileId) {
+      res.status(400).json({ error: "Missing fileId" });
+      return;
+    }
+    const docRef = adminDb.collection("ebook_files").doc(fileId);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      res.status(404).json({ error: "File record not found" });
+      return;
+    }
+    const meta = doc.data()!;
+    await docRef.update({ status: "ready" });
+
+    const url = `/api/ebooks/${fileId}.pdf`;
+    res.json({
+      url,
+      fileName: meta.fileName,
+      fileSize: meta.fileSize,
+      fileId,
+    });
+  } catch (err: any) {
+    console.error("PDF complete error:", err);
+    res.status(500).json({ error: err.message || "Failed to finalize upload" });
+  }
+};
+
+/** 
  * POST /api/admin/upload-pdf — admin only
- * Saves PDF file safely and returns a direct clean URL: /api/ebooks/:fileId.pdf
+ * Legacy direct one-shot upload handler (for smaller files)
  */
 export const handleUploadPdf: RequestHandler = async (req, res) => {
   if (!req.file) {
@@ -65,6 +151,7 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
       fileName,
       fileSize,
       totalChunks,
+      status: "ready",
       createdAt: new Date().toISOString(),
     });
 
