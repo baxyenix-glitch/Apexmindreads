@@ -1009,6 +1009,16 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
       return;
     }
 
+    // Vercel serverless request body is limited to 4.5MB.
+    // If larger, guide admin seamlessly to Google Drive Link mode for unlimited file sizes!
+    if (file.size > 4.2 * 1024 * 1024) {
+      setPdfSourceMode("manual");
+      setPdfFileName(file.name);
+      setPdfFileSize(file.size);
+      setError(`Notice: "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB. For files larger than 4MB, please paste your Google Drive share link in the Manual tab below.`);
+      return;
+    }
+
     setUploadingPdf(true);
     setError("");
 
@@ -1024,6 +1034,12 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
       });
 
       if (!res.ok) {
+        if (res.status === 413) {
+          setPdfSourceMode("manual");
+          setPdfFileName(file.name);
+          setPdfFileSize(file.size);
+          throw new Error(`File is too large for direct upload (${(file.size / (1024 * 1024)).toFixed(1)} MB). Please paste a Google Drive link in the Manual tab for unlimited file sizes.`);
+        }
         const data = await res.json().catch(() => ({ error: "PDF upload failed" }));
         throw new Error(data.error || "Failed to upload PDF");
       }
@@ -1277,7 +1293,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   {uploadingPdf ? "Saving PDF ebook to store..." : "Click to select PDF file from your device"}
                 </span>
                 <span className="text-xs text-[#8b8175] mt-1">
-                  Supports .pdf files up to 50MB
+                  Direct upload for files up to 4MB · For larger files, use the Google Drive Link tab
                 </span>
               </label>
             </div>

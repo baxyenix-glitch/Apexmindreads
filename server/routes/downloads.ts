@@ -72,8 +72,10 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
             }
           }
           const fullPdfBuffer = Buffer.concat(chunkBuffers);
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+          res.setHeader("Content-Type", "application/octet-stream");
+          res.setHeader("Content-Disposition", `attachment; filename="${downloadFilename.replace(/"/g, '')}"`);
+          res.setHeader("Content-Transfer-Encoding", "binary");
+          res.setHeader("X-Content-Type-Options", "nosniff");
           res.setHeader("Content-Length", fullPdfBuffer.length);
           res.send(fullPdfBuffer);
           return;
@@ -81,7 +83,7 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       }
     }
 
-    // 2. Direct Cloud URL (External HTTP/HTTPS)
+    // 2. Direct Cloud URL (External HTTP/HTTPS e.g. Google Drive)
     if (product.pdfFileUrl.startsWith("http://") || product.pdfFileUrl.startsWith("https://")) {
       let directUrl = product.pdfFileUrl;
 
@@ -98,9 +100,10 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       try {
         const upstream = await fetch(directUrl);
         if (upstream.ok) {
-          const contentType = upstream.headers.get("content-type") || "application/pdf";
-          res.setHeader("Content-Type", contentType);
-          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+          res.setHeader("Content-Type", "application/octet-stream");
+          res.setHeader("Content-Disposition", `attachment; filename="${downloadFilename.replace(/"/g, '')}"`);
+          res.setHeader("Content-Transfer-Encoding", "binary");
+          res.setHeader("X-Content-Type-Options", "nosniff");
           const contentLength = upstream.headers.get("content-length");
           if (contentLength) {
             res.setHeader("Content-Length", contentLength);
@@ -124,8 +127,10 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
       const base64Data = product.pdfFileUrl.split(",")[1];
       if (base64Data) {
         const fileBuffer = Buffer.from(base64Data, "base64");
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename="${downloadFilename.replace(/"/g, '')}"`);
+        res.setHeader("Content-Transfer-Encoding", "binary");
+        res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader("Content-Length", fileBuffer.length);
         res.send(fileBuffer);
         return;
@@ -140,8 +145,10 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
     ];
     for (const localFilePath of candidates) {
       if (fs.existsSync(localFilePath)) {
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename="${downloadFilename.replace(/"/g, '')}"`);
+        res.setHeader("Content-Transfer-Encoding", "binary");
+        res.setHeader("X-Content-Type-Options", "nosniff");
         const fileStream = fs.createReadStream(localFilePath);
         fileStream.pipe(res);
         return;
