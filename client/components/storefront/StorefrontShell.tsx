@@ -24,7 +24,7 @@ export function StorefrontShell({ children, cart, onRemove }: StorefrontShellPro
       <header className="relative z-40 border-b border-[#e5ddd2] bg-[#f8f4ec]/95 backdrop-blur">
         <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-3 sm:h-[74px] sm:px-5 lg:h-[84px] lg:px-10">
           <Link to="/" className="group flex min-w-0 items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d86f45] sm:gap-2.5" onClick={() => setMenuOpen(false)}>
-            <img src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" alt="ApexMindReads logo" className="h-9 w-9 shrink-0 object-contain transition-transform group-hover:rotate-3 sm:h-10 sm:w-10" />
+            <img src="/logo.png" alt="ApexMindReads logo" className="h-9 w-9 shrink-0 object-contain transition-transform group-hover:rotate-3 sm:h-10 sm:w-10" />
             <span className="truncate font-serif text-[1.15rem] font-semibold tracking-[-0.05em] text-[#26332f] sm:text-[1.45rem]">ApexMind<span className="text-[#d86f45]">Reads</span></span>
           </Link>
           <nav className="hidden items-center gap-8 lg:flex" aria-label="Main navigation">

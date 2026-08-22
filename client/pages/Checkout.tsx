@@ -302,7 +302,7 @@ export default function Checkout() {
       <header className="border-b border-[#e5ddd2] bg-[#f8f4ec]">
         <div className="mx-auto flex h-[66px] max-w-[1180px] items-center justify-between px-3.5 sm:h-[74px] sm:px-6 lg:px-10">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-serif text-[1.15rem] font-semibold tracking-[-0.04em] sm:text-[1.35rem]">
-            <img src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" alt="ApexMindReads logo" className="h-8 w-8 shrink-0 object-contain sm:h-9 sm:w-9" />
+            <img src="/logo.png" alt="ApexMindReads logo" className="h-8 w-8 shrink-0 object-contain sm:h-9 sm:w-9" />
             <span className="whitespace-nowrap">ApexMind<span className="text-[#d86f45]">Reads</span></span>
           </Link>
           <Link to="/" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.1em] text-[#8b8175] transition hover:text-[#d86f45] sm:text-xs sm:tracking-[0.12em]">

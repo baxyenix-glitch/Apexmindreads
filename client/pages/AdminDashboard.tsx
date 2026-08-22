@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between pb-5 border-b border-[#3b4b45]">
                   <Link to="/" onClick={closeNav} className="flex items-center gap-2.5 font-serif text-lg tracking-tight">
                     <img 
-                      src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" 
+                      src="/logo.png" 
                       alt="ApexMindReads logo" 
                       className="h-7 w-7 object-contain" 
                     />
@@ -293,7 +293,7 @@ function DesktopSidebar({ active, onLogout }: { active: string; onLogout: () => 
       <div>
         <Link to="/" className="flex items-center gap-2.5 font-serif text-[1.25rem] tracking-tight">
           <img 
-            src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" 
+            src="/logo.png" 
             alt="ApexMindReads logo" 
             className="h-8 w-8 object-contain" 
           />

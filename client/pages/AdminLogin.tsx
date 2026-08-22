@@ -31,7 +31,7 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-[#26332f] px-5 py-8 text-[#f8f4ec] sm:py-12">
       <div className="mx-auto flex max-w-[1100px] flex-col">
         <Link to="/" className="flex items-center gap-2 self-start font-serif text-xl tracking-[-0.05em]">
-          <img src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" alt="ApexMindReads logo" className="h-9 w-9 object-contain" />
+          <img src="/logo.png" alt="ApexMindReads logo" className="h-9 w-9 object-contain" />
           ApexMind<span className="text-[#e58a61]">Reads</span>
         </Link>
 

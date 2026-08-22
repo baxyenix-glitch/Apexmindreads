@@ -7,7 +7,7 @@ export default function TermsOfService() {
       <header className="border-b border-[#e5ddd2]">
         <div className="mx-auto flex h-[74px] max-w-[1180px] items-center justify-between px-5 lg:px-10">
           <Link to="/" className="flex items-center gap-2 font-serif text-[1.35rem] font-semibold tracking-[-0.05em]">
-            <img src="https://cdn.builder.io/api/v1/image/assets%2F65219c2b646c40599cdbfb399c78ee49%2F25bc89c4be474445946731673dbce175?format=webp&width=800&height=1200" alt="ApexMindReads logo" className="h-9 w-9 object-contain" />
+            <img src="/logo.png" alt="ApexMindReads logo" className="h-9 w-9 object-contain" />
             ApexMind<span className="text-[#d86f45]">Reads</span>
           </Link>
           <Link to="/" className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#8b8175] transition hover:text-[#d86f45]">
