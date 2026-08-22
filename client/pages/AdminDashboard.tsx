@@ -138,28 +138,6 @@ export default function AdminDashboard() {
                 </h1>
               </div>
             </div>
-
-            {/* Quick Actions / Avatar */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link
-                to="/"
-                target="_blank"
-                rel="noreferrer"
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#26332f] transition hover:bg-[#eee7dc]"
-              >
-                <Eye size={13} /> View Storefront
-              </Link>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[#d86f45] text-xs font-bold text-white shadow-sm ring-2 ring-[#f5f3ee]">
-                  {admin?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "AD"}
-                </div>
-                <div className="hidden md:block text-left text-xs">
-                  <p className="font-bold leading-none text-[#26332f]">{admin?.name ?? "Store Admin"}</p>
-                  <p className="text-[10px] text-[#8b8175] mt-0.5">{admin?.email ?? "admin@apexmindreads.com"}</p>
-                </div>
-              </div>
-            </div>
           </div>
         </header>
 
@@ -443,46 +421,6 @@ function OverviewSection({ currency }: { currency: Currency }) {
         <Kpi label="Paid Orders" value={String(analytics.paidOrders)} icon={ShoppingBag} tone="green" />
         <Kpi label="Customers" value={String(analytics.totalCustomers)} icon={Users} tone="blue" />
         <Kpi label="Avg. Order" value={formatCurrency(analytics.averageOrder, currency)} icon={BarChart3} tone="gold" />
-      </div>
-
-      {/* Quick Actions Banner on Mobile */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <Link
-          to="/admin/products"
-          className="flex items-center gap-2.5 rounded-xl border border-[#e2dfd8] bg-white p-3 text-xs font-bold text-[#26332f] transition hover:border-[#d86f45] shadow-sm"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eee7dc] text-[#d86f45]">
-            <Plus size={16} />
-          </div>
-          <span>Add Product</span>
-        </Link>
-        <Link
-          to="/admin/orders"
-          className="flex items-center gap-2.5 rounded-xl border border-[#e2dfd8] bg-white p-3 text-xs font-bold text-[#26332f] transition hover:border-[#d86f45] shadow-sm"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eef1eb] text-[#5e8c67]">
-            <ShoppingBag size={16} />
-          </div>
-          <span>View Orders</span>
-        </Link>
-        <Link
-          to="/admin/analytics"
-          className="flex items-center gap-2.5 rounded-xl border border-[#e2dfd8] bg-white p-3 text-xs font-bold text-[#26332f] transition hover:border-[#d86f45] shadow-sm"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#faedc9] text-[#ad842a]">
-            <TrendingUp size={16} />
-          </div>
-          <span>Analytics</span>
-        </Link>
-        <Link
-          to="/admin/settings"
-          className="flex items-center gap-2.5 rounded-xl border border-[#e2dfd8] bg-white p-3 text-xs font-bold text-[#26332f] transition hover:border-[#d86f45] shadow-sm"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#dce8ed] text-[#5e8395]">
-            <Settings size={16} />
-          </div>
-          <span>Settings</span>
-        </Link>
       </div>
 
       {/* Revenue & Top Products Grid */}
