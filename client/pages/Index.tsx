@@ -74,19 +74,16 @@ export default function Index() {
                 Explore Categories <ArrowRight size={14} />
               </a>
             </div>
-            <div className="mx-auto mt-8 flex max-w-[430px] items-center justify-center gap-5 border-t border-[#e5ddd2] pt-5 sm:gap-8">
-              <div>
-                <p className="font-serif text-3xl tracking-[-0.05em]">{products.length > 0 ? `${products.length}+` : "50+"}</p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">Premium guides</p>
-              </div>
+            <div className="mx-auto mt-8 flex max-w-[360px] items-center justify-center gap-8 border-t border-[#e5ddd2] pt-5 sm:gap-12">
               <div>
                 <p className="font-serif text-3xl tracking-[-0.05em]">4.9<span className="text-lg text-[#d86f45]">/5</span></p>
                 <p className="mt-1 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">
                   <Star size={11} fill="currentColor" className="text-[#e4a83d]" /> Reader rated
                 </p>
               </div>
+              <div className="h-8 w-px bg-[#e5ddd2]" />
               <div>
-                <p className="font-serif text-3xl tracking-[-0.05em]">12k</p>
+                <p className="font-serif text-3xl tracking-[-0.05em]">12k+</p>
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8b8175]">Empowered readers</p>
               </div>
             </div>
