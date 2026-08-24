@@ -22,18 +22,22 @@ import {
   Settings, 
   ShieldCheck,
   ShoppingBag, 
+  Smartphone,
   Sparkles,
   Star,
   Trash2, 
   TrendingUp,
   UploadCloud, 
   Users, 
+  Volume2,
   Wallet, 
   X 
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, type Currency, currencyOptions } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
+import { useOrderLiveAlerts } from "@/lib/adminNotifications";
+import { IosInstallModal } from "@/components/admin/IosInstallModal";
 import type { 
   AnalyticsResponse, 
   OrderListResponse, 
@@ -102,6 +106,15 @@ export default function AdminDashboard() {
   const active = navItems.find((item) => item.path === location.pathname)?.label ?? "Overview";
   const closeNav = () => setMobileNavOpen(false);
 
+  const {
+    notifEnabled,
+    toggleNotifications,
+    testNotification,
+    triggerInstall,
+    iosModal,
+    setIosModal,
+  } = useOrderLiveAlerts(currency);
+
   const handleLogout = async () => {
     await adminLogout();
     navigate("/admin/login");
@@ -109,6 +122,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ee] text-[#26332f] pb-20 lg:pb-10">
+      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
+
       {/* Desktop Sidebar */}
       <DesktopSidebar active={active} onLogout={handleLogout} />
 
@@ -137,6 +152,19 @@ export default function AdminDashboard() {
                   {active === "Overview" ? `Welcome back, ${admin?.name?.split(" ")[0] ?? "Admin"}` : active}
                 </h1>
               </div>
+            </div>
+
+            {/* Download Phone App Button */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={triggerInstall}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc] hover:border-[#d86f45] shadow-sm active:scale-95"
+                title="Download Apex Admin as a phone app"
+              >
+                <Smartphone size={14} className="text-[#d86f45]" />
+                <span className="hidden min-[480px]:inline">Download App</span>
+                <span className="min-[480px]:hidden">App</span>
+              </button>
             </div>
           </div>
         </header>
@@ -2046,6 +2074,57 @@ function SettingsSection() {
           </div>
         </section>
       </div>
+
+      {/* Mobile App & Push Notification Settings Card */}
+      <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Mobile Experience</p>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f]">App Download & Sales Push Notifications</h3>
+            <p className="mt-1 max-w-xl text-xs text-[#8b8175]">
+              Use Apex Admin as a standalone app on your iPhone or Android phone and receive real-time chime alerts when sales occur.
+            </p>
+          </div>
+          <button
+            onClick={triggerInstall}
+            className="flex items-center justify-center gap-1.5 self-start sm:self-auto rounded-xl bg-[#26332f] hover:bg-[#3b4b45] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition shadow-sm"
+          >
+            <Smartphone size={14} className="text-[#d86f45]" /> Install App on Phone
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-[#eae7e0] bg-white p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#26332f]">Real-Time Sales Push Alerts</p>
+              <p className="text-[11px] text-[#8b8175] mt-0.5">
+                {notifEnabled ? "Active on this device" : "Disabled on this device"}
+              </p>
+            </div>
+            <button
+              onClick={toggleNotifications}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                notifEnabled ? "bg-[#eef1eb] text-[#5e8c67]" : "bg-[#f5f3ee] text-[#736b61] hover:bg-[#e2dfd8]"
+              }`}
+            >
+              {notifEnabled ? "Active ✓" : "Enable Alerts"}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-[#eae7e0] bg-white p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#26332f]">Notification Chime & Vibration</p>
+              <p className="text-[11px] text-[#8b8175] mt-0.5">Dual-tone cash register audio</p>
+            </div>
+            <button
+              onClick={testNotification}
+              className="rounded-full bg-[#faedc9] px-3.5 py-1.5 text-xs font-bold text-[#ad842a] hover:bg-[#f6e4b4] transition flex items-center gap-1.5"
+            >
+              <Volume2 size={13} /> Test Notification
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Admin Credentials Security Card */}
       <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm">
