@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { formatCurrency, type Currency } from "../lib/store";
-import type { Order, OrderListResponse } from "../lib/api";
+import { formatCurrency, type Currency } from "@/lib/currency";
+import type { Order, OrderListResponse } from "@shared/api";
 
 /**
  * Play a luxury POS cash register chime using Web Audio API

@@ -1946,6 +1946,15 @@ function SettingsSection() {
   const [supportEmail, setSupportEmail] = useState("");
   const [downloadMode, setDownloadMode] = useState<"instant" | "email">("instant");
   const [storeCurrency, setStoreCurrency] = useState<Currency>("NGN");
+
+  const {
+    notifEnabled,
+    toggleNotifications,
+    testNotification,
+    triggerInstall,
+    iosModal,
+    setIosModal,
+  } = useOrderLiveAlerts(storeCurrency);
   
   // Credentials update state
   const [adminEmail, setAdminEmail] = useState("");
@@ -2002,6 +2011,7 @@ function SettingsSection() {
 
   return (
     <div className="space-y-6">
+      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Store Defaults */}
         <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm space-y-5">
