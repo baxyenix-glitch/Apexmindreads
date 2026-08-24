@@ -22,6 +22,12 @@ import {
 import { handleUpdateCredentials } from "./routes/admin.js";
 import { handleInitializePaystack, handleVerifyPaystack } from "./routes/paystack.js";
 import { handleDownloadGuide } from "./routes/downloads.js";
+import { 
+  handleGetVapidPublicKey, 
+  handlePushSubscribe, 
+  handlePushUnsubscribe, 
+  handlePushTest 
+} from "./routes/push.js";
 import path from "path";
 
 export function createServer() {
@@ -86,6 +92,12 @@ export function createServer() {
   router.put("/admin/settings", requireAdmin, handleUpdateSettings);
   
   router.put("/admin/credentials", requireAdmin, handleUpdateCredentials);
+  
+  // ─── Admin Web Push routes (Background mobile notifications) ──
+  router.get("/admin/push-vapid-public-key", requireAdmin, handleGetVapidPublicKey);
+  router.post("/admin/push-subscribe", requireAdmin, handlePushSubscribe);
+  router.post("/admin/push-unsubscribe", requireAdmin, handlePushUnsubscribe);
+  router.post("/admin/push-test", requireAdmin, handlePushTest);
 
   // Mount router under BOTH /api and / so all routes match reliably
   app.use("/api", router);

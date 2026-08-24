@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import { getOrderById, updateOrder } from "../data/db.js";
+import { sendOrderPushNotification } from "../lib/pushNotifications.js";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "";
 
@@ -183,6 +184,20 @@ export const handleVerifyPaystack: RequestHandler = async (req, res) => {
       paymentReference: reference,
       paidAt: updatedOrder.paidAt,
     });
+
+    // Send real-time Web Push notification to admin devices (even if background / browser closed)
+    try {
+      const formattedTotal = `₦${(order.total || 0).toLocaleString()}`;
+      const customer = order.customerName || order.customerEmail?.split("@")[0] || "Customer";
+      sendOrderPushNotification({
+        title: `💰 Payment Received: ${formattedTotal}`,
+        body: `${customer} paid for order ${order.id} (${formattedTotal})`,
+        url: "/admin/orders",
+        tag: `payment-${order.id}`,
+      }).catch((e) => console.warn("Background push error:", e));
+    } catch (e) {
+      // Non-blocking
+    }
 
     // Generate verified download URLs for each product in the order
     const downloadUrls = order.items.map((item) => ({

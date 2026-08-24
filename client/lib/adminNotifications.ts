@@ -46,9 +46,8 @@ function markOrderAsNotified(orderId: string): boolean {
   return true;
 }
 
-// Global preloaded Audio instance for instant sound playback
+// Single preloaded Audio instance for only the custom cash register sound
 let audioInstance: HTMLAudioElement | null = null;
-let globalAudioCtx: AudioContext | null = null;
 
 function getAudioInstance(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
@@ -59,20 +58,6 @@ function getAudioInstance(): HTMLAudioElement | null {
   return audioInstance;
 }
 
-function getAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!globalAudioCtx) {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioCtx) {
-      globalAudioCtx = new AudioCtx();
-    }
-  }
-  if (globalAudioCtx && globalAudioCtx.state === "suspended") {
-    globalAudioCtx.resume().catch(() => {});
-  }
-  return globalAudioCtx;
-}
-
 // Unlock audio on mobile devices upon the very first user interaction
 if (typeof window !== "undefined") {
   const unlockAudio = () => {
@@ -80,10 +65,6 @@ if (typeof window !== "undefined") {
       const audio = getAudioInstance();
       if (audio) {
         audio.load();
-      }
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
       }
     } catch (e) {
       // ignore
@@ -98,42 +79,7 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Fallback synthesizer chime if audio file playback is blocked by browser policy
- */
-function playFallbackChime() {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(587.33, now);
-    gain1.gain.setValueAtTime(0.4, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.45);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "triangle";
-    osc2.frequency.setValueAtTime(880, now + 0.14);
-    gain2.gain.setValueAtTime(0.45, now + 0.14);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.14);
-    osc2.stop(now + 0.8);
-  } catch (e) {
-    console.warn("Audio chime fallback error:", e);
-  }
-}
-
-/**
- * Play cash register "Ka-Ching" notification sound effect
+ * Play ONLY the custom cash register sound effect from public folder
  */
 export function playOrderChime() {
   try {
@@ -142,18 +88,71 @@ export function playOrderChime() {
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {
-        console.warn("Audio file playback blocked, using fallback chime:", err);
-        playFallbackChime();
+        console.warn("Audio file playback blocked by browser:", err);
       });
     }
   } catch (e) {
     console.warn("Audio playback error:", e);
-    playFallbackChime();
   }
 }
 
 /**
- * Request permission for mobile push notifications
+ * Helper to convert Base64 URL string to Uint8Array for VAPID key
+ */
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Subscribe admin device for background Web Push notifications.
+ * Works even when the browser or app is completely closed.
+ */
+export async function subscribeAdminToPush(): Promise<boolean> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return false;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const headers = await adminAuthHeaders();
+    const keyRes = await fetch("/api/admin/push-vapid-public-key", { headers });
+    if (!keyRes.ok) return false;
+    const { publicKey } = await keyRes.json();
+    if (!publicKey) return false;
+
+    let subscription = await reg.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
+
+    // Save to server
+    await fetch("/api/admin/push-subscribe", {
+      method: "POST",
+      headers: {
+        ...headers,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ subscription }),
+    });
+
+    return true;
+  } catch (err) {
+    console.warn("Background Web Push registration error:", err);
+    return false;
+  }
+}
+
+/**
+ * Request permission for mobile push notifications and register background push
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === "undefined" || !("Notification" in window)) {
@@ -165,6 +164,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       localStorage.setItem("apexmind_admin_notifications_enabled", "true");
+      // Also register background Web Push subscription
+      subscribeAdminToPush().catch(() => {});
       return true;
     } else {
       localStorage.setItem("apexmind_admin_notifications_enabled", "false");
@@ -186,7 +187,7 @@ let lastNotificationTime = 0;
 let lastNotificationTag = "";
 
 /**
- * Send native system notification (with cash register sound & vibration)
+ * Send native system notification (with cash register sound, silencing OS default chime)
  */
 export async function sendOrderNotification(opts: {
   title?: string;
@@ -204,7 +205,7 @@ export async function sendOrderNotification(opts: {
   lastNotificationTime = now;
   lastNotificationTag = tag;
 
-  // Always play cash register sound
+  // Play ONLY our custom cash register sound
   playOrderChime();
 
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -224,6 +225,8 @@ export async function sendOrderNotification(opts: {
     body: opts.body,
     icon: "/favicon.png",
     tag,
+    // silent: true ensures the OS does NOT play its own default ding simultaneously
+    silent: true,
     data: {
       url: opts.url || "/admin/orders",
     },
@@ -273,7 +276,7 @@ function triggerOrderAlert(order: Order, currency: Currency) {
 
 /**
  * React hook to listen for new store orders, play cash-register chime, and fire notification alerts.
- * Protected against duplicate notifications and multiple hook invocations.
+ * Protected against duplicate notifications, single-sound playback, and auto-syncs background push.
  */
 export function useOrderLiveAlerts(currency: Currency) {
   const [notifEnabled, setNotifEnabled] = useState(false);
@@ -282,9 +285,13 @@ export function useOrderLiveAlerts(currency: Currency) {
   currencyRef.current = currency;
 
   useEffect(() => {
-    setNotifEnabled(areNotificationsEnabled());
+    const isEnabled = areNotificationsEnabled();
+    setNotifEnabled(isEnabled);
+    if (isEnabled) {
+      subscribeAdminToPush().catch(() => {});
+    }
 
-    // 1. Real-time Firestore Listener
+    // 1. Real-time Firestore Listener (foreground active tab)
     let unsubscribeFirestore = () => {};
     try {
       const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(25));
@@ -372,7 +379,7 @@ export function useOrderLiveAlerts(currency: Currency) {
     }
   };
 
-  const testNotification = () => {
+  const testNotification = async () => {
     const sampleAmount = formatCurrency(15000, currency);
     sendOrderNotification({
       title: `🎉 New Order: ${sampleAmount}`,
@@ -380,6 +387,14 @@ export function useOrderLiveAlerts(currency: Currency) {
       url: "/admin/orders",
       tag: `test-order-${Date.now()}`,
     });
+
+    // Also trigger server-side test push if subscribed
+    try {
+      const headers = await adminAuthHeaders();
+      await fetch("/api/admin/push-test", { method: "POST", headers });
+    } catch (e) {
+      // ignore
+    }
   };
 
   return {

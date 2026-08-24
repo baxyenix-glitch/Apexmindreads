@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import { getOrders, getOrderById, updateOrder, createOrder, getUserOrders } from "../data/db.js";
 import { CreateOrderInputSchema } from "../../shared/schema.js";
 import { adminAuth } from "../lib/firebase-admin.js";
+import { sendOrderPushNotification } from "../lib/pushNotifications.js";
 
 /** GET /api/admin/orders — admin only */
 export const handleListOrders: RequestHandler = async (_req, res) => {
@@ -96,6 +97,23 @@ export const handleCreateOrder: RequestHandler = async (req, res) => {
     }
 
     await createOrder(order);
+
+    // Send real-time Web Push notification to admin devices (even if background / browser closed)
+    try {
+      const formattedTotal = `₦${order.total.toLocaleString()}`;
+      const customer = order.customerName || order.customerEmail.split("@")[0] || "Customer";
+      const itemsCount = order.items.length;
+      const itemsLabel = itemsCount === 1 ? "item" : "items";
+      sendOrderPushNotification({
+        title: `🎉 New Order: ${formattedTotal}`,
+        body: `${customer} placed an order totaling ${formattedTotal} (${itemsCount} ${itemsLabel})`,
+        url: "/admin/orders",
+        tag: `order-${order.id}`,
+      }).catch((e) => console.warn("Background push error:", e));
+    } catch (e) {
+      // Non-blocking
+    }
+
     res.status(201).json({ order });
   } catch (err: any) {
     console.error("Create order failed:", err);
