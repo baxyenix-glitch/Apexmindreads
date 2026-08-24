@@ -5,8 +5,59 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import type { Order, OrderListResponse } from "@shared/api";
 
-// Cached AudioContext for instant playback
+const NOTIFICATION_SOUND_PATH = "/modestas123123-cash-register-kaching-sound-effect-125042.mp3";
+const NOTIFIED_ORDERS_KEY = "apexmind_notified_order_ids";
+
+// Global cache of notified order IDs to prevent duplicate alerts across tabs/instances
+const notifiedOrderIds = new Set<string>();
+
+// Load previously notified orders from localStorage on startup
+if (typeof window !== "undefined") {
+  try {
+    const stored = localStorage.getItem(NOTIFIED_ORDERS_KEY);
+    if (stored) {
+      const parsed: string[] = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        parsed.slice(-100).forEach((id) => notifiedOrderIds.add(id));
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+/**
+ * Mark an order ID as notified. Returns true if it was newly marked, false if already seen.
+ */
+function markOrderAsNotified(orderId: string): boolean {
+  if (!orderId) return false;
+  if (notifiedOrderIds.has(orderId)) {
+    return false;
+  }
+  notifiedOrderIds.add(orderId);
+  if (typeof window !== "undefined") {
+    try {
+      const list = Array.from(notifiedOrderIds).slice(-100);
+      localStorage.setItem(NOTIFIED_ORDERS_KEY, JSON.stringify(list));
+    } catch (e) {
+      // ignore
+    }
+  }
+  return true;
+}
+
+// Global preloaded Audio instance for instant sound playback
+let audioInstance: HTMLAudioElement | null = null;
 let globalAudioCtx: AudioContext | null = null;
+
+function getAudioInstance(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (!audioInstance) {
+    audioInstance = new Audio(NOTIFICATION_SOUND_PATH);
+    audioInstance.preload = "auto";
+  }
+  return audioInstance;
+}
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -22,27 +73,39 @@ function getAudioContext(): AudioContext | null {
   return globalAudioCtx;
 }
 
-// Unlock audio on first touch/click anywhere on page
+// Unlock audio on mobile devices upon the very first user interaction
 if (typeof window !== "undefined") {
   const unlockAudio = () => {
-    getAudioContext();
+    try {
+      const audio = getAudioInstance();
+      if (audio) {
+        audio.load();
+      }
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+    } catch (e) {
+      // ignore
+    }
     window.removeEventListener("touchstart", unlockAudio);
     window.removeEventListener("click", unlockAudio);
+    window.removeEventListener("keydown", unlockAudio);
   };
   window.addEventListener("touchstart", unlockAudio, { passive: true });
   window.addEventListener("click", unlockAudio, { passive: true });
+  window.addEventListener("keydown", unlockAudio, { passive: true });
 }
 
 /**
- * Play a crisp luxury POS cash register chime using Web Audio API
+ * Fallback synthesizer chime if audio file playback is blocked by browser policy
  */
-export function playOrderChime() {
+function playFallbackChime() {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
 
-    // Tone 1: High crisp bell (587.33Hz)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = "sine";
@@ -54,7 +117,6 @@ export function playOrderChime() {
     osc1.start(now);
     osc1.stop(now + 0.45);
 
-    // Tone 2: Harmonious chime (880.00Hz)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = "triangle";
@@ -66,7 +128,27 @@ export function playOrderChime() {
     osc2.start(now + 0.14);
     osc2.stop(now + 0.8);
   } catch (e) {
-    console.warn("Audio chime error:", e);
+    console.warn("Audio chime fallback error:", e);
+  }
+}
+
+/**
+ * Play cash register "Ka-Ching" notification sound effect
+ */
+export function playOrderChime() {
+  try {
+    const audio = getAudioInstance() || new Audio(NOTIFICATION_SOUND_PATH);
+    audio.currentTime = 0;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn("Audio file playback blocked, using fallback chime:", err);
+        playFallbackChime();
+      });
+    }
+  } catch (e) {
+    console.warn("Audio playback error:", e);
+    playFallbackChime();
   }
 }
 
@@ -75,7 +157,7 @@ export function playOrderChime() {
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === "undefined" || !("Notification" in window)) {
-    alert("Notifications are not supported in this browser. Please open in Safari or Chrome on your phone.");
+    alert("Notifications are not supported in this browser. Please open in Safari or Chrome on your device.");
     return false;
   }
 
@@ -99,14 +181,30 @@ export function areNotificationsEnabled(): boolean {
   return Notification.permission === "granted" && localStorage.getItem("apexmind_admin_notifications_enabled") !== "false";
 }
 
+// Cooldown tracker to prevent duplicate notifications firing within 1.5 seconds
+let lastNotificationTime = 0;
+let lastNotificationTag = "";
+
 /**
- * Send native system notification (without badge, with favicon logo & vibration)
+ * Send native system notification (with cash register sound & vibration)
  */
 export async function sendOrderNotification(opts: {
   title?: string;
   body: string;
   url?: string;
+  tag?: string;
 }) {
+  const now = Date.now();
+  const tag = opts.tag || `order-${now}`;
+
+  // Prevent duplicate execution of identical notification within 1.5s
+  if (tag === lastNotificationTag && now - lastNotificationTime < 1500) {
+    return;
+  }
+  lastNotificationTime = now;
+  lastNotificationTag = tag;
+
+  // Always play cash register sound
   playOrderChime();
 
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -125,8 +223,7 @@ export async function sendOrderNotification(opts: {
   const options: NotificationOptions = {
     body: opts.body,
     icon: "/favicon.png",
-    // No badge icon per user specification
-    tag: `order-${Date.now()}`,
+    tag,
     data: {
       url: opts.url || "/admin/orders",
     },
@@ -158,27 +255,34 @@ export async function sendOrderNotification(opts: {
 }
 
 /**
- * React hook to listen for new store orders, play chimes, and fire phone notification alerts
+ * Trigger an order notification with customer name and formatted amount
+ */
+function triggerOrderAlert(order: Order, currency: Currency) {
+  const totalFormatted = formatCurrency(order.total || 0, currency);
+  const customerName = order.customerName?.trim() || order.customerEmail?.split("@")[0] || "Customer";
+  const itemsCount = order.items?.length || 1;
+  const itemsLabel = itemsCount === 1 ? "item" : "items";
+
+  sendOrderNotification({
+    title: `🎉 New Order: ${totalFormatted}`,
+    body: `${customerName} placed an order totaling ${totalFormatted} (${itemsCount} ${itemsLabel})`,
+    url: "/admin/orders",
+    tag: `order-${order.id}`,
+  });
+}
+
+/**
+ * React hook to listen for new store orders, play cash-register chime, and fire notification alerts.
+ * Protected against duplicate notifications and multiple hook invocations.
  */
 export function useOrderLiveAlerts(currency: Currency) {
   const [notifEnabled, setNotifEnabled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [iosModal, setIosModal] = useState(false);
-  const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const initialLoadDoneRef = useRef(false);
+  const currencyRef = useRef(currency);
+  currencyRef.current = currency;
 
   useEffect(() => {
     setNotifEnabled(areNotificationsEnabled());
-
-    // Listen for PWA install prompt (Android / Chrome / Edge)
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
     // 1. Real-time Firestore Listener
     let unsubscribeFirestore = () => {};
@@ -191,15 +295,13 @@ export function useOrderLiveAlerts(currency: Currency) {
 
           if (change.type === "added") {
             if (!initialLoadDoneRef.current) {
-              knownOrderIdsRef.current.add(orderId);
-            } else if (!knownOrderIdsRef.current.has(orderId)) {
-              knownOrderIdsRef.current.add(orderId);
-              const totalFormatted = formatCurrency(order.total || 0, currency);
-              sendOrderNotification({
-                title: "🎉 New Order Received!",
-                body: `A new order totaling ${totalFormatted} was placed on store`,
-                url: "/admin/orders",
-              });
+              // Pre-populate known order IDs on initial load without firing alerts
+              notifiedOrderIds.add(orderId);
+            } else {
+              // Only fire if order is new and hasn't been notified yet
+              if (markOrderAsNotified(orderId)) {
+                triggerOrderAlert(order, currencyRef.current);
+              }
             }
           }
         });
@@ -227,21 +329,15 @@ export function useOrderLiveAlerts(currency: Currency) {
         const orders: Order[] = data.orders || [];
 
         if (!initialLoadDoneRef.current) {
-          orders.forEach((o) => knownOrderIdsRef.current.add(o.id));
+          orders.forEach((o) => notifiedOrderIds.add(o.id));
           initialLoadDoneRef.current = true;
           return;
         }
 
-        // Detect new orders
+        // Detect new orders strictly using global deduplicator
         for (const order of orders) {
-          if (!knownOrderIdsRef.current.has(order.id)) {
-            knownOrderIdsRef.current.add(order.id);
-            const totalFormatted = formatCurrency(order.total, currency);
-            sendOrderNotification({
-              title: "🎉 New Order Received!",
-              body: `A new order totaling ${totalFormatted} was placed on store`,
-              url: "/admin/orders",
-            });
+          if (markOrderAsNotified(order.id)) {
+            triggerOrderAlert(order, currencyRef.current);
           }
         }
       } catch (err) {
@@ -255,9 +351,8 @@ export function useOrderLiveAlerts(currency: Currency) {
     return () => {
       unsubscribeFirestore();
       clearInterval(interval);
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     };
-  }, [currency]);
+  }, []);
 
   const toggleNotifications = async () => {
     if (notifEnabled) {
@@ -269,55 +364,27 @@ export function useOrderLiveAlerts(currency: Currency) {
       if (granted) {
         sendOrderNotification({
           title: "🔔 Notifications Active",
-          body: "You will receive real-time alerts whenever a customer places an order on your store!",
-          url: "/admin",
+          body: "You will receive real-time cash register alerts whenever a customer places an order!",
+          url: "/admin/orders",
+          tag: "notification-enabled",
         });
       }
     }
   };
 
   const testNotification = () => {
+    const sampleAmount = formatCurrency(15000, currency);
     sendOrderNotification({
-      title: "🎉 New Order Received!",
-      body: `A new order totaling ${formatCurrency(15000, currency)} was placed on store`,
+      title: `🎉 New Order: ${sampleAmount}`,
+      body: `Alex Morgan placed an order totaling ${sampleAmount} (2 items)`,
       url: "/admin/orders",
+      tag: `test-order-${Date.now()}`,
     });
-  };
-
-  const triggerInstall = async () => {
-    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone;
-
-    if (isStandalone) {
-      alert("Apex Admin is already installed on your device!");
-      return;
-    }
-
-    if (isIos) {
-      setIosModal(true);
-      return;
-    }
-
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      if (choiceResult.outcome === "accepted") {
-        setIsInstallable(false);
-      }
-      setDeferredPrompt(null);
-    } else {
-      setIosModal(true);
-    }
   };
 
   return {
     notifEnabled,
     toggleNotifications,
     testNotification,
-    triggerInstall,
-    isInstallable,
-    iosModal,
-    setIosModal,
   };
 }
-

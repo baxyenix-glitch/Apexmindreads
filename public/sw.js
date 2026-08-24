@@ -1,5 +1,5 @@
-// ApexMind Admin PWA Service Worker
-const CACHE_NAME = "apexmind-admin-v3";
+// ApexMind Store Service Worker
+const CACHE_NAME = "apexmind-sw-v4";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

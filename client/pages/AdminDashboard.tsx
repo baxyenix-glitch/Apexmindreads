@@ -22,7 +22,6 @@ import {
   Settings, 
   ShieldCheck,
   ShoppingBag, 
-  Smartphone,
   Sparkles,
   Star,
   Trash2, 
@@ -37,7 +36,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, type Currency, currencyOptions } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
 import { useOrderLiveAlerts } from "@/lib/adminNotifications";
-import { IosInstallModal } from "@/components/admin/IosInstallModal";
 import type { 
   AnalyticsResponse, 
   OrderListResponse, 
@@ -110,9 +108,6 @@ export default function AdminDashboard() {
     notifEnabled,
     toggleNotifications,
     testNotification,
-    triggerInstall,
-    iosModal,
-    setIosModal,
   } = useOrderLiveAlerts(currency);
 
   const handleLogout = async () => {
@@ -122,8 +117,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ee] text-[#26332f] pb-20 lg:pb-10">
-      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
-
       {/* Desktop Sidebar */}
       <DesktopSidebar active={active} onLogout={handleLogout} />
 
@@ -154,16 +147,16 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Download Phone App Button */}
+            {/* Quick Test Sound Chime Button */}
             <div className="flex items-center gap-2">
               <button
-                onClick={triggerInstall}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc] hover:border-[#d86f45] shadow-sm active:scale-95"
-                title="Download Apex Admin as a phone app"
+                onClick={testNotification}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#faedc9] hover:border-[#d86f45] shadow-sm active:scale-95"
+                title="Test cash register sound notification"
               >
-                <Smartphone size={14} className="text-[#d86f45]" />
-                <span className="hidden min-[480px]:inline">Download App</span>
-                <span className="min-[480px]:hidden">App</span>
+                <Volume2 size={13} className="text-[#d86f45]" />
+                <span className="hidden min-[480px]:inline">Test Sound</span>
+                <span className="min-[480px]:hidden">Test</span>
               </button>
             </div>
           </div>
@@ -256,7 +249,13 @@ export default function AdminDashboard() {
           {active === "Customers" && <CustomersSection currency={currency} />}
           {active === "Analytics" && <AnalyticsSection currency={currency} />}
           {active === "Promotions" && <PromotionsSection />}
-          {active === "Settings" && <SettingsSection />}
+          {active === "Settings" && (
+            <SettingsSection 
+              notifEnabled={notifEnabled} 
+              toggleNotifications={toggleNotifications} 
+              testNotification={testNotification} 
+            />
+          )}
         </main>
       </div>
 
@@ -1938,7 +1937,13 @@ function PromoForm({ promo, onSaved, onCancel }: { promo: Promotion | null; onSa
 // ═══════════════════════════════════════════════════════════
 // SETTINGS SECTION
 // ═══════════════════════════════════════════════════════════
-function SettingsSection() {
+interface SettingsSectionProps {
+  notifEnabled: boolean;
+  toggleNotifications: () => Promise<void>;
+  testNotification: () => void;
+}
+
+function SettingsSection({ notifEnabled, toggleNotifications, testNotification }: SettingsSectionProps) {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1947,15 +1952,6 @@ function SettingsSection() {
   const [downloadMode, setDownloadMode] = useState<"instant" | "email">("instant");
   const [storeCurrency, setStoreCurrency] = useState<Currency>("NGN");
 
-  const {
-    notifEnabled,
-    toggleNotifications,
-    testNotification,
-    triggerInstall,
-    iosModal,
-    setIosModal,
-  } = useOrderLiveAlerts(storeCurrency);
-  
   // Credentials update state
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -2011,7 +2007,6 @@ function SettingsSection() {
 
   return (
     <div className="space-y-6">
-      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Store Defaults */}
         <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm space-y-5">
@@ -2085,28 +2080,22 @@ function SettingsSection() {
         </section>
       </div>
 
-      {/* Mobile App & Push Notification Settings Card */}
+      {/* Real-Time Sales Push Alerts & Audio Notifications */}
       <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Mobile Experience</p>
-            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f]">App Download & Sales Push Notifications</h3>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Live Alerts</p>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f]">Real-Time Sales & Sound Notifications</h3>
             <p className="mt-1 max-w-xl text-xs text-[#8b8175]">
-              Use Apex Admin as a standalone app on your iPhone or Android phone and receive real-time chime alerts when sales occur.
+              Get instant cash register sound alerts and notifications with customer name and order amount whenever a sale occurs.
             </p>
           </div>
-          <button
-            onClick={triggerInstall}
-            className="flex items-center justify-center gap-1.5 self-start sm:self-auto rounded-xl bg-[#26332f] hover:bg-[#3b4b45] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition shadow-sm"
-          >
-            <Smartphone size={14} className="text-[#d86f45]" /> Install App on Phone
-          </button>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-[#eae7e0] bg-white p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-[#26332f]">Real-Time Sales Push Alerts</p>
+              <p className="text-xs font-bold text-[#26332f]">Real-Time Push Alerts</p>
               <p className="text-[11px] text-[#8b8175] mt-0.5">
                 {notifEnabled ? "Active on this device" : "Disabled on this device"}
               </p>
@@ -2123,14 +2112,14 @@ function SettingsSection() {
 
           <div className="rounded-xl border border-[#eae7e0] bg-white p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-[#26332f]">Notification Chime & Vibration</p>
-              <p className="text-[11px] text-[#8b8175] mt-0.5">Dual-tone cash register audio</p>
+              <p className="text-xs font-bold text-[#26332f]">Notification Sound & Vibration</p>
+              <p className="text-[11px] text-[#8b8175] mt-0.5">Cash register "Ka-Ching" sound effect</p>
             </div>
             <button
               onClick={testNotification}
               className="rounded-full bg-[#faedc9] px-3.5 py-1.5 text-xs font-bold text-[#ad842a] hover:bg-[#f6e4b4] transition flex items-center gap-1.5"
             >
-              <Volume2 size={13} /> Test Notification
+              <Volume2 size={13} /> Test Sound
             </button>
           </div>
         </div>

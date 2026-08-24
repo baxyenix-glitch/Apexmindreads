@@ -1,14 +1,14 @@
 {
-  "name": "ApexMind Admin",
-  "short_name": "Apex Admin",
-  "description": "Store Management, Orders & Live Sales Alert App for ApexMindReads",
-  "start_url": "/admin",
+  "name": "ApexMind Reads",
+  "short_name": "ApexMind",
+  "description": "Curated executive book summaries and transformative digital guides.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#26332f",
   "theme_color": "#26332f",
-  "categories": ["business", "finance", "productivity"],
+  "categories": ["books", "education", "lifestyle"],
   "icons": [
     {
       "src": "/favicon.png",
