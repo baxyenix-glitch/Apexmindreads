@@ -1,15 +1,45 @@
 import { useEffect, useState, useRef } from "react";
 import { formatCurrency, type Currency } from "@/lib/currency";
+import { adminAuthHeaders } from "@/lib/admin-auth";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import type { Order, OrderListResponse } from "@shared/api";
 
+// Cached AudioContext for instant playback
+let globalAudioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!globalAudioCtx) {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      globalAudioCtx = new AudioCtx();
+    }
+  }
+  if (globalAudioCtx && globalAudioCtx.state === "suspended") {
+    globalAudioCtx.resume().catch(() => {});
+  }
+  return globalAudioCtx;
+}
+
+// Unlock audio on first touch/click anywhere on page
+if (typeof window !== "undefined") {
+  const unlockAudio = () => {
+    getAudioContext();
+    window.removeEventListener("touchstart", unlockAudio);
+    window.removeEventListener("click", unlockAudio);
+  };
+  window.addEventListener("touchstart", unlockAudio, { passive: true });
+  window.addEventListener("click", unlockAudio, { passive: true });
+}
+
 /**
- * Play a luxury POS cash register chime using Web Audio API
+ * Play a crisp luxury POS cash register chime using Web Audio API
  */
 export function playOrderChime() {
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const ctx = getAudioContext();
+    if (!ctx) return;
     const now = ctx.currentTime;
 
     // Tone 1: High crisp bell (587.33Hz)
@@ -17,24 +47,24 @@ export function playOrderChime() {
     const gain1 = ctx.createGain();
     osc1.type = "sine";
     osc1.frequency.setValueAtTime(587.33, now);
-    gain1.gain.setValueAtTime(0.35, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    gain1.gain.setValueAtTime(0.4, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
     osc1.start(now);
-    osc1.stop(now + 0.4);
+    osc1.stop(now + 0.45);
 
     // Tone 2: Harmonious chime (880.00Hz)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = "triangle";
-    osc2.frequency.setValueAtTime(880, now + 0.12);
-    gain2.gain.setValueAtTime(0.4, now + 0.12);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    osc2.frequency.setValueAtTime(880, now + 0.14);
+    gain2.gain.setValueAtTime(0.45, now + 0.14);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
-    osc2.start(now + 0.12);
-    osc2.stop(now + 0.7);
+    osc2.start(now + 0.14);
+    osc2.stop(now + 0.8);
   } catch (e) {
     console.warn("Audio chime error:", e);
   }
@@ -44,7 +74,7 @@ export function playOrderChime() {
  * Request permission for mobile push notifications
  */
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (!("Notification" in window)) {
+  if (typeof window === "undefined" || !("Notification" in window)) {
     alert("Notifications are not supported in this browser. Please open in Safari or Chrome on your phone.");
     return false;
   }
@@ -65,7 +95,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export function areNotificationsEnabled(): boolean {
-  if (!("Notification" in window)) return false;
+  if (typeof window === "undefined" || !("Notification" in window)) return false;
   return Notification.permission === "granted" && localStorage.getItem("apexmind_admin_notifications_enabled") !== "false";
 }
 
@@ -79,7 +109,7 @@ export async function sendOrderNotification(opts: {
 }) {
   playOrderChime();
 
-  if ("vibrate" in navigator) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     try {
       navigator.vibrate([200, 100, 200, 100, 200]);
     } catch (e) {
@@ -87,7 +117,7 @@ export async function sendOrderNotification(opts: {
     }
   }
 
-  if (!("Notification" in window) || Notification.permission !== "granted") {
+  if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
     return;
   }
 
@@ -150,14 +180,47 @@ export function useOrderLiveAlerts(currency: Currency) {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
-    // Initial check of orders
-    const checkOrders = async () => {
-      try {
-        const token = localStorage.getItem("apexmind_admin_token");
-        const headers: Record<string, string> = {};
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+    // 1. Real-time Firestore Listener
+    let unsubscribeFirestore = () => {};
+    try {
+      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(25));
+      unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const order = change.doc.data() as Order;
+          const orderId = change.doc.id || order.id;
 
-        const res = await fetch("/api/admin/orders", { headers });
+          if (change.type === "added") {
+            if (!initialLoadDoneRef.current) {
+              knownOrderIdsRef.current.add(orderId);
+            } else if (!knownOrderIdsRef.current.has(orderId)) {
+              knownOrderIdsRef.current.add(orderId);
+              const totalFormatted = formatCurrency(order.total || 0, currency);
+              sendOrderNotification({
+                title: "🎉 New Order Received!",
+                body: `A new order totaling ${totalFormatted} was placed on store`,
+                url: "/admin/orders",
+              });
+            }
+          }
+        });
+
+        if (!initialLoadDoneRef.current) {
+          initialLoadDoneRef.current = true;
+        }
+      }, (err) => {
+        console.warn("Firestore onSnapshot error, relying on REST polling:", err);
+      });
+    } catch (e) {
+      console.warn("Firestore listener setup failed:", e);
+    }
+
+    // 2. Continuous REST API Polling Backup
+    const checkOrdersViaApi = async () => {
+      try {
+        const headers = await adminAuthHeaders();
+        const res = await fetch("/api/admin/orders", { 
+          headers: { ...headers, "Content-Type": "application/json" } 
+        });
         if (!res.ok) return;
 
         const data: OrderListResponse = await res.json();
@@ -186,13 +249,11 @@ export function useOrderLiveAlerts(currency: Currency) {
       }
     };
 
-    // Initial fetch
-    checkOrders();
-
-    // Poll every 8 seconds
-    const interval = setInterval(checkOrders, 8000);
+    checkOrdersViaApi();
+    const interval = setInterval(checkOrdersViaApi, 6000);
 
     return () => {
+      unsubscribeFirestore();
       clearInterval(interval);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     };
@@ -224,7 +285,6 @@ export function useOrderLiveAlerts(currency: Currency) {
   };
 
   const triggerInstall = async () => {
-    // Check if iOS
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone;
 
@@ -246,7 +306,6 @@ export function useOrderLiveAlerts(currency: Currency) {
       }
       setDeferredPrompt(null);
     } else {
-      // General instructions
       setIosModal(true);
     }
   };
@@ -261,3 +320,4 @@ export function useOrderLiveAlerts(currency: Currency) {
     setIosModal,
   };
 }
+
