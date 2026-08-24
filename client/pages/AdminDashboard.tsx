@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { 
   AlertCircle, 
   ArrowUpRight,
   BarChart3, 
+  Bell,
+  BellRing,
   BookOpen, 
   Check, 
   ChevronRight, 
@@ -20,20 +22,29 @@ import {
   Plus, 
   Search, 
   Settings, 
+  Share2,
   ShieldCheck,
   ShoppingBag, 
+  Smartphone,
   Sparkles,
   Star,
   Trash2, 
   TrendingUp,
   UploadCloud, 
   Users, 
+  Volume2,
   Wallet, 
   X 
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, type Currency, currencyOptions } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
+import { 
+  playOrderChime, 
+  requestNotificationPermission, 
+  areNotificationsEnabled, 
+  sendOrderNotification 
+} from "@/lib/adminNotifications";
 import type { 
   AnalyticsResponse, 
   OrderListResponse, 
@@ -92,6 +103,161 @@ function relativeDate(iso: string) {
   return `${days}d ago`;
 }
 
+// ─── Real-Time Mobile Notifications & PWA Install Hook ──────
+function useOrderLiveAlerts(currency: Currency) {
+  const [notifEnabled, setNotifEnabled] = useState(areNotificationsEnabled());
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [iosModal, setIosModal] = useState(false);
+  const lastKnownOrderIdsRef = useRef<Set<string>>(new Set());
+
+  // Listen to PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  // Poll orders in real-time and alert on new customer purchases
+  useEffect(() => {
+    let active = true;
+
+    async function checkNewOrders() {
+      try {
+        const data = await apiFetch<OrderListResponse>("/api/admin/orders");
+        if (!active || !data?.orders) return;
+
+        const currentOrderIds = new Set(data.orders.map((o) => o.id));
+
+        // Initial populate: don't alarm on historical orders
+        if (lastKnownOrderIdsRef.current.size === 0) {
+          lastKnownOrderIdsRef.current = currentOrderIds;
+          return;
+        }
+
+        // Check for new paid orders
+        for (const order of data.orders) {
+          if (!lastKnownOrderIdsRef.current.has(order.id)) {
+            lastKnownOrderIdsRef.current.add(order.id);
+            if (order.status === "Paid") {
+              sendOrderNotification({
+                title: "🎉 New Order Received!",
+                body: `A new order totaling ${formatCurrency(order.total, currency)} from ${order.customerName} just came in on store!`,
+                url: "/admin/orders",
+              });
+            }
+          }
+        }
+      } catch (err) {
+        // quiet error
+      }
+    }
+
+    checkNewOrders();
+    const interval = setInterval(checkNewOrders, 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [currency]);
+
+  const toggleNotifications = async () => {
+    if (notifEnabled) {
+      localStorage.setItem("apexmind_admin_notifications_enabled", "false");
+      setNotifEnabled(false);
+    } else {
+      const granted = await requestNotificationPermission();
+      setNotifEnabled(granted);
+      if (granted) {
+        sendOrderNotification({
+          title: "🔔 Notifications Enabled!",
+          body: "You will now receive instant push alerts on this phone whenever a customer buys an ebook.",
+          url: "/admin",
+        });
+      }
+    }
+  };
+
+  const testNotification = () => {
+    sendOrderNotification({
+      title: "🎉 New Order Received!",
+      body: `A new order totaling ${formatCurrency(49.99, currency)} from Jane Doe just came in on store!`,
+      url: "/admin/orders",
+    });
+  };
+
+  const triggerInstall = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const outcome = await installPrompt.userChoice;
+      if (outcome.outcome === "accepted") {
+        setInstallPrompt(null);
+      }
+    } else {
+      setIosModal(true);
+    }
+  };
+
+  return {
+    notifEnabled,
+    toggleNotifications,
+    testNotification,
+    triggerInstall,
+    iosModal,
+    setIosModal,
+  };
+}
+
+function IosInstallModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-sm rounded-2xl border border-[#e2dfd8] bg-[#fffaf2] p-6 text-[#26332f] shadow-2xl">
+        <button 
+          onClick={onClose}
+          className="absolute right-4 top-4 text-[#8b8175] hover:text-[#26332f]"
+          aria-label="Close modal"
+        >
+          <X size={20} />
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#26332f] text-white shadow-sm ring-2 ring-[#d86f45]">
+            <img src="/favicon.png" alt="Apex Admin" className="h-8 w-8 rounded-lg" />
+          </div>
+          <div>
+            <h3 className="font-serif text-lg font-bold">Install Apex Admin</h3>
+            <p className="text-xs text-[#8b8175]">Add to your phone home screen</p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-3 text-xs text-[#736b61]">
+          <div className="flex items-start gap-3 rounded-xl bg-[#f5f3ee] p-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d86f45] font-bold text-white text-[11px]">1</span>
+            <p>Tap the <strong>Share</strong> button <Share2 size={14} className="inline mx-1 text-[#26332f]" /> at the bottom of your Safari browser.</p>
+          </div>
+          <div className="flex items-start gap-3 rounded-xl bg-[#f5f3ee] p-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d86f45] font-bold text-white text-[11px]">2</span>
+            <p>Scroll down and tap <strong>"Add to Home Screen"</strong> <Plus size={14} className="inline mx-1 text-[#26332f]" />.</p>
+          </div>
+          <div className="flex items-start gap-3 rounded-xl bg-[#f5f3ee] p-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d86f45] font-bold text-white text-[11px]">3</span>
+            <p>Tap <strong>Add</strong>. The app icon will appear right on your phone home screen!</p>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-6 w-full rounded-full bg-[#26332f] py-3 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-[#3b4b45]"
+        >
+          Got it!
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Admin Dashboard Component ──────────────────────
 export default function AdminDashboard() {
   const location = useLocation();
@@ -102,6 +268,15 @@ export default function AdminDashboard() {
   const active = navItems.find((item) => item.path === location.pathname)?.label ?? "Overview";
   const closeNav = () => setMobileNavOpen(false);
 
+  const {
+    notifEnabled,
+    toggleNotifications,
+    testNotification,
+    triggerInstall,
+    iosModal,
+    setIosModal,
+  } = useOrderLiveAlerts(currency);
+
   const handleLogout = async () => {
     await adminLogout();
     navigate("/admin/login");
@@ -109,6 +284,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ee] text-[#26332f] pb-20 lg:pb-10">
+      {/* iOS Install Guide Modal */}
+      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
+
       {/* Desktop Sidebar */}
       <DesktopSidebar active={active} onLogout={handleLogout} />
 
@@ -137,6 +315,31 @@ export default function AdminDashboard() {
                   {active === "Overview" ? `Welcome back, ${admin?.name?.split(" ")[0] ?? "Admin"}` : active}
                 </h1>
               </div>
+            </div>
+
+            {/* Quick Mobile App & Alert Badges */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={triggerInstall}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#eee7dc] shadow-sm"
+                title="Download / Add to Phone Home Screen"
+              >
+                <Smartphone size={13} className="text-[#d86f45]" />
+                <span className="hidden min-[420px]:inline">Get</span> App
+              </button>
+
+              <button
+                onClick={toggleNotifications}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition shadow-sm ${
+                  notifEnabled
+                    ? "bg-[#5e8c67] text-white"
+                    : "border border-[#d8d0c6] bg-white text-[#26332f] hover:bg-[#eee7dc]"
+                }`}
+                title={notifEnabled ? "Sales alerts active on this device" : "Enable sales alerts"}
+              >
+                {notifEnabled ? <BellRing size={13} /> : <Bell size={13} />}
+                <span className="hidden sm:inline">{notifEnabled ? "Alerts On" : "Alerts"}</span>
+              </button>
             </div>
           </div>
         </header>
@@ -389,6 +592,15 @@ function OverviewSection({ currency }: { currency: Currency }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const {
+    notifEnabled,
+    toggleNotifications,
+    testNotification,
+    triggerInstall,
+    iosModal,
+    setIosModal,
+  } = useOrderLiveAlerts(currency);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -415,12 +627,66 @@ function OverviewSection({ currency }: { currency: Currency }) {
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* iOS Modal */}
+      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <Kpi label="Total Revenue" value={formatCurrency(analytics.totalRevenue, currency)} icon={Wallet} tone="orange" />
         <Kpi label="Paid Orders" value={String(analytics.paidOrders)} icon={ShoppingBag} tone="green" />
         <Kpi label="Customers" value={String(analytics.totalCustomers)} icon={Users} tone="blue" />
         <Kpi label="Avg. Order" value={formatCurrency(analytics.averageOrder, currency)} icon={BarChart3} tone="gold" />
+      </div>
+
+      {/* Mobile App & Real-Time Alerts Banner */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-2xl border border-[#d8d0c6] bg-gradient-to-r from-[#26332f] via-[#2d3d37] to-[#3b4e47] p-4 sm:p-5 text-[#f8f4ec] shadow-md">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#d86f45] text-white shadow-sm ring-2 ring-white/20">
+            <Smartphone size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-serif text-base sm:text-lg font-bold text-white leading-tight">
+                Apex Admin Mobile App & Sales Alerts
+              </h3>
+              <span className="rounded-full bg-[#5e8c67] px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white">
+                Live
+              </span>
+            </div>
+            <p className="text-xs text-[#d8e0d4] mt-0.5">
+              Install the app on your phone & receive instant chime alerts whenever a customer pays!
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <button
+            onClick={toggleNotifications}
+            className={`flex flex-1 md:flex-none items-center justify-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-bold transition shadow-sm ${
+              notifEnabled 
+                ? "bg-[#5e8c67] text-white hover:bg-[#4d7554]" 
+                : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
+            }`}
+          >
+            {notifEnabled ? <BellRing size={14} /> : <Bell size={14} />}
+            <span>{notifEnabled ? "Alerts Active" : "Enable Alerts"}</span>
+          </button>
+
+          <button
+            onClick={testNotification}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-2.5 text-xs font-bold text-white transition shadow-sm"
+            title="Test notification alert and sound"
+          >
+            <Volume2 size={14} /> Test
+          </button>
+
+          <button
+            onClick={triggerInstall}
+            className="flex flex-1 md:flex-none items-center justify-center gap-1.5 rounded-xl bg-[#d86f45] hover:bg-[#c45f37] px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white transition shadow-sm"
+          >
+            <Download size={14} /> Install App
+          </button>
+        </div>
       </div>
 
       {/* Revenue & Top Products Grid */}
@@ -1918,6 +2184,15 @@ function SettingsSection() {
   const [supportEmail, setSupportEmail] = useState("");
   const [downloadMode, setDownloadMode] = useState<"instant" | "email">("instant");
   const [storeCurrency, setStoreCurrency] = useState<Currency>("NGN");
+
+  const {
+    notifEnabled,
+    toggleNotifications,
+    testNotification,
+    triggerInstall,
+    iosModal,
+    setIosModal,
+  } = useOrderLiveAlerts(storeCurrency);
   
   // Credentials update state
   const [adminEmail, setAdminEmail] = useState("");
@@ -1974,6 +2249,7 @@ function SettingsSection() {
 
   return (
     <div className="space-y-6">
+      <IosInstallModal open={iosModal} onClose={() => setIosModal(false)} />
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Store Defaults */}
         <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm space-y-5">
@@ -2046,6 +2322,57 @@ function SettingsSection() {
           </div>
         </section>
       </div>
+
+      {/* Mobile App & Push Notification Settings Card */}
+      <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Mobile Experience</p>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f]">App Download & Sales Push Notifications</h3>
+            <p className="mt-1 max-w-xl text-xs text-[#8b8175]">
+              Use Apex Admin as a standalone app on your iPhone or Android phone and receive real-time chime alerts when sales occur.
+            </p>
+          </div>
+          <button
+            onClick={triggerInstall}
+            className="flex items-center justify-center gap-1.5 self-start sm:self-auto rounded-xl bg-[#26332f] hover:bg-[#3b4b45] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition shadow-sm"
+          >
+            <Download size={14} /> Install App on Phone
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-[#eae7e0] bg-white p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#26332f]">Real-Time Sales Push Alerts</p>
+              <p className="text-[11px] text-[#8b8175] mt-0.5">
+                {notifEnabled ? "Active on this device" : "Disabled on this device"}
+              </p>
+            </div>
+            <button
+              onClick={toggleNotifications}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                notifEnabled ? "bg-[#eef1eb] text-[#5e8c67]" : "bg-[#f5f3ee] text-[#736b61] hover:bg-[#e2dfd8]"
+              }`}
+            >
+              {notifEnabled ? "Active ✓" : "Enable"}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-[#eae7e0] bg-white p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#26332f]">Notification Chime & Vibration</p>
+              <p className="text-[11px] text-[#8b8175] mt-0.5">Dual-tone cash register audio</p>
+            </div>
+            <button
+              onClick={testNotification}
+              className="rounded-full bg-[#faedc9] px-3.5 py-1.5 text-xs font-bold text-[#ad842a] hover:bg-[#f6e4b4] transition"
+            >
+              🔊 Test Alert
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Admin Credentials Security Card */}
       <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm">
