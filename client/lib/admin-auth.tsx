@@ -48,10 +48,24 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const adminLogin = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(adminAuthClient, email, password);
+      const cleanEmail = email.trim();
+      await signInWithEmailAndPassword(adminAuthClient, cleanEmail, password);
       return { ok: true };
     } catch (err: any) {
-      return { ok: false, error: err.message || "Invalid admin credentials" };
+      console.warn("Admin login failed:", err.code, err.message);
+      let message = "Invalid admin credentials";
+      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        message = "Account not found or password incorrect. Please verify this user exists in Firebase Console -> Authentication -> Users.";
+      } else if (err.code === "auth/operation-not-allowed") {
+        message = "Email/Password sign-in is disabled. Please enable Email/Password under Firebase Console -> Authentication -> Sign-in method.";
+      } else if (err.code === "auth/too-many-requests") {
+        message = "Too many failed attempts. Please wait a few minutes before trying again.";
+      } else if (err.code === "auth/invalid-email") {
+        message = "Invalid email format. Please check for accidental spaces or typos.";
+      } else if (err.message) {
+        message = err.message;
+      }
+      return { ok: false, error: message };
     }
   };
 
