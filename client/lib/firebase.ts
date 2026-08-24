@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBWZ0V2eLpkIaTj5xToNdRlFI_GrtZLqVg",
-  authDomain: "apexmind-a81d0.firebaseapp.com",
-  projectId: "apexmind-a81d0",
-  storageBucket: "apexmind-a81d0.firebasestorage.app",
-  messagingSenderId: "400951100424",
-  appId: "1:400951100424:web:4d0d04b5f1e2da172fbdbd"
+  apiKey: "AIzaSyCvcJadrotJDxBsNaF1JlZXKSC4y9Bgha4",
+  authDomain: "apexmind-673c2.firebaseapp.com",
+  projectId: "apexmind-673c2",
+  storageBucket: "apexmind-673c2.firebasestorage.app",
+  messagingSenderId: "692108358053",
+  appId: "1:692108358053:web:31e04a39c960a5b222f84c"
 };
 
 const app = initializeApp(firebaseConfig);

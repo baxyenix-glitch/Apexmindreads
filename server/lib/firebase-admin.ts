@@ -53,7 +53,7 @@ if (!getApps().length) {
     });
   } else {
     initializeApp({
-      projectId: "apexmind-a81d0"
+      projectId: "apexmind-673c2"
     });
   }
 }
