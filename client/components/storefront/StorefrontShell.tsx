@@ -6,7 +6,6 @@ import { type Product } from "@/lib/store";
 import { CoverArt } from "./CoverArt";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
-import { AddToCartToast } from "./AddToCartToast";
 
 type StorefrontShellProps = {
   children: React.ReactNode;
@@ -33,9 +32,6 @@ export function StorefrontShell({ children, cart: propCart, onRemove: propOnRemo
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f8f4ec] text-[#26332f]">
-      {/* Toast Notification Container */}
-      <AddToCartToast />
-
       {/* Announcement Bar */}
       <div className="bg-[#26332f] px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.17em] text-[#f8e3b6] sm:text-[11px]">
         Free delivery on every guide · Instant access after checkout

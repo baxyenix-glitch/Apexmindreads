@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight, Check, Star } from "lucide-react";
+import { ArrowUpRight, Check, ShoppingBag, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CoverArt } from "./CoverArt";
 import { type Product } from "@/lib/store";
@@ -13,8 +13,10 @@ type ProductCardProps = {
 
 export function ProductCard({ product, onAdd }: ProductCardProps) {
   const { currency } = useCurrency();
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
   const [isAdded, setIsAdded] = useState(false);
+
+  const isInCart = cart.some((item) => item.id === product.id || item.slug === product.slug);
 
   const handleAdd = () => {
     if (onAdd) {
@@ -25,8 +27,8 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
 
     setIsAdded(true);
     setTimeout(() => {
-      setIsAdded(false), 2000;
-    }, 2000);
+      setIsAdded(false);
+    }, 2200);
   };
 
   return (
@@ -83,21 +85,32 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
           )}
         </div>
       </div>
+
+      {/* Redesigned Premium "Add to basket" Button with Green Check State */}
       <button
         onClick={handleAdd}
-        className={`mt-3 flex h-10 w-full shrink-0 items-center justify-center gap-1.5 rounded-full border px-2 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d86f45] sm:text-[11px] sm:tracking-[0.12em] active:scale-[0.97] ${
+        className={`group/btn mt-3.5 flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-[10px] font-bold uppercase tracking-[0.12em] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d86f45] sm:text-[11px] active:scale-[0.97] ${
           isAdded
-            ? "border-[#5e8c67] bg-[#5e8c67] text-white shadow-sm"
-            : "border-[#d8d0c6] bg-transparent text-[#26332f] hover:border-[#26332f] hover:bg-[#26332f] hover:text-[#fffaf2]"
+            ? "border-[#287944] bg-[#287944] text-white shadow-[0_6px_18px_rgba(40,121,68,0.3)] ring-4 ring-[#287944]/20 scale-[1.01]"
+            : "border-[#d8d0c6] bg-[#fffaf2] text-[#26332f] shadow-[0_2px_8px_-2px_rgba(38,51,47,0.06)] hover:border-[#26332f] hover:bg-[#26332f] hover:text-[#fffaf2] hover:shadow-[0_6px_18px_-4px_rgba(38,51,47,0.2)] hover:-translate-y-0.5"
         }`}
       >
         {isAdded ? (
           <>
-            <Check size={14} className="animate-in zoom-in-50 duration-200" strokeWidth={2.5} />
-            <span>Added to basket</span>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-white animate-in zoom-in-75 duration-200">
+              <Check size={13} strokeWidth={3} />
+            </span>
+            <span className="animate-in fade-in duration-200">Added to basket</span>
           </>
         ) : (
-          <span>Add to basket</span>
+          <>
+            <ShoppingBag
+              size={14}
+              className="text-[#8b8175] transition-all duration-300 group-hover/btn:text-[#fffaf2] group-hover/btn:scale-110"
+              strokeWidth={2}
+            />
+            <span>{isInCart ? "Add again" : "Add to basket"}</span>
+          </>
         )}
       </button>
     </article>

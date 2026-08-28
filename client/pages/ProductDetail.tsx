@@ -12,8 +12,7 @@ export default function ProductDetail() {
   const { slug = "" } = useParams();
   const { product, loading: productLoading } = useProduct(slug);
   const { products, loading: productsLoading } = useProducts();
-  const { cart, addToCart, removeFromCart } = useCart();
-  const [isAdded, setIsAdded] = useState(false);
+  const { addToCart } = useCart();
   const { currency } = useCurrency();
   const navigate = useNavigate();
 
@@ -48,13 +47,6 @@ export default function ProductDetail() {
     if (!product) return;
     addToCart(product);
     navigate("/checkout"); 
-  };
-
-  const handleAddToBasket = () => {
-    if (!product) return;
-    addToCart(product);
-    setIsAdded(true);
-    setTimeout(() => setIsAdded(false), 2000);
   };
 
   return (
@@ -103,37 +95,15 @@ export default function ProductDetail() {
               <p className="mt-2 text-xs text-[#8b8175]">One-time purchase · yours forever</p>
             </div>
             
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={handleBuyNow} 
-                className="flex h-14 items-center justify-center gap-3 rounded-full bg-[#d86f45] px-8 text-sm font-extrabold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#be5935] active:scale-[0.98] sm:flex-1"
+                className="flex h-14 w-auto min-w-[210px] max-w-[280px] items-center justify-center gap-3 rounded-full bg-[#d86f45] px-8 text-base font-extrabold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#be5935] active:scale-[0.98] sm:h-14 sm:min-w-0 sm:flex-1 sm:max-w-none sm:px-6 sm:text-xs"
               >
                 BUY NOW <ArrowRight size={18} />
               </button>
-
               <button 
-                onClick={handleAddToBasket}
-                className={`flex h-14 items-center justify-center gap-2 rounded-full border px-6 text-sm font-bold uppercase tracking-[0.12em] transition-all duration-300 active:scale-[0.98] sm:flex-1 ${
-                  isAdded
-                    ? "border-[#5e8c67] bg-[#5e8c67] text-white shadow-sm"
-                    : "border-[#26332f] bg-transparent text-[#26332f] hover:bg-[#26332f] hover:text-[#fffaf2]"
-                }`}
-              >
-                {isAdded ? (
-                  <>
-                    <Check size={16} className="animate-in zoom-in-50 duration-200" strokeWidth={2.5} />
-                    <span>Added to Basket</span>
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag size={16} />
-                    <span>Add to Basket</span>
-                  </>
-                )}
-              </button>
-
-              <button 
-                className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#d8d0c6] transition hover:border-[#d86f45] hover:text-[#d86f45] sm:flex" 
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#d8d0c6] transition hover:border-[#d86f45] hover:text-[#d86f45]" 
                 aria-label="Save product"
               >
                 <Heart size={20} />
