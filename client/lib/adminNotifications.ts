@@ -394,13 +394,14 @@ export async function sendOrderNotification(opts: {
     return;
   }
 
-  const options: NotificationOptions = {
+  const options: any = {
     body: opts.body,
     icon: NOTIFICATION_ICON_PATH,
     badge: STATUS_BAR_BADGE_PATH, // Displays bold Apex status icon in Android top status bar
     tag,
-    // silent: true ensures the OS does NOT play its own default ding simultaneously
-    silent: true,
+    renotify: true, // Forces phone to pop up fresh visible notification banner
+    requireInteraction: true,
+    vibrate: [300, 100, 300, 100, 300],
     data: {
       url: opts.url || "/admin/orders",
     },
@@ -408,7 +409,13 @@ export async function sendOrderNotification(opts: {
 
   try {
     if ("serviceWorker" in navigator) {
-      const reg = await navigator.serviceWorker.ready;
+      let reg: ServiceWorkerRegistration | undefined;
+      try {
+        reg = await navigator.serviceWorker.ready;
+      } catch {}
+      if (!reg) {
+        reg = await navigator.serviceWorker.getRegistration();
+      }
       if (reg && reg.showNotification) {
         await reg.showNotification(title, options);
         return;
@@ -419,13 +426,15 @@ export async function sendOrderNotification(opts: {
   }
 
   try {
-    const notif = new Notification(title, options);
-    notif.onclick = () => {
-      window.focus();
-      if (opts.url) {
-        window.location.href = opts.url;
-      }
-    };
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      const notif = new Notification(title, options);
+      notif.onclick = () => {
+        window.focus();
+        if (opts.url) {
+          window.location.href = opts.url;
+        }
+      };
+    }
   } catch (e) {
     console.warn("Notification trigger error:", e);
   }

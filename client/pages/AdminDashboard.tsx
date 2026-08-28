@@ -3,6 +3,9 @@ import {
   AlertCircle, 
   ArrowUpRight,
   BarChart3, 
+  Bell,
+  BellOff,
+  BellRing,
   BookOpen, 
   Check, 
   ChevronRight, 
@@ -147,12 +150,26 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Quick Test Sound Chime Button */}
+            {/* Notification Toggle and Quick Test Sound Buttons */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={toggleNotifications}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition shadow-sm active:scale-95 ${
+                  notifEnabled
+                    ? "border-[#5e8c67]/40 bg-[#f0f7f2] text-[#2d5a37] hover:bg-[#e2f0e6]"
+                    : "border-[#d86f45]/50 bg-[#fff5f0] text-[#d86f45] hover:bg-[#ffece4] animate-pulse"
+                }`}
+                title={notifEnabled ? "Order alerts are enabled on this device" : "Click to enable real-time order alerts on this device"}
+              >
+                {notifEnabled ? <BellRing size={13} className="text-[#5e8c67]" /> : <BellOff size={13} className="text-[#d86f45]" />}
+                <span className="hidden min-[480px]:inline">{notifEnabled ? "Alerts Active" : "Enable Alerts"}</span>
+                <span className="min-[480px]:hidden">{notifEnabled ? "On" : "Enable"}</span>
+              </button>
+
               <button
                 onClick={testNotification}
                 className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] bg-white px-3.5 py-1.5 text-xs font-bold text-[#26332f] transition hover:bg-[#faedc9] hover:border-[#d86f45] shadow-sm active:scale-95"
-                title="Test cash register sound notification"
+                title="Test cash register sound and mobile notification"
               >
                 <Volume2 size={13} className="text-[#d86f45]" />
                 <span className="hidden min-[480px]:inline">Test Sound</span>

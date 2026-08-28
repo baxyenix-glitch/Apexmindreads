@@ -1,5 +1,5 @@
 // ApexMind Store Background Service Worker
-const CACHE_NAME = "apexmind-sw-v6";
+const CACHE_NAME = "apexmind-sw-v7";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -25,12 +25,12 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "A new order was placed on store",
     icon: "/notification-icon.png",
-    badge: "/status-bar-badge.png", // Displays Apex status icon in Android top status bar
+    badge: "/status-bar-badge.png", // Displays bold Apex status icon in Android top status bar
     sound: "/modestas123123-cash-register-kaching-sound-effect-125042.mp3",
-    silent: true, // Suppresses phone default notification sound so only custom cash register sound plays
-    vibrate: [250, 100, 250, 100, 250],
+    vibrate: [300, 100, 300, 100, 300],
     tag: data.tag || `order-${Date.now()}`,
     renotify: true,
+    requireInteraction: true,
     data: {
       url: data.url || "/admin/orders"
     }
