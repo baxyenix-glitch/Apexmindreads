@@ -84,6 +84,9 @@ export async function sendOrderPushNotification(payload: {
   const payloadString = JSON.stringify({
     title: payload.title,
     body: payload.body,
+    icon: "/notification-icon.png",
+    badge: "/status-bar-badge.png",
+    sound: "/modestas123123-cash-register-kaching-sound-effect-125042.mp3",
     url: payload.url || "/admin/orders",
     tag: payload.tag || `order-${Date.now()}`,
   });

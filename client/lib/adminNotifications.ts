@@ -6,6 +6,8 @@ import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestor
 import type { Order, OrderListResponse } from "@shared/api";
 
 const NOTIFICATION_SOUND_PATH = "/modestas123123-cash-register-kaching-sound-effect-125042.mp3";
+const NOTIFICATION_ICON_PATH = "/notification-icon.png";
+const STATUS_BAR_BADGE_PATH = "/status-bar-badge.png";
 const NOTIFIED_ORDERS_KEY = "apexmind_notified_order_ids";
 
 // Global cache of notified order IDs to prevent duplicate alerts across tabs/instances
@@ -46,53 +48,145 @@ function markOrderAsNotified(orderId: string): boolean {
   return true;
 }
 
-// Single preloaded Audio instance for only the custom cash register sound
-let audioInstance: HTMLAudioElement | null = null;
+// ─── Dual-Engine Audio Player (Web Audio API Buffer + HTMLAudioElement) ───
+let globalAudioCtx: AudioContext | null = null;
+let decodedAudioBuffer: AudioBuffer | null = null;
+let htmlAudioInstance: HTMLAudioElement | null = null;
+let isAudioUnlocked = false;
 
-function getAudioInstance(): HTMLAudioElement | null {
+function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
-  if (!audioInstance) {
-    audioInstance = new Audio(NOTIFICATION_SOUND_PATH);
-    audioInstance.preload = "auto";
+  if (!globalAudioCtx) {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      globalAudioCtx = new AudioCtx();
+    }
   }
-  return audioInstance;
+  return globalAudioCtx;
 }
 
-// Unlock audio on mobile devices upon the very first user interaction
+function getHtmlAudio(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (!htmlAudioInstance) {
+    htmlAudioInstance = new Audio(NOTIFICATION_SOUND_PATH);
+    htmlAudioInstance.preload = "auto";
+    htmlAudioInstance.volume = 1.0;
+  }
+  return htmlAudioInstance;
+}
+
+// Pre-fetch and decode the cash register sound file into an in-memory AudioBuffer
+async function loadAudioBuffer() {
+  if (typeof window === "undefined") return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const res = await fetch(NOTIFICATION_SOUND_PATH);
+    const arrayBuffer = await res.arrayBuffer();
+    decodedAudioBuffer = await ctx.decodeAudioData(arrayBuffer);
+  } catch (e) {
+    console.warn("Could not pre-decode audio buffer, will use HTMLAudioElement:", e);
+  }
+}
+
+// Initialize buffer loading
 if (typeof window !== "undefined") {
-  const unlockAudio = () => {
-    try {
-      const audio = getAudioInstance();
-      if (audio) {
-        audio.load();
-      }
-    } catch (e) {
-      // ignore
-    }
-    window.removeEventListener("touchstart", unlockAudio);
-    window.removeEventListener("click", unlockAudio);
-    window.removeEventListener("keydown", unlockAudio);
-  };
-  window.addEventListener("touchstart", unlockAudio, { passive: true });
-  window.addEventListener("click", unlockAudio, { passive: true });
-  window.addEventListener("keydown", unlockAudio, { passive: true });
+  loadAudioBuffer().catch(() => {});
 }
 
 /**
- * Play ONLY the custom cash register sound effect from public folder
+ * Robust mobile audio unlocking on the very first user interaction.
+ * Resumes AudioContext and plays a silent 1ms buffer to permanently bypass mobile autoplay restrictions.
+ */
+function unlockMobileAudio() {
+  if (typeof window === "undefined" || isAudioUnlocked) return;
+
+  try {
+    const ctx = getAudioContext();
+    if (ctx) {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      // Play a short silent buffer to unlock the audio hardware on iOS Safari / Chrome Android
+      const silentBuffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = silentBuffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    }
+
+    const audio = getHtmlAudio();
+    if (audio) {
+      audio.volume = 1.0;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        }).catch(() => {});
+      }
+    }
+
+    isAudioUnlocked = true;
+  } catch (e) {
+    // ignore
+  }
+}
+
+if (typeof window !== "undefined") {
+  const handleUserGesture = () => {
+    unlockMobileAudio();
+    window.removeEventListener("touchstart", handleUserGesture);
+    window.removeEventListener("touchend", handleUserGesture);
+    window.removeEventListener("click", handleUserGesture);
+    window.removeEventListener("pointerdown", handleUserGesture);
+  };
+  window.addEventListener("touchstart", handleUserGesture, { passive: true });
+  window.addEventListener("touchend", handleUserGesture, { passive: true });
+  window.addEventListener("click", handleUserGesture, { passive: true });
+  window.addEventListener("pointerdown", handleUserGesture, { passive: true });
+}
+
+/**
+ * Play ONLY the cash register sound effect from the public folder.
+ * Uses Web Audio API buffer playback for instantaneous, unblocked sound with HTML5 fallback.
  */
 export function playOrderChime() {
+  if (typeof window === "undefined") return;
+
+  // 1. Try Web Audio API Buffer playback (highest fidelity, immune to media element pauses)
   try {
-    const audio = getAudioInstance() || new Audio(NOTIFICATION_SOUND_PATH);
+    const ctx = getAudioContext();
+    if (ctx && decodedAudioBuffer) {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = decodedAudioBuffer;
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 1.0;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start(0);
+      return;
+    }
+  } catch (e) {
+    console.warn("Web Audio buffer playback error, falling back to HTMLAudioElement:", e);
+  }
+
+  // 2. Fallback to HTMLAudioElement
+  try {
+    const audio = getHtmlAudio() || new Audio(NOTIFICATION_SOUND_PATH);
     audio.currentTime = 0;
+    audio.volume = 1.0;
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {
-        console.warn("Audio file playback blocked by browser:", err);
+        console.warn("Audio playback blocked by browser:", err);
       });
     }
   } catch (e) {
-    console.warn("Audio playback error:", e);
+    console.warn("HTMLAudioElement playback error:", e);
   }
 }
 
@@ -160,6 +254,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
     return false;
   }
 
+  unlockMobileAudio();
+
   try {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
@@ -187,7 +283,7 @@ let lastNotificationTime = 0;
 let lastNotificationTag = "";
 
 /**
- * Send native system notification (with cash register sound, silencing OS default chime)
+ * Send native system notification (with cash register sound and mobile status bar badge)
  */
 export async function sendOrderNotification(opts: {
   title?: string;
@@ -223,7 +319,8 @@ export async function sendOrderNotification(opts: {
   const title = opts.title || "🎉 New Order Received!";
   const options: NotificationOptions = {
     body: opts.body,
-    icon: "/favicon.png",
+    icon: NOTIFICATION_ICON_PATH,
+    badge: STATUS_BAR_BADGE_PATH, // Shows orange icon in mobile top status bar
     tag,
     // silent: true ensures the OS does NOT play its own default ding simultaneously
     silent: true,
@@ -289,6 +386,17 @@ export function useOrderLiveAlerts(currency: Currency) {
     setNotifEnabled(isEnabled);
     if (isEnabled) {
       subscribeAdminToPush().catch(() => {});
+    }
+
+    // Listen for Service Worker push messages to play custom cash register sound in active tab
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === "PLAY_ORDER_SOUND") {
+        playOrderChime();
+      }
+    };
+
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
     }
 
     // 1. Real-time Firestore Listener (foreground active tab)
@@ -358,10 +466,14 @@ export function useOrderLiveAlerts(currency: Currency) {
     return () => {
       unsubscribeFirestore();
       clearInterval(interval);
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+      }
     };
   }, []);
 
   const toggleNotifications = async () => {
+    unlockMobileAudio();
     if (notifEnabled) {
       localStorage.setItem("apexmind_admin_notifications_enabled", "false");
       setNotifEnabled(false);
@@ -380,6 +492,7 @@ export function useOrderLiveAlerts(currency: Currency) {
   };
 
   const testNotification = async () => {
+    unlockMobileAudio();
     const sampleAmount = formatCurrency(15000, currency);
     sendOrderNotification({
       title: `🎉 New Order: ${sampleAmount}`,
