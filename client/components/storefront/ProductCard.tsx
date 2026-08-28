@@ -1,8 +1,10 @@
-import { ArrowUpRight, Star } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, Check, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CoverArt } from "./CoverArt";
 import { type Product } from "@/lib/store";
 import { formatCurrency, useCurrency } from "@/lib/currency";
+import { useCart } from "@/lib/cart";
 
 type ProductCardProps = {
   product: Product;
@@ -11,6 +13,22 @@ type ProductCardProps = {
 
 export function ProductCard({ product, onAdd }: ProductCardProps) {
   const { currency } = useCurrency();
+  const { addToCart } = useCart();
+  const [isAdded, setIsAdded] = useState(false);
+
+  const handleAdd = () => {
+    if (onAdd) {
+      onAdd(product);
+    } else {
+      addToCart(product);
+    }
+
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false), 2000;
+    }, 2000);
+  };
+
   return (
     <article className="group flex min-w-0 flex-col">
       <Link
@@ -66,10 +84,21 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
         </div>
       </div>
       <button
-        onClick={() => onAdd?.(product)}
-        className="mt-3 h-10 w-full shrink-0 rounded-full border border-[#d8d0c6] px-2 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#26332f] transition hover:border-[#26332f] hover:bg-[#26332f] hover:text-[#fffaf2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d86f45] sm:text-[11px] sm:tracking-[0.12em]"
+        onClick={handleAdd}
+        className={`mt-3 flex h-10 w-full shrink-0 items-center justify-center gap-1.5 rounded-full border px-2 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d86f45] sm:text-[11px] sm:tracking-[0.12em] active:scale-[0.97] ${
+          isAdded
+            ? "border-[#5e8c67] bg-[#5e8c67] text-white shadow-sm"
+            : "border-[#d8d0c6] bg-transparent text-[#26332f] hover:border-[#26332f] hover:bg-[#26332f] hover:text-[#fffaf2]"
+        }`}
       >
-        Add to basket
+        {isAdded ? (
+          <>
+            <Check size={14} className="animate-in zoom-in-50 duration-200" strokeWidth={2.5} />
+            <span>Added to basket</span>
+          </>
+        ) : (
+          <span>Add to basket</span>
+        )}
       </button>
     </article>
   );

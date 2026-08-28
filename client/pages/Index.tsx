@@ -4,20 +4,16 @@ import { Link } from "react-router-dom";
 import { StorefrontShell } from "@/components/storefront/StorefrontShell";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { categories, useProducts, testimonials, type Product } from "@/lib/store";
-import { loadCart, saveCart } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
 
 export default function Index() {
-  const [cart, setCart] = useState<Product[]>(loadCart);
-  useEffect(() => saveCart(cart), [cart]);
+  const { cart, addToCart, removeFromCart } = useCart();
   const [activeCategory, setActiveCategory] = useState("All guides");
   const [query, setQuery] = useState("");
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   
   const { products, loading } = useProducts();
-
-  const addToCart = (product: Product) => setCart((current) => current.some((item) => item.id === product.id) ? current : [...current, product]);
-  const removeFromCart = (productId: string) => setCart((current) => current.filter((item) => item.id !== productId));
   
   const getCategoryCount = (catName: string, catSlug?: string) => {
     if (!products || products.length === 0) return 0;

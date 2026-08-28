@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CoverArt } from "@/components/storefront/CoverArt";
 import { type Product } from "@/lib/store";
 import { formatCurrency, useCurrency } from "@/lib/currency";
-import { loadCart, saveCart } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { authHeaders } from "@/lib/firebase";
 import type { Order, OrderResponse, PaystackInitResponse, PaystackVerifyResponse } from "@shared/api";
@@ -20,7 +20,7 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live
 const GLOBAL_COUNTRIES = [
   { code: "NG", name: "Nigeria (NG)" },
   { code: "US", name: "United States (US)" },
-  { code: "GB", name: "United Kingdom (GB)" },
+  { code: "GB", name: "United Kingdom (UK)" },
   { code: "CA", name: "Canada (CA)" },
   { code: "GH", name: "Ghana (GH)" },
   { code: "KE", name: "Kenya (KE)" },
@@ -28,25 +28,11 @@ const GLOBAL_COUNTRIES = [
   { code: "AU", name: "Australia (AU)" },
   { code: "DE", name: "Germany (DE)" },
   { code: "FR", name: "France (FR)" },
-  { code: "IT", name: "Italy (IT)" },
-  { code: "ES", name: "Spain (ES)" },
-  { code: "NL", name: "Netherlands (NL)" },
   { code: "IE", name: "Ireland (IE)" },
-  { code: "SE", name: "Sweden (SE)" },
-  { code: "NO", name: "Norway (NO)" },
-  { code: "CH", name: "Switzerland (CH)" },
-  { code: "NZ", name: "New Zealand (NZ)" },
-  { code: "AE", name: "United Arab Emirates (AE)" },
+  { code: "NL", name: "Netherlands (NL)" },
+  { code: "AE", name: "United Arab Emirates (UAE)" },
   { code: "SA", name: "Saudi Arabia (SA)" },
-  { code: "QA", name: "Qatar (QA)" },
-  { code: "KW", name: "Kuwait (KW)" },
   { code: "IN", name: "India (IN)" },
-  { code: "SG", name: "Singapore (SG)" },
-  { code: "MY", name: "Malaysia (MY)" },
-  { code: "JP", name: "Japan (JP)" },
-  { code: "CN", name: "China (CN)" },
-  { code: "BR", name: "Brazil (BR)" },
-  { code: "MX", name: "Mexico (MX)" },
   { code: "EG", name: "Egypt (EG)" },
   { code: "RW", name: "Rwanda (RW)" },
   { code: "UG", name: "Uganda (UG)" },
@@ -65,7 +51,7 @@ const GLOBAL_COUNTRIES = [
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
-  const [cart, setCart] = useState<Product[]>(() => loadCart());
+  const { cart, clearCart } = useCart();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -75,8 +61,6 @@ export default function Checkout() {
   const { currency, detectedCountry } = useCurrency();
   const { user } = useAuth();
   const subtotal = useMemo(() => cart.reduce((total, item) => total + (item.price || 0), 0), [cart]);
-
-  useEffect(() => saveCart(cart), [cart]);
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -122,8 +106,7 @@ export default function Checkout() {
       setCompletedOrder(data.order);
       setDownloadLinks(data.downloadUrls || []);
       setSubmitted(true);
-      saveCart([]);
-      setCart([]);
+      clearCart();
     } catch (err: any) {
       setError(err.message || "Failed to verify transaction. Please contact support.");
     } finally {

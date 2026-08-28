@@ -1,26 +1,25 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Download, Heart, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Download, Heart, ShieldCheck, ShoppingBag, Star } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { CoverArt } from "@/components/storefront/CoverArt";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { StorefrontShell } from "@/components/storefront/StorefrontShell";
 import { useProduct, useProducts, testimonials, type Product } from "@/lib/store";
 import { formatCurrency, useCurrency } from "@/lib/currency";
-import { loadCart, saveCart } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
 
 export default function ProductDetail() {
   const { slug = "" } = useParams();
   const { product, loading: productLoading } = useProduct(slug);
   const { products, loading: productsLoading } = useProducts();
-  const [cart, setCart] = useState<Product[]>(loadCart);
-  const [added, setAdded] = useState(false);
+  const { cart, addToCart, removeFromCart } = useCart();
+  const [isAdded, setIsAdded] = useState(false);
   const { currency } = useCurrency();
   const navigate = useNavigate();
-  useEffect(() => saveCart(cart), [cart]);
 
   if (productLoading) {
     return (
-      <StorefrontShell cart={cart} onRemove={(id) => setCart((current) => current.filter((item) => item.id !== id))}>
+      <StorefrontShell>
         <div className="mx-auto max-w-[1320px] px-5 py-32 text-center lg:px-10">
           <p className="section-kicker">Loading</p>
           <h1 className="mt-4 font-serif text-5xl tracking-[-0.06em]">Fetching guide...</h1>
@@ -31,7 +30,7 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <StorefrontShell cart={cart} onRemove={(id) => setCart((current) => current.filter((item) => item.id !== id))}>
+      <StorefrontShell>
         <div className="mx-auto max-w-[1320px] px-5 py-32 text-center lg:px-10">
           <p className="section-kicker">Guide not found</p>
           <h1 className="mt-4 font-serif text-5xl tracking-[-0.06em]">This page has wandered off.</h1>
@@ -47,17 +46,19 @@ export default function ProductDetail() {
   
   const handleBuyNow = () => { 
     if (!product) return;
-    const currentCart = loadCart();
-    const updatedCart = currentCart.some((item) => item.id === product.id)
-      ? currentCart
-      : [...currentCart, product];
-    saveCart(updatedCart);
-    setCart(updatedCart);
+    addToCart(product);
     navigate("/checkout"); 
   };
 
+  const handleAddToBasket = () => {
+    if (!product) return;
+    addToCart(product);
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
+  };
+
   return (
-    <StorefrontShell cart={cart} onRemove={(id) => setCart((current) => current.filter((item) => item.id !== id))}>
+    <StorefrontShell>
       <div className="mx-auto max-w-[1320px] px-5 pb-20 pt-8 lg:px-10 lg:pb-28 lg:pt-12">
         <Link to="/#shop" className="mb-10 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.13em] text-[#8b8175] transition hover:text-[#d86f45]">
           <ArrowLeft size={15} /> Back to library
@@ -102,15 +103,37 @@ export default function ProductDetail() {
               <p className="mt-2 text-xs text-[#8b8175]">One-time purchase · yours forever</p>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <button 
                 onClick={handleBuyNow} 
-                className="flex h-14 w-auto min-w-[210px] max-w-[280px] items-center justify-center gap-3 rounded-full bg-[#d86f45] px-8 text-base font-extrabold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#be5935] active:scale-[0.98] sm:h-14 sm:min-w-0 sm:flex-1 sm:max-w-none sm:px-6 sm:text-xs"
+                className="flex h-14 items-center justify-center gap-3 rounded-full bg-[#d86f45] px-8 text-sm font-extrabold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#be5935] active:scale-[0.98] sm:flex-1"
               >
                 BUY NOW <ArrowRight size={18} />
               </button>
+
               <button 
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#d8d0c6] transition hover:border-[#d86f45] hover:text-[#d86f45]" 
+                onClick={handleAddToBasket}
+                className={`flex h-14 items-center justify-center gap-2 rounded-full border px-6 text-sm font-bold uppercase tracking-[0.12em] transition-all duration-300 active:scale-[0.98] sm:flex-1 ${
+                  isAdded
+                    ? "border-[#5e8c67] bg-[#5e8c67] text-white shadow-sm"
+                    : "border-[#26332f] bg-transparent text-[#26332f] hover:bg-[#26332f] hover:text-[#fffaf2]"
+                }`}
+              >
+                {isAdded ? (
+                  <>
+                    <Check size={16} className="animate-in zoom-in-50 duration-200" strokeWidth={2.5} />
+                    <span>Added to Basket</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag size={16} />
+                    <span>Add to Basket</span>
+                  </>
+                )}
+              </button>
+
+              <button 
+                className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#d8d0c6] transition hover:border-[#d86f45] hover:text-[#d86f45] sm:flex" 
                 aria-label="Save product"
               >
                 <Heart size={20} />
@@ -182,12 +205,7 @@ export default function ProductDetail() {
                 <ProductCard 
                   key={item.id} 
                   product={item} 
-                  onAdd={(productToAdd) => {
-                    const currentCart = loadCart();
-                    const updated = currentCart.some((currentItem) => currentItem.id === productToAdd.id) ? currentCart : [...currentCart, productToAdd];
-                    saveCart(updated);
-                    setCart(updated);
-                  }} 
+                  onAdd={addToCart}
                 />
               ))}
             </div>
