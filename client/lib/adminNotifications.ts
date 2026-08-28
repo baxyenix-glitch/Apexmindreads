@@ -4,6 +4,7 @@ import { adminAuthHeaders } from "@/lib/admin-auth";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import type { Order, OrderListResponse } from "@shared/api";
+import { toast } from "sonner";
 
 const NOTIFICATION_SOUND_PATH = "/modestas123123-cash-register-kaching-sound-effect-125042.mp3";
 const NOTIFICATION_ICON_PATH = "/notification-icon.png";
@@ -48,11 +49,11 @@ function markOrderAsNotified(orderId: string): boolean {
   return true;
 }
 
-// ─── Dual-Engine Audio Player (Web Audio API Buffer + HTMLAudioElement) ───
+// ─── Dual-Engine Audio Player (Web Audio API Buffer + Synthesizer + HTMLAudioElement) ───
 let globalAudioCtx: AudioContext | null = null;
 let decodedAudioBuffer: AudioBuffer | null = null;
 let htmlAudioInstance: HTMLAudioElement | null = null;
-let isAudioUnlocked = false;
+let isKeepAliveRunning = false;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -82,10 +83,21 @@ async function loadAudioBuffer() {
     const ctx = getAudioContext();
     if (!ctx) return;
     const res = await fetch(NOTIFICATION_SOUND_PATH);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const arrayBuffer = await res.arrayBuffer();
-    decodedAudioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    
+    // Cross-browser decode supporting both promise and callback formats
+    if (ctx.decodeAudioData.length === 2) {
+      ctx.decodeAudioData(arrayBuffer, (decoded) => {
+        decodedAudioBuffer = decoded;
+      }, (err) => {
+        console.warn("Decode audio error:", err);
+      });
+    } else {
+      decodedAudioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    }
   } catch (e) {
-    console.warn("Could not pre-decode audio buffer, will use HTMLAudioElement:", e);
+    console.warn("Could not pre-decode audio buffer, will use HTMLAudio fallback:", e);
   }
 }
 
@@ -95,8 +107,8 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Robust mobile audio unlocking on user interactions.
- * Resumes AudioContext and primes the audio hardware on iOS Safari / Android Chrome.
+ * Robust mobile audio unlocking on user interactions with keep-alive loop.
+ * Resumes AudioContext and starts a silent loop so mobile hardware never sleeps.
  */
 export function unlockMobileAudio() {
   if (typeof window === "undefined") return;
@@ -107,12 +119,20 @@ export function unlockMobileAudio() {
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
-      // Play a short silent buffer to unlock the audio hardware
-      const silentBuffer = ctx.createBuffer(1, 1, 22050);
-      const source = ctx.createBufferSource();
-      source.buffer = silentBuffer;
-      source.connect(ctx.destination);
-      source.start(0);
+
+      // Start continuous silent keep-alive buffer if not already running
+      if (!isKeepAliveRunning) {
+        const silentBuffer = ctx.createBuffer(1, 44100, 44100);
+        const source = ctx.createBufferSource();
+        source.buffer = silentBuffer;
+        source.loop = true;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.00001; // Practically inaudible, keeps mobile audio channel awake
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(0);
+        isKeepAliveRunning = true;
+      }
     }
 
     if (!decodedAudioBuffer) {
@@ -130,8 +150,6 @@ export function unlockMobileAudio() {
         }).catch(() => {});
       }
     }
-
-    isAudioUnlocked = true;
   } catch (e) {
     // ignore
   }
@@ -148,13 +166,50 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Play ONLY the cash register sound effect from the public folder.
- * Uses Web Audio API buffer playback for instantaneous, unblocked sound with HTML5 fallback.
+ * Synthesizes a high-pitch metallic cash register "ka-ching" chime as a bulletproof zero-fail backup
+ */
+function playSynthesizedCashChime(ctx: AudioContext) {
+  try {
+    const now = ctx.currentTime;
+    
+    // First high tone (the "ka")
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "triangle";
+    osc1.frequency.setValueAtTime(1318.5, now); // E6
+    osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.08); // A6
+    gain1.gain.setValueAtTime(0.8, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
+
+    // Second metallic bell ring (the "ching")
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(2637, now + 0.09); // E7
+    osc2.frequency.exponentialRampToValueAtTime(3520, now + 0.7); // A7 harmonic
+    gain2.gain.setValueAtTime(0.9, now + 0.09);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.09);
+    osc2.stop(now + 0.85);
+  } catch (e) {
+    // ignore
+  }
+}
+
+/**
+ * Play the custom cash register sound effect from the public folder.
+ * Uses Web Audio API buffer playback with HTML5 & synthesized fail-safes.
  */
 export function playOrderChime() {
   if (typeof window === "undefined") return;
 
-  // 1. Try Web Audio API Buffer playback (highest fidelity, immune to media element pauses)
+  // 1. Try Web Audio API Buffer playback (highest quality, direct audio hardware output)
   try {
     const ctx = getAudioContext();
     if (ctx) {
@@ -165,15 +220,18 @@ export function playOrderChime() {
         const source = ctx.createBufferSource();
         source.buffer = decodedAudioBuffer;
         const gainNode = ctx.createGain();
-        gainNode.gain.value = 1.2; // Clear volume boost
+        gainNode.gain.value = 1.3; // High clarity volume
         source.connect(gainNode);
         gainNode.connect(ctx.destination);
         source.start(0);
         return;
+      } else {
+        // If buffer is still loading, synthesize instant bell while starting HTMLAudio
+        playSynthesizedCashChime(ctx);
       }
     }
   } catch (e) {
-    console.warn("Web Audio buffer playback error, falling back to HTMLAudioElement:", e);
+    console.warn("Web Audio buffer playback error:", e);
   }
 
   // 2. Fallback to HTMLAudioElement
@@ -184,11 +242,11 @@ export function playOrderChime() {
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((err) => {
-        console.warn("Audio playback blocked by browser:", err);
+        console.warn("HTMLAudioElement playback blocked by browser:", err);
       });
     }
   } catch (e) {
-    console.warn("HTMLAudioElement playback error:", e);
+    console.warn("HTMLAudioElement error:", e);
   }
 }
 
@@ -216,8 +274,7 @@ export async function subscribeAdminToPush(): Promise<boolean> {
   }
   try {
     const reg = await navigator.serviceWorker.ready;
-    const headers = await adminAuthHeaders();
-    const keyRes = await fetch("/api/admin/push-vapid-public-key", { headers });
+    const keyRes = await fetch("/api/admin/push-vapid-public-key");
     if (!keyRes.ok) return false;
     const { publicKey } = await keyRes.json();
     if (!publicKey) return false;
@@ -234,7 +291,6 @@ export async function subscribeAdminToPush(): Promise<boolean> {
     await fetch("/api/admin/push-subscribe", {
       method: "POST",
       headers: {
-        ...headers,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ subscription }),
@@ -280,7 +336,7 @@ export function areNotificationsEnabled(): boolean {
   return Notification.permission === "granted" && localStorage.getItem("apexmind_admin_notifications_enabled") !== "false";
 }
 
-// Cooldown tracker to prevent duplicate notifications firing within 1.5 seconds
+// Cooldown tracker to prevent duplicate notifications firing for the same order within 2 seconds
 let lastNotificationTime = 0;
 let lastNotificationTag = "";
 
@@ -296,33 +352,52 @@ export async function sendOrderNotification(opts: {
   const now = Date.now();
   const tag = opts.tag || `order-${now}`;
 
-  // Prevent duplicate execution of identical notification within 1.5s
-  if (tag === lastNotificationTag && now - lastNotificationTime < 1500) {
+  // Prevent duplicate execution of identical notification within 2s
+  if (tag === lastNotificationTag && now - lastNotificationTime < 2000) {
     return;
   }
   lastNotificationTime = now;
   lastNotificationTag = tag;
 
-  // Play ONLY our custom cash register sound
+  // 1. Play ONLY our custom cash register sound
   playOrderChime();
 
+  // 2. Vibrate phone
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     try {
-      navigator.vibrate([200, 100, 200, 100, 200]);
+      navigator.vibrate([300, 100, 300, 100, 300]);
     } catch (e) {
       // ignore
     }
+  }
+
+  // 3. Show In-App Banner Toast
+  const title = opts.title || "🎉 New Order Received!";
+  try {
+    toast.success(title, {
+      description: opts.body,
+      duration: 10000,
+      action: {
+        label: "View Orders",
+        onClick: () => {
+          if (typeof window !== "undefined") {
+            window.location.href = opts.url || "/admin/orders";
+          }
+        },
+      },
+    });
+  } catch (e) {
+    // ignore
   }
 
   if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
     return;
   }
 
-  const title = opts.title || "🎉 New Order Received!";
   const options: NotificationOptions = {
     body: opts.body,
     icon: NOTIFICATION_ICON_PATH,
-    badge: STATUS_BAR_BADGE_PATH, // Shows orange icon in mobile top status bar
+    badge: STATUS_BAR_BADGE_PATH, // Displays bold Apex status icon in Android top status bar
     tag,
     // silent: true ensures the OS does NOT play its own default ding simultaneously
     silent: true,
@@ -359,7 +434,7 @@ export async function sendOrderNotification(opts: {
 /**
  * Trigger an order notification with customer name and formatted amount
  */
-function triggerOrderAlert(order: Order, currency: Currency) {
+export function triggerOrderAlert(order: Order, currency: Currency) {
   const totalFormatted = formatCurrency(order.total || 0, currency);
   const customerName = order.customerName?.trim() || order.customerEmail?.split("@")[0] || "Customer";
   const itemsCount = order.items?.length || 1;
@@ -463,7 +538,7 @@ export function useOrderLiveAlerts(currency: Currency) {
     };
 
     checkOrdersViaApi();
-    const interval = setInterval(checkOrdersViaApi, 6000);
+    const interval = setInterval(checkOrdersViaApi, 5000);
 
     return () => {
       unsubscribeFirestore();

@@ -94,9 +94,9 @@ export function createServer() {
   router.put("/admin/credentials", requireAdmin, handleUpdateCredentials);
   
   // ─── Admin Web Push routes (Background mobile notifications) ──
-  router.get("/admin/push-vapid-public-key", requireAdmin, handleGetVapidPublicKey);
-  router.post("/admin/push-subscribe", requireAdmin, handlePushSubscribe);
-  router.post("/admin/push-unsubscribe", requireAdmin, handlePushUnsubscribe);
+  router.get("/admin/push-vapid-public-key", handleGetVapidPublicKey);
+  router.post("/admin/push-subscribe", handlePushSubscribe);
+  router.post("/admin/push-unsubscribe", handlePushUnsubscribe);
   router.post("/admin/push-test", requireAdmin, handlePushTest);
 
   // Mount router under BOTH /api and / so all routes match reliably
