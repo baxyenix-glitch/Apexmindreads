@@ -13,10 +13,8 @@ type ProductCardProps = {
 
 export function ProductCard({ product, onAdd }: ProductCardProps) {
   const { currency } = useCurrency();
-  const { addToCart, cart } = useCart();
+  const { addToCart } = useCart();
   const [isAdded, setIsAdded] = useState(false);
-
-  const isInCart = cart.some((item) => item.id === product.id || item.slug === product.slug);
 
   const handleAdd = () => {
     if (onAdd) {
@@ -109,7 +107,7 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
               className="text-[#8b8175] transition-all duration-300 group-hover/btn:text-[#fffaf2] group-hover/btn:scale-110"
               strokeWidth={2}
             />
-            <span>{isInCart ? "Add again" : "Add to basket"}</span>
+            <span>Add to basket</span>
           </>
         )}
       </button>
