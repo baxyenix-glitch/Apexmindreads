@@ -95,11 +95,11 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Robust mobile audio unlocking on the very first user interaction.
- * Resumes AudioContext and plays a silent 1ms buffer to permanently bypass mobile autoplay restrictions.
+ * Robust mobile audio unlocking on user interactions.
+ * Resumes AudioContext and primes the audio hardware on iOS Safari / Android Chrome.
  */
-function unlockMobileAudio() {
-  if (typeof window === "undefined" || isAudioUnlocked) return;
+export function unlockMobileAudio() {
+  if (typeof window === "undefined") return;
 
   try {
     const ctx = getAudioContext();
@@ -107,12 +107,16 @@ function unlockMobileAudio() {
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
-      // Play a short silent buffer to unlock the audio hardware on iOS Safari / Chrome Android
+      // Play a short silent buffer to unlock the audio hardware
       const silentBuffer = ctx.createBuffer(1, 1, 22050);
       const source = ctx.createBufferSource();
       source.buffer = silentBuffer;
       source.connect(ctx.destination);
       source.start(0);
+    }
+
+    if (!decodedAudioBuffer) {
+      loadAudioBuffer().catch(() => {});
     }
 
     const audio = getHtmlAudio();
@@ -136,10 +140,6 @@ function unlockMobileAudio() {
 if (typeof window !== "undefined") {
   const handleUserGesture = () => {
     unlockMobileAudio();
-    window.removeEventListener("touchstart", handleUserGesture);
-    window.removeEventListener("touchend", handleUserGesture);
-    window.removeEventListener("click", handleUserGesture);
-    window.removeEventListener("pointerdown", handleUserGesture);
   };
   window.addEventListener("touchstart", handleUserGesture, { passive: true });
   window.addEventListener("touchend", handleUserGesture, { passive: true });
@@ -157,18 +157,20 @@ export function playOrderChime() {
   // 1. Try Web Audio API Buffer playback (highest fidelity, immune to media element pauses)
   try {
     const ctx = getAudioContext();
-    if (ctx && decodedAudioBuffer) {
+    if (ctx) {
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
-      const source = ctx.createBufferSource();
-      source.buffer = decodedAudioBuffer;
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 1.0;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      source.start(0);
-      return;
+      if (decodedAudioBuffer) {
+        const source = ctx.createBufferSource();
+        source.buffer = decodedAudioBuffer;
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = 1.2; // Clear volume boost
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start(0);
+        return;
+      }
     }
   } catch (e) {
     console.warn("Web Audio buffer playback error, falling back to HTMLAudioElement:", e);

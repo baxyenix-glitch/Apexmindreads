@@ -27,6 +27,7 @@ self.addEventListener("push", (event) => {
     icon: "/notification-icon.png",
     badge: "/status-bar-badge.png", // Displays Apex status icon in Android top status bar
     sound: "/modestas123123-cash-register-kaching-sound-effect-125042.mp3",
+    silent: true, // Suppresses phone default notification sound so only custom cash register sound plays
     vibrate: [250, 100, 250, 100, 250],
     tag: data.tag || `order-${Date.now()}`,
     renotify: true,
