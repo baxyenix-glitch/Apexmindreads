@@ -31,14 +31,14 @@ export function StorefrontShell({ children, cart: propCart, onRemove: propOnRemo
   const { user, isLoggedIn, logout } = useAuth();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f8f4ec] text-[#26332f]">
+    <div className="min-h-screen overflow-x-clip bg-[#f8f4ec] text-[#26332f]">
       {/* Announcement Bar */}
       <div className="bg-[#26332f] px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.17em] text-[#f8e3b6] sm:text-[11px]">
         Free delivery on every guide · Instant access after checkout
       </div>
 
       {/* Navigation Header - Sticky */}
-      <header className="sticky top-0 z-40 border-b border-[#e5ddd2] bg-[#f8f4ec]/95 backdrop-blur shadow-sm">
+      <header className="sticky top-0 z-40 w-full border-b border-[#e5ddd2] bg-[#f8f4ec]/95 backdrop-blur shadow-sm">
         <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-3 sm:h-[74px] sm:px-5 lg:h-[84px] lg:px-10">
           <Link
             to="/"
