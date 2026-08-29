@@ -37,8 +37,8 @@ export function StorefrontShell({ children, cart: propCart, onRemove: propOnRemo
         Free delivery on every guide · Instant access after checkout
       </div>
 
-      {/* Navigation Header */}
-      <header className="static border-b border-[#e5ddd2] bg-[#f8f4ec]">
+      {/* Navigation Header - Sticky */}
+      <header className="sticky top-0 z-40 border-b border-[#e5ddd2] bg-[#f8f4ec]/95 backdrop-blur shadow-sm">
         <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-3 sm:h-[74px] sm:px-5 lg:h-[84px] lg:px-10">
           <Link
             to="/"
