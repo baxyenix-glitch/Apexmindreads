@@ -24,21 +24,79 @@ export interface PushSubscriptionData {
   lastUsedAt?: string;
 }
 
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+
+// Multi-tier storage fallback: In-Memory Map + File persistence + Firestore Admin
+const inMemorySubscriptions = new Map<string, PushSubscriptionData>();
+
+function getStorageFilePath(): string {
+  // In serverless /tmp is writable; locally server/data/ is writable
+  const localDir = path.join(process.cwd(), "server/data");
+  if (fs.existsSync(localDir)) {
+    return path.join(localDir, "push-subscriptions.json");
+  }
+  return path.join("/tmp", "apexmind-push-subscriptions.json");
+}
+
+function loadSubscriptionsFromFile(): void {
+  try {
+    const filePath = getStorageFilePath();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const list: PushSubscriptionData[] = JSON.parse(raw);
+      if (Array.isArray(list)) {
+        list.forEach((sub) => {
+          if (sub && sub.endpoint) {
+            inMemorySubscriptions.set(sub.endpoint, sub);
+          }
+        });
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+function saveSubscriptionsToFile(): void {
+  try {
+    const filePath = getStorageFilePath();
+    const list = Array.from(inMemorySubscriptions.values());
+    fs.writeFileSync(filePath, JSON.stringify(list, null, 2), "utf-8");
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Initial load on startup
+loadSubscriptionsFromFile();
+
 /**
- * Save a push subscription to Firestore
+ * Save a push subscription with multi-tier persistence (Memory + File + Firestore)
  */
 export async function savePushSubscription(sub: PushSubscriptionData): Promise<void> {
   if (!sub || !sub.endpoint) return;
+
+  const normalizedSub: PushSubscriptionData = {
+    ...sub,
+    updatedAt: new Date().toISOString(),
+    lastUsedAt: new Date().toISOString(),
+  };
+
+  // 1. In-Memory
+  inMemorySubscriptions.set(sub.endpoint, normalizedSub);
+
+  // 2. File
+  saveSubscriptionsToFile();
+
+  // 3. Firestore
   try {
-    const crypto = await import("crypto");
     const docId = crypto.createHash("sha256").update(sub.endpoint).digest("hex");
-    await adminDb.collection("admin_push_subscriptions").doc(docId).set({
-      ...sub,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    await adminDb.collection("admin_push_subscriptions").doc(docId).set(normalizedSub, { merge: true });
     console.log(`[PushNotification] Saved subscription for device: ${sub.userAgent?.slice(0, 50) || "Unknown"} (docId: ${docId.slice(0, 16)}...)`);
   } catch (err) {
-    console.error("Failed to save push subscription:", err);
+    console.warn("[PushNotification] Firestore admin save skipped, saved to memory & file:", err);
   }
 }
 
@@ -47,29 +105,46 @@ export async function savePushSubscription(sub: PushSubscriptionData): Promise<v
  */
 export async function removePushSubscription(endpoint: string): Promise<void> {
   if (!endpoint) return;
+
+  // 1. In-Memory
+  inMemorySubscriptions.delete(endpoint);
+
+  // 2. File
+  saveSubscriptionsToFile();
+
+  // 3. Firestore
   try {
-    const crypto = await import("crypto");
     const docId = crypto.createHash("sha256").update(endpoint).digest("hex");
     await adminDb.collection("admin_push_subscriptions").doc(docId).delete();
     console.log(`[PushNotification] Removed expired subscription: ${docId.slice(0, 16)}...`);
   } catch (err) {
-    console.error("Failed to remove push subscription:", err);
+    // ignore
   }
 }
 
 /**
- * Fetch all active admin push subscriptions from Firestore
+ * Fetch all active admin push subscriptions by merging Memory, File, and Firestore
  */
 export async function getPushSubscriptions(): Promise<PushSubscriptionData[]> {
+  loadSubscriptionsFromFile();
+  const subMap = new Map<string, PushSubscriptionData>(inMemorySubscriptions);
+
   try {
     const snapshot = await adminDb.collection("admin_push_subscriptions").get();
-    const subs = snapshot.docs.map((doc) => doc.data() as PushSubscriptionData);
-    console.log(`[PushNotification] Retrieved ${subs.length} active subscription(s) from Firestore`);
-    return subs;
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data() as PushSubscriptionData;
+      if (data && data.endpoint) {
+        subMap.set(data.endpoint, data);
+        inMemorySubscriptions.set(data.endpoint, data);
+      }
+    });
   } catch (err) {
-    console.error("Failed to get push subscriptions:", err);
-    return [];
+    // Fall back smoothly to memory + file
   }
+
+  const list = Array.from(subMap.values());
+  console.log(`[PushNotification] Total active admin push subscriptions available: ${list.length}`);
+  return list;
 }
 
 /**
@@ -84,7 +159,7 @@ export async function sendOrderPushNotification(payload: {
 }): Promise<{ sent: number; failed: number }> {
   const subscriptions = await getPushSubscriptions();
   if (subscriptions.length === 0) {
-    console.warn("[PushNotification] No active admin push subscriptions found in Firestore. Make sure to tap 'Enable Alerts' in Admin Dashboard on your device.");
+    console.warn("[PushNotification] No active admin push subscriptions found. Make sure to tap 'Enable Alerts' in Admin Dashboard on your device.");
     return { sent: 0, failed: 0 };
   }
 
@@ -118,10 +193,11 @@ export async function sendOrderPushNotification(payload: {
         }
       );
       sent++;
+      console.log(`[PushNotification] Delivered push successfully to ${sub.userAgent?.slice(0, 40) || sub.endpoint.slice(0, 30)}`);
     } catch (err: any) {
       failed++;
       console.warn(`[PushNotification] Delivery failed for ${sub.endpoint.slice(0, 45)}... status: ${err.statusCode || err.message}`);
-      // If subscription has expired or is unregistered, prune it from database
+      // If subscription has expired or is unregistered, prune it
       if (err.statusCode === 404 || err.statusCode === 410) {
         await removePushSubscription(sub.endpoint);
       }
@@ -132,4 +208,5 @@ export async function sendOrderPushNotification(payload: {
   console.log(`[PushNotification] Push dispatch completed: ${sent} delivered, ${failed} failed out of ${subscriptions.length} device(s)`);
   return { sent, failed };
 }
+
 

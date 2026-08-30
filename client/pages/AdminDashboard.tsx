@@ -2073,8 +2073,20 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
   // Test Cloud Push state
   const [testingCloudPush, setTestingCloudPush] = useState(false);
   const [cloudPushSuccess, setCloudPushSuccess] = useState("");
+  const [registeredDeviceCount, setRegisteredDeviceCount] = useState<number | null>(null);
+
+  const fetchPushStatus = () => {
+    apiFetch<{ ok: boolean; activeDevices: number }>("/api/admin/push-status")
+      .then((data) => {
+        if (data && typeof data.activeDevices === "number") {
+          setRegisteredDeviceCount(data.activeDevices);
+        }
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
+    fetchPushStatus();
     apiFetch<SettingsResponse>("/api/admin/settings")
       .then((data) => {
         setSettings(data.settings);
@@ -2083,6 +2095,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
         setDownloadMode(data.settings.downloadMode);
         setStoreCurrency((data.settings.currency as Currency) || "NGN");
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -2103,10 +2116,19 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
     setTestingCloudPush(true);
     setCloudPushSuccess("");
     try {
-      const res = await apiFetch<{ success: boolean; dispatched: number }>("/api/admin/push-test", {
+      // Ensure this device is registered with PushManager and token sent to backend
+      const { subscribeAdminToPush } = await import("@/lib/adminNotifications");
+      await subscribeAdminToPush();
+
+      const res = await apiFetch<{ ok: boolean; sent: number; failed: number; message: string }>("/api/admin/push-test", {
         method: "POST",
       });
-      setCloudPushSuccess(`Test push dispatched to ${res.dispatched} registered device(s)! Lock your phone now or close your browser to verify.`);
+      fetchPushStatus();
+      if (res.sent > 0) {
+        setCloudPushSuccess(`Test push sent to ${res.sent} registered device(s)! Lock your phone screen or close Chrome to verify.`);
+      } else {
+        alert("Notice: 0 devices are registered on the server. Please tap 'Enable Alerts' below and ensure permissions are granted in Chrome settings.");
+      }
     } catch (err: any) {
       alert(`Cloud Push error: ${err.message}`);
     } finally {
@@ -2214,7 +2236,14 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
       <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Global Live Alerts</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Global Live Alerts</p>
+              {registeredDeviceCount !== null && (
+                <span className="rounded-full bg-[#ecfdf5] dark:bg-[#0f2418] border border-[#a7f3d0] dark:border-[#1e462b] px-2.5 py-0.5 text-[10px] font-bold text-[#059669] dark:text-[#4ade80]">
+                  {registeredDeviceCount} Device(s) Registered on Server
+                </span>
+              )}
+            </div>
             <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Real-Time Sales & Push Notifications</h3>
             <p className="mt-1 max-w-xl text-xs text-[#8b8175] dark:text-[#a1a1aa]">
               Get instant cash register sounds and background push notifications directly on your phone/desktop even when your browser is completely closed.
@@ -2237,7 +2266,10 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
               </p>
             </div>
             <button
-              onClick={toggleNotifications}
+              onClick={async () => {
+                await toggleNotifications();
+                fetchPushStatus();
+              }}
               className={`mt-4 rounded-full px-3 py-1.5 text-xs font-bold transition self-start ${
                 notifEnabled ? "bg-[#eef1eb] dark:bg-[#0f2418] text-[#5e8c67] dark:text-[#4ade80]" : "bg-[#f5f3ee] dark:bg-[#27272a] text-[#736b61] dark:text-[#a1a1aa] hover:bg-[#e2dfd8] dark:hover:bg-[#323238]"
               }`}
@@ -2262,7 +2294,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
           <div className="rounded-xl border border-[#eae7e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 flex flex-col justify-between">
             <div>
               <p className="text-xs font-bold text-[#26332f] dark:text-[#fafafa]">Closed-Browser Push Test</p>
-              <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">Send a real push notification from server</p>
+              <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">Dispatches real Google Cloud Push alert</p>
             </div>
             <button
               onClick={triggerCloudPushTest}

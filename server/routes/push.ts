@@ -55,6 +55,25 @@ export const handlePushUnsubscribe: RequestHandler = async (req, res) => {
   }
 };
 
+/** GET /api/admin/push-status */
+export const handleGetPushStatus: RequestHandler = async (_req, res) => {
+  try {
+    const { getPushSubscriptions } = await import("../lib/pushNotifications.js");
+    const subs = await getPushSubscriptions();
+    res.json({
+      ok: true,
+      activeDevices: subs.length,
+      devices: subs.map((s) => ({
+        endpoint: s.endpoint.slice(0, 45) + "...",
+        userAgent: s.userAgent || "Unknown Device",
+        updatedAt: (s as any).updatedAt || s.createdAt,
+      })),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to get push status" });
+  }
+};
+
 /** POST /api/admin/push-test */
 export const handlePushTest: RequestHandler = async (req, res) => {
   try {
@@ -70,3 +89,4 @@ export const handlePushTest: RequestHandler = async (req, res) => {
     res.status(500).json({ error: err.message || "Failed to send test push" });
   }
 };
+

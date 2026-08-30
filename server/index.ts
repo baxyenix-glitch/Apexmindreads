@@ -26,7 +26,8 @@ import {
   handleGetVapidPublicKey, 
   handlePushSubscribe, 
   handlePushUnsubscribe, 
-  handlePushTest 
+  handlePushTest,
+  handleGetPushStatus 
 } from "./routes/push.js";
 import path from "path";
 
@@ -95,6 +96,7 @@ export function createServer() {
   
   // ─── Admin Web Push routes (Background mobile notifications) ──
   router.get("/admin/push-vapid-public-key", handleGetVapidPublicKey);
+  router.get("/admin/push-status", handleGetPushStatus);
   router.post("/admin/push-subscribe", handlePushSubscribe);
   router.post("/admin/push-unsubscribe", handlePushUnsubscribe);
   router.post("/admin/push-test", requireAdmin, handlePushTest);
