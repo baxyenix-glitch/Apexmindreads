@@ -1,26 +1,12 @@
 // ApexMind Store Background Service Worker
-const CACHE_NAME = "apexmind-sw-v8";
+const CACHE_NAME = "apexmind-sw-v7";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    Promise.all([
-      self.clients.claim(),
-      // Clear older caches if needed
-      caches.keys().then((keys) =>
-        Promise.all(
-          keys.map((key) => {
-            if (key !== CACHE_NAME) {
-              return caches.delete(key);
-            }
-          })
-        )
-      ),
-    ])
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 // Handle real-time Web Push when the browser / app is closed or backgrounded
@@ -37,33 +23,27 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "🎉 New Order Received!";
   const options = {
-    body: data.body || "A new order was placed on your store",
-    icon: data.icon || "/notification-icon.png",
-    badge: data.badge || "/status-bar-badge.png", // Displays bold Apex status icon in Android top status bar
-    sound: data.sound || "/modestas123123-cash-register-kaching-sound-effect-125042.mp3",
+    body: data.body || "A new order was placed on store",
+    icon: "/notification-icon.png",
+    badge: "/status-bar-badge.png", // Displays bold Apex status icon in Android top status bar
+    sound: "/modestas123123-cash-register-kaching-sound-effect-125042.mp3",
     vibrate: [300, 100, 300, 100, 300],
     tag: data.tag || `order-${Date.now()}`,
     renotify: true,
     requireInteraction: true,
     data: {
-      url: data.url || "/admin/orders",
-      timestamp: Date.now(),
-    },
+      url: data.url || "/admin/orders"
+    }
   };
 
-  const showNotificationPromise = self.registration.showNotification(title, options);
+  // Broadcast to all open client tabs to immediately play the custom cash register audio
+  self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({ type: "PLAY_ORDER_SOUND" });
+    });
+  }).catch(() => {});
 
-  // Broadcast to all open client tabs so active tabs play custom audio immediately
-  const broadcastPromise = self.clients
-    .matchAll({ type: "window", includeUncontrolled: true })
-    .then((clients) => {
-      clients.forEach((client) => {
-        client.postMessage({ type: "PLAY_ORDER_SOUND", payload: data });
-      });
-    })
-    .catch(() => {});
-
-  event.waitUntil(Promise.all([showNotificationPromise, broadcastPromise]));
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Open admin orders page when tapping the notification
@@ -75,9 +55,6 @@ self.addEventListener("notificationclick", (event) => {
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
         if (client.url && client.url.includes("/admin") && "focus" in client) {
-          if ("navigate" in client) {
-            client.navigate(urlToOpen);
-          }
           return client.focus();
         }
       }

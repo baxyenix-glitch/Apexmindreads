@@ -104,14 +104,14 @@ export const handleCreateOrder: RequestHandler = async (req, res) => {
       const customer = order.customerName || order.customerEmail.split("@")[0] || "Customer";
       const itemsCount = order.items.length;
       const itemsLabel = itemsCount === 1 ? "item" : "items";
-      await sendOrderPushNotification({
+      sendOrderPushNotification({
         title: `🎉 New Order: ${formattedTotal}`,
         body: `${customer} placed an order totaling ${formattedTotal} (${itemsCount} ${itemsLabel})`,
         url: "/admin/orders",
         tag: `order-${order.id}`,
-      });
+      }).catch((e) => console.warn("Background push error:", e));
     } catch (e) {
-      console.warn("Background push notification dispatch error:", e);
+      // Non-blocking
     }
 
     res.status(201).json({ order });
