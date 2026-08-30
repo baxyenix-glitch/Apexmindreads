@@ -189,14 +189,14 @@ export const handleVerifyPaystack: RequestHandler = async (req, res) => {
     try {
       const formattedTotal = `₦${(order.total || 0).toLocaleString()}`;
       const customer = order.customerName || order.customerEmail?.split("@")[0] || "Customer";
-      sendOrderPushNotification({
+      await sendOrderPushNotification({
         title: `💰 Payment Received: ${formattedTotal}`,
         body: `${customer} paid for order ${order.id} (${formattedTotal})`,
         url: "/admin/orders",
         tag: `payment-${order.id}`,
-      }).catch((e) => console.warn("Background push error:", e));
+      });
     } catch (e) {
-      // Non-blocking
+      console.warn("Background payment push error:", e);
     }
 
     // Generate verified download URLs for each product in the order

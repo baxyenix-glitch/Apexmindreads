@@ -13,20 +13,24 @@ export const handleGetVapidPublicKey: RequestHandler = (_req, res) => {
 
 /** POST /api/admin/push-subscribe */
 export const handlePushSubscribe: RequestHandler = async (req, res) => {
-  const { subscription } = req.body;
-  if (!subscription || !subscription.endpoint || !subscription.keys) {
-    res.status(400).json({ error: "Invalid push subscription object" });
+  const sub = req.body.subscription || req.body;
+  if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+    res.status(400).json({ error: "Invalid push subscription object. Required: endpoint, keys.p256dh, keys.auth" });
     return;
   }
 
   try {
     await savePushSubscription({
-      endpoint: subscription.endpoint,
-      keys: subscription.keys,
+      endpoint: sub.endpoint,
+      keys: {
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+      },
       userAgent: req.headers["user-agent"],
       createdAt: new Date().toISOString(),
       lastUsedAt: new Date().toISOString(),
     });
+    console.log(`[PushNotification] Successfully saved push subscription for ${req.headers["user-agent"]?.slice(0, 50) || "device"}`);
     res.json({ ok: true, message: "Push subscription registered successfully" });
   } catch (err: any) {
     console.error("Failed to register push subscription:", err);

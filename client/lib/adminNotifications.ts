@@ -273,13 +273,24 @@ export async function subscribeAdminToPush(): Promise<boolean> {
     return false;
   }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    let reg: ServiceWorkerRegistration | undefined;
+    try {
+      reg = await navigator.serviceWorker.ready;
+    } catch {
+      reg = await navigator.serviceWorker.register("/sw.js");
+    }
+    if (!reg) {
+      reg = await navigator.serviceWorker.register("/sw.js");
+    }
+
     const keyRes = await fetch("/api/admin/push-vapid-public-key");
     if (!keyRes.ok) return false;
     const { publicKey } = await keyRes.json();
     if (!publicKey) return false;
 
     let subscription = await reg.pushManager.getSubscription();
+
+    // If subscription already exists, test if it is valid or renew it
     if (!subscription) {
       subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -287,16 +298,25 @@ export async function subscribeAdminToPush(): Promise<boolean> {
       });
     }
 
-    // Save to server
-    await fetch("/api/admin/push-subscribe", {
+    const subJson = subscription.toJSON ? subscription.toJSON() : (subscription as any);
+    const p256dh = subJson.keys?.p256dh || (subscription.getKey ? btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))) : "");
+    const auth = subJson.keys?.auth || (subscription.getKey ? btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))) : "");
+
+    // Save to server database so backend can push notifications globally across devices
+    const response = await fetch("/api/admin/push-subscribe", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ subscription }),
+      body: JSON.stringify({
+        subscription: {
+          endpoint: subscription.endpoint,
+          keys: { p256dh, auth },
+        },
+      }),
     });
 
-    return true;
+    return response.ok;
   } catch (err) {
     console.warn("Background Web Push registration error:", err);
     return false;

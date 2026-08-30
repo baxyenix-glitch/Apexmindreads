@@ -149,19 +149,19 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className={`min-h-screen pb-20 lg:pb-10 transition-colors duration-200 ${theme === "dark" ? "dark bg-[#0f1412] text-[#edf2ee]" : "bg-[#f5f3ee] text-[#26332f]"}`}>
+    <div className={`min-h-screen pb-20 lg:pb-10 transition-colors duration-200 ${theme === "dark" ? "dark bg-[#09090b] text-[#f4f4f5]" : "bg-[#f5f3ee] text-[#26332f]"}`}>
       {/* Desktop Sidebar */}
       <DesktopSidebar active={active} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
 
       {/* Main Content Area */}
       <div className="lg:pl-[245px]">
         {/* Sticky Top Header */}
-        <header className="sticky top-0 z-30 border-b border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7]/95 dark:bg-[#141b18]/95 px-4 py-3.5 backdrop-blur sm:px-8 lg:px-10">
+        <header className="sticky top-0 z-30 border-b border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7]/95 dark:bg-[#09090b]/95 px-4 py-3.5 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <button 
                 onClick={() => setMobileNavOpen(true)} 
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#1b2521] text-[#26332f] dark:text-[#edf2ee] transition hover:bg-[#eee7dc] dark:hover:bg-[#25332e] lg:hidden shadow-sm" 
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] text-[#26332f] dark:text-[#f4f4f5] transition hover:bg-[#eee7dc] dark:hover:bg-[#18181b] lg:hidden shadow-sm" 
                 aria-label="Open admin navigation menu"
               >
                 <Menu size={20} />
@@ -169,12 +169,12 @@ export default function AdminDashboard() {
               
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block h-2 w-2 rounded-full bg-[#5e8c67] animate-pulse" />
-                  <p className="text-[11px] font-semibold text-[#8b8175] dark:text-[#8ea297] hidden sm:block">
+                  <span className="hidden sm:inline-block h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
+                  <p className="text-[11px] font-semibold text-[#8b8175] dark:text-[#a1a1aa] hidden sm:block">
                     {new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 </div>
-                <h1 className="truncate font-serif text-xl sm:text-2xl lg:text-3xl tracking-tight text-[#26332f] dark:text-[#edf2ee]">
+                <h1 className="truncate font-serif text-xl sm:text-2xl lg:text-3xl tracking-tight text-[#26332f] dark:text-[#fafafa]">
                   {active === "Overview" ? `Welcome back, ${admin?.name?.split(" ")[0] ?? "Admin"}` : active}
                 </h1>
               </div>
@@ -186,19 +186,19 @@ export default function AdminDashboard() {
                 onClick={toggleNotifications}
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition shadow-sm active:scale-95 ${
                   notifEnabled
-                    ? "border-[#5e8c67]/40 bg-[#f0f7f2] dark:bg-[#16271c] text-[#2d5a37] dark:text-[#74b480] hover:bg-[#e2f0e6] dark:hover:bg-[#1e3426]"
-                    : "border-[#d86f45]/50 bg-[#fff5f0] dark:bg-[#2b1912] text-[#d86f45] hover:bg-[#ffece4] dark:hover:bg-[#382017] animate-pulse"
+                    ? "border-[#10b981]/40 bg-[#f0f7f2] dark:bg-[#0f2418] text-[#2d5a37] dark:text-[#4ade80] hover:bg-[#e2f0e6] dark:hover:bg-[#153422]"
+                    : "border-[#d86f45]/50 bg-[#fff5f0] dark:bg-[#2b160e] text-[#d86f45] hover:bg-[#ffece4] dark:hover:bg-[#3d1f14] animate-pulse"
                 }`}
                 title={notifEnabled ? "Order alerts are enabled on this device" : "Click to enable real-time order alerts on this device"}
               >
-                {notifEnabled ? <BellRing size={13} className="text-[#5e8c67]" /> : <BellOff size={13} className="text-[#d86f45]" />}
+                {notifEnabled ? <BellRing size={13} className="text-[#10b981]" /> : <BellOff size={13} className="text-[#d86f45]" />}
                 <span className="hidden min-[480px]:inline">{notifEnabled ? "Alerts Active" : "Enable Alerts"}</span>
                 <span className="min-[480px]:hidden">{notifEnabled ? "On" : "Enable"}</span>
               </button>
 
               <button
                 onClick={testNotification}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#1b2521] px-3.5 py-1.5 text-xs font-bold text-[#26332f] dark:text-[#edf2ee] transition hover:bg-[#faedc9] dark:hover:bg-[#283630] hover:border-[#d86f45] shadow-sm active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-3.5 py-1.5 text-xs font-bold text-[#26332f] dark:text-[#f4f4f5] transition hover:bg-[#faedc9] dark:hover:bg-[#18181b] hover:border-[#d86f45] shadow-sm active:scale-95"
                 title="Test cash register sound and mobile notification"
               >
                 <Volume2 size={13} className="text-[#d86f45]" />
@@ -214,12 +214,12 @@ export default function AdminDashboard() {
           <div className="fixed inset-0 z-50 lg:hidden">
             <button 
               onClick={closeNav} 
-              className="absolute inset-0 bg-[#26332f]/60 backdrop-blur-sm transition-opacity" 
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" 
               aria-label="Close admin navigation overlay" 
             />
-            <div className="absolute inset-y-0 left-0 w-[285px] max-w-[85vw] overflow-y-auto bg-[#26332f] px-5 py-6 text-[#f8f4ec] shadow-2xl flex flex-col justify-between">
+            <div className={`absolute inset-y-0 left-0 w-[285px] max-w-[85vw] overflow-y-auto ${theme === "dark" ? "bg-[#09090b] border-r border-[#27272a]" : "bg-[#26332f]"} px-5 py-6 text-[#f8f4ec] shadow-2xl flex flex-col justify-between`}>
               <div>
-                <div className="flex items-center justify-between pb-5 border-b border-[#3b4b45]">
+                <div className={`flex items-center justify-between pb-5 border-b ${theme === "dark" ? "border-[#27272a]" : "border-[#3b4b45]"}`}>
                   <Link to="/" onClick={closeNav} className="flex items-center gap-2.5 font-serif text-lg tracking-tight">
                     <img 
                       src="/logo.png" 
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                   </Link>
                   <button 
                     onClick={closeNav} 
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3b4b45] text-[#bec5bb] hover:text-white" 
+                    className={`flex h-8 w-8 items-center justify-center rounded-full ${theme === "dark" ? "bg-[#18181b] text-[#a1a1aa]" : "bg-[#3b4b45] text-[#bec5bb]"} hover:text-white`} 
                     aria-label="Close navigation"
                   >
                     <X size={16} />
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="mt-6">
-                  <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#8da096]">Management</p>
+                  <p className={`px-3 text-[10px] font-bold uppercase tracking-[0.18em] ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#8da096]"}`}>Management</p>
                   <nav className="mt-2.5 space-y-1">
                     {navItems.map(({ label, path, icon: Icon }) => (
                       <Link 
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                         className={`flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition ${
                           active === label 
                             ? "bg-[#e58a61] text-white shadow-sm font-semibold" 
-                            : "text-[#bec5bb] hover:bg-[#3b4b45] hover:text-white"
+                            : theme === "dark" ? "text-[#a1a1aa] hover:bg-[#18181b] hover:text-white" : "text-[#bec5bb] hover:bg-[#3b4b45] hover:text-white"
                         }`}
                       >
                         <Icon size={18} />
@@ -259,20 +259,20 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-[#3b4b45] space-y-2">
+              <div className={`pt-6 border-t ${theme === "dark" ? "border-[#27272a]" : "border-[#3b4b45]"} space-y-2`}>
                 <ThemeToggle theme={theme} onToggle={toggleTheme} />
                 <Link
                   to="/"
                   target="_blank"
                   rel="noreferrer"
                   onClick={closeNav}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs text-[#bec5bb] hover:bg-[#3b4b45] hover:text-white"
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs ${theme === "dark" ? "text-[#a1a1aa] hover:bg-[#18181b]" : "text-[#bec5bb] hover:bg-[#3b4b45]"} hover:text-white`}
                 >
                   <Eye size={15} /> Open Storefront
                 </Link>
                 <button 
                   onClick={() => { closeNav(); handleLogout(); }} 
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-[#f87171] hover:bg-[#3b4b45]"
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-[#f87171] ${theme === "dark" ? "hover:bg-[#18181b]" : "hover:bg-[#3b4b45]"}`}
                 >
                   <LogOut size={15} /> Sign out
                 </button>
@@ -286,7 +286,7 @@ export default function AdminDashboard() {
           {/* Section Description Header */}
           <div className="mb-5 sm:mb-7">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d86f45]">{active}</p>
-            <h2 className="mt-1 font-serif text-2xl sm:text-3xl tracking-tight text-[#26332f] dark:text-[#edf2ee]">
+            <h2 className="mt-1 font-serif text-2xl sm:text-3xl tracking-tight text-[#26332f] dark:text-[#fafafa]">
               {sectionIntro[active as Section]}
             </h2>
           </div>
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#fbfaf7]/95 dark:bg-[#141b18]/95 border-t border-[#e2dfd8] dark:border-[#24302c] px-2 py-2 backdrop-blur lg:hidden flex items-center justify-around shadow-lg">
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#fbfaf7]/95 dark:bg-[#09090b]/95 border-t border-[#e2dfd8] dark:border-[#27272a] px-2 py-2 backdrop-blur lg:hidden flex items-center justify-around shadow-lg">
         {[
           { label: "Overview", path: "/admin", icon: LayoutDashboard },
           { label: "Orders", path: "/admin/orders", icon: ShoppingBag },
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
               className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
                 isItemActive 
                   ? "text-[#d86f45] font-bold" 
-                  : "text-[#8b8175] dark:text-[#8ea297] hover:text-[#26332f] dark:hover:text-[#edf2ee]"
+                  : "text-[#8b8175] dark:text-[#a1a1aa] hover:text-[#26332f] dark:hover:text-[#fafafa]"
               }`}
             >
               <Icon size={18} />
@@ -345,13 +345,13 @@ function ThemeToggle({ theme, onToggle }: { theme: "light" | "dark"; onToggle: (
   return (
     <button
       onClick={onToggle}
-      className="flex w-full items-center justify-between rounded-xl border border-[#3b4b45] bg-[#1a2320] px-3.5 py-2.5 text-xs font-semibold text-[#f8f4ec] transition hover:bg-[#283632] hover:border-[#526a62] shadow-sm active:scale-[0.98]"
+      className={`flex w-full items-center justify-between rounded-xl border ${isDark ? "border-[#27272a] bg-[#121215] text-[#f4f4f5] hover:bg-[#18181b]" : "border-[#3b4b45] bg-[#1a2320] text-[#f8f4ec] hover:bg-[#283632]"} px-3.5 py-2.5 text-xs font-semibold transition shadow-sm active:scale-[0.98]`}
       title={`Switch to ${isDark ? "Light" : "Dark"} Mode`}
       aria-label={`Toggle theme, current is ${theme}`}
     >
       <div className="flex items-center gap-2.5">
         {isDark ? (
-          <Moon size={15} className="text-[#f0bc58]" />
+          <Moon size={15} className="text-[#f59e0b]" />
         ) : (
           <Sun size={15} className="text-[#e58a61]" />
         )}
@@ -376,8 +376,9 @@ function ThemeToggle({ theme, onToggle }: { theme: "light" | "dark"; onToggle: (
 
 // ─── Desktop Sidebar ─────────────────────────────────────
 function DesktopSidebar({ active, onLogout, theme, onToggleTheme }: { active: string; onLogout: () => void; theme: "light" | "dark"; onToggleTheme: () => void }) {
+  const isDark = theme === "dark";
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[245px] flex-col bg-[#26332f] px-5 py-6 text-[#f8f4ec] lg:flex justify-between">
+    <aside className={`fixed inset-y-0 left-0 z-30 hidden w-[245px] flex-col ${isDark ? "bg-[#09090b] border-r border-[#27272a]" : "bg-[#26332f]"} px-5 py-6 text-[#f8f4ec] lg:flex justify-between`}>
       <div>
         <Link to="/" className="flex items-center gap-2.5 font-serif text-[1.25rem] tracking-tight">
           <img 
@@ -387,22 +388,22 @@ function DesktopSidebar({ active, onLogout, theme, onToggleTheme }: { active: st
           />
           <span>ApexMind<span className="text-[#e58a61]">Reads</span></span>
         </Link>
-        <AdminNav active={active} />
+        <AdminNav active={active} theme={theme} />
       </div>
 
-      <div className="pt-4 border-t border-[#3b4b45] space-y-2">
+      <div className={`pt-4 border-t ${isDark ? "border-[#27272a]" : "border-[#3b4b45]"} space-y-2`}>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         <Link
           to="/"
           target="_blank"
           rel="noreferrer"
-          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs text-[#bec5bb] hover:bg-[#3b4b45] hover:text-white transition"
+          className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs ${isDark ? "text-[#a1a1aa] hover:bg-[#18181b]" : "text-[#bec5bb] hover:bg-[#3b4b45]"} hover:text-white transition`}
         >
           <Eye size={16} /> Open Storefront
         </Link>
         <button 
           onClick={onLogout} 
-          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs text-[#bec5bb] hover:bg-[#3b4b45] hover:text-[#f87171] transition"
+          className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs ${isDark ? "text-[#a1a1aa] hover:bg-[#18181b]" : "text-[#bec5bb] hover:bg-[#3b4b45]"} hover:text-[#f87171] transition`}
         >
           <LogOut size={16} /> Sign out
         </button>
@@ -411,10 +412,11 @@ function DesktopSidebar({ active, onLogout, theme, onToggleTheme }: { active: st
   );
 }
 
-function AdminNav({ active, onNavigate, mobile = false }: { active: string; onNavigate?: () => void; mobile?: boolean }) {
+function AdminNav({ active, onNavigate, mobile = false, theme = "light" }: { active: string; onNavigate?: () => void; mobile?: boolean; theme?: "light" | "dark" }) {
+  const isDark = theme === "dark";
   return (
     <>
-      <p className={`${mobile ? "mt-8" : "mt-10"} px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#8da096]`}>
+      <p className={`${mobile ? "mt-8" : "mt-10"} px-3 text-[10px] font-bold uppercase tracking-[0.18em] ${isDark ? "text-[#a1a1aa]" : "text-[#8da096]"}`}>
         Store Menu
       </p>
       <nav className="mt-2.5 space-y-1">
@@ -426,7 +428,7 @@ function AdminNav({ active, onNavigate, mobile = false }: { active: string; onNa
             className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
               active === label 
                 ? "bg-[#e58a61] text-white shadow-sm font-semibold" 
-                : "text-[#bec5bb] hover:bg-[#3b4b45] hover:text-white"
+                : isDark ? "text-[#a1a1aa] hover:bg-[#18181b] hover:text-white" : "text-[#bec5bb] hover:bg-[#3b4b45] hover:text-white"
             }`}
           >
             <Icon size={17} /> 
@@ -441,20 +443,20 @@ function AdminNav({ active, onNavigate, mobile = false }: { active: string; onNa
 // ─── KPI Card ────────────────────────────────────────────
 function Kpi({ label, value, icon: Icon, tone }: { label: string; value: string; icon: typeof Wallet; tone: "orange" | "green" | "blue" | "gold" }) {
   const tones = { 
-    orange: "bg-[#f9e3d9] dark:bg-[#331e16] text-[#c76b4c] dark:text-[#ea8c6c]", 
-    green: "bg-[#dcebdd] dark:bg-[#192f21] text-[#5e8c67] dark:text-[#74b480]", 
-    blue: "bg-[#dce8ed] dark:bg-[#1a2933] text-[#5e8395] dark:text-[#7bb0c9]", 
-    gold: "bg-[#faedc9] dark:bg-[#332a13] text-[#ad842a] dark:text-[#e4be63]" 
+    orange: "bg-[#f9e3d9] dark:bg-[#2e1810] text-[#c76b4c] dark:text-[#fb923c]", 
+    green: "bg-[#dcebdd] dark:bg-[#0f2418] text-[#5e8c67] dark:text-[#4ade80]", 
+    blue: "bg-[#dce8ed] dark:bg-[#13222e] text-[#5e8395] dark:text-[#60a5fa]", 
+    gold: "bg-[#faedc9] dark:bg-[#2c220c] text-[#ad842a] dark:text-[#fbbf24]" 
   };
   return (
-    <div className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-4 sm:p-5 shadow-sm transition hover:shadow">
+    <div className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-4 sm:p-5 shadow-sm transition hover:shadow">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8b8175] dark:text-[#8ea297]">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8b8175] dark:text-[#a1a1aa]">{label}</p>
         <span className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl ${tones[tone]}`}>
           <Icon size={16} />
         </span>
       </div>
-      <p className="mt-3 truncate font-serif text-2xl sm:text-3xl tracking-tight text-[#26332f] dark:text-[#edf2ee] font-bold">
+      <p className="mt-3 truncate font-serif text-2xl sm:text-3xl tracking-tight text-[#26332f] dark:text-[#fafafa] font-bold">
         {value}
       </p>
     </div>
@@ -537,15 +539,15 @@ function OverviewSection({ currency }: { currency: Currency }) {
       {/* Revenue & Top Products Grid */}
       <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
         {/* Revenue chart */}
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-4 sm:p-6 shadow-sm">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-4 sm:p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Revenue Trajectory</p>
-              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-[#26332f] dark:text-[#edf2ee]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Revenue Trajectory</p>
+              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-[#26332f] dark:text-[#fafafa]">
                 {formatCurrency(analytics.totalRevenue, currency)}
               </p>
             </div>
-            <span className="rounded-full border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#1f2a26] px-2.5 py-1 text-[11px] font-semibold text-[#736b61] dark:text-[#9bb0a5]">
+            <span className="rounded-full border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-2.5 py-1 text-[11px] font-semibold text-[#736b61] dark:text-[#a1a1aa]">
               Past 30 Days
             </span>
           </div>
@@ -558,11 +560,11 @@ function OverviewSection({ currency }: { currency: Currency }) {
                 <div key={i} className="group relative flex h-full flex-1 flex-col justify-end items-center">
                   <div 
                     className={`w-full rounded-t-md transition-all duration-300 group-hover:bg-[#d86f45] ${
-                      i >= 11 ? "bg-[#d86f45]" : "bg-[#d8e0d4] dark:bg-[#273831]"
+                      i >= 11 ? "bg-[#d86f45]" : "bg-[#d8e0d4] dark:bg-[#27272a]"
                     }`} 
                     style={{ height: `${h}%` }} 
                   />
-                  <span className="absolute -top-7 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-[#26332f] dark:bg-[#0c110f] px-2 py-1 text-[10px] font-bold text-white shadow-lg group-hover:block z-10">
+                  <span className="absolute -top-7 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-[#26332f] dark:bg-[#000000] px-2 py-1 text-[10px] font-bold text-white shadow-lg group-hover:block z-10">
                     {formatCurrency(d.revenue, currency)}
                   </span>
                 </div>
@@ -572,9 +574,9 @@ function OverviewSection({ currency }: { currency: Currency }) {
         </section>
 
         {/* Top Selling Guides */}
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-4 sm:p-6 shadow-sm">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Top Selling Ebooks</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Top Selling Ebooks</p>
             <Link to="/admin/products" className="text-xs font-bold text-[#d86f45] hover:underline">Manage</Link>
           </div>
 
@@ -583,8 +585,8 @@ function OverviewSection({ currency }: { currency: Currency }) {
               const prod = products.find((p) => p.id === tp.productId);
               return (
                 <div key={tp.productId} className="flex min-w-0 items-center gap-2.5 sm:gap-3 p-2 rounded-xl hover:bg-white/80 dark:hover:bg-white/5 transition overflow-hidden">
-                  <span className="text-xs font-bold text-[#a99d91] dark:text-[#6a7d74] w-4 shrink-0">0{i + 1}</span>
-                  <div className="h-10 w-8 shrink-0 overflow-hidden rounded-md bg-[#e2dfd8] dark:bg-[#25322d] shadow-sm">
+                  <span className="text-xs font-bold text-[#a99d91] dark:text-[#71717a] w-4 shrink-0">0{i + 1}</span>
+                  <div className="h-10 w-8 shrink-0 overflow-hidden rounded-md bg-[#e2dfd8] dark:bg-[#18181b] shadow-sm">
                     {prod?.imageUrl ? (
                       <img src={prod.imageUrl} alt={tp.title} className="h-full w-full object-cover" />
                     ) : (
@@ -592,28 +594,28 @@ function OverviewSection({ currency }: { currency: Currency }) {
                     )}
                   </div>
                   <div className="min-w-0 flex-1 overflow-hidden">
-                    <p className="truncate text-xs sm:text-sm font-semibold text-[#26332f] dark:text-[#edf2ee]" title={tp.title}>{tp.title}</p>
-                    <p className="truncate text-[10px] text-[#8b8175] dark:text-[#8ea297] mt-0.5">{tp.sales} sales completed</p>
+                    <p className="truncate text-xs sm:text-sm font-semibold text-[#26332f] dark:text-[#fafafa]" title={tp.title}>{tp.title}</p>
+                    <p className="truncate text-[10px] text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">{tp.sales} sales completed</p>
                   </div>
-                  <span className="text-xs sm:text-sm font-bold text-[#26332f] dark:text-[#edf2ee] shrink-0 whitespace-nowrap pl-1 text-right">
+                  <span className="text-xs sm:text-sm font-bold text-[#26332f] dark:text-[#fafafa] shrink-0 whitespace-nowrap pl-1 text-right">
                     {formatCurrency(tp.revenue, currency)}
                   </span>
                 </div>
               );
             })}
             {analytics.topProducts.length === 0 && (
-              <p className="text-xs text-[#8b8175] dark:text-[#8ea297] py-6 text-center">No sales yet recorded.</p>
+              <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] py-6 text-center">No sales yet recorded.</p>
             )}
           </div>
         </section>
       </div>
 
       {/* Recent Orders Section */}
-      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] shadow-sm">
-        <div className="flex items-center justify-between border-b border-[#e2dfd8] dark:border-[#24302c] p-4 sm:px-6">
+      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#e2dfd8] dark:border-[#27272a] p-4 sm:px-6">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Real-time activity</p>
-            <h3 className="mt-0.5 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">Recent customer orders</h3>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Real-time activity</p>
+            <h3 className="mt-0.5 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Recent customer orders</h3>
           </div>
           <Link to="/admin/orders" className="text-xs font-bold uppercase tracking-[0.1em] text-[#d86f45] hover:underline">
             View all ({orders.length})
@@ -621,40 +623,40 @@ function OverviewSection({ currency }: { currency: Currency }) {
         </div>
 
         {/* Mobile View: Order Cards */}
-        <div className="divide-y divide-[#eae7e0] dark:divide-[#24302c] md:hidden">
+        <div className="divide-y divide-[#eae7e0] dark:divide-[#27272a] md:hidden">
           {orders.map((order) => (
             <div key={order.id} className="p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-[#26332f] dark:text-[#edf2ee]">{order.id}</span>
+                <span className="font-mono text-xs font-bold text-[#26332f] dark:text-[#fafafa]">{order.id}</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                  order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#192f21] text-[#4c7b55] dark:text-[#74b480]" : 
-                  order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#331c1c] text-[#b91c1c] dark:text-[#ea7171]" : 
-                  "bg-[#faedc9] dark:bg-[#332a13] text-[#9d7922] dark:text-[#e4be63]"
+                  order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#0f2418] text-[#4c7b55] dark:text-[#4ade80]" : 
+                  order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#2d1212] text-[#b91c1c] dark:text-[#f87171]" : 
+                  "bg-[#faedc9] dark:bg-[#2c220c] text-[#9d7922] dark:text-[#fbbf24]"
                 }`}>
                   {order.status}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <div>
-                  <p className="font-semibold text-[#26332f] dark:text-[#edf2ee]">{order.customerName}</p>
-                  <p className="text-[10px] text-[#8b8175] dark:text-[#8ea297]">{order.items.map((i) => i.title).join(", ")}</p>
+                  <p className="font-semibold text-[#26332f] dark:text-[#fafafa]">{order.customerName}</p>
+                  <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{order.items.map((i) => i.title).join(", ")}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-[#26332f] dark:text-[#edf2ee]">{formatCurrency(order.total, currency)}</p>
-                  <p className="text-[10px] text-[#8b8175] dark:text-[#8ea297]">{relativeDate(order.createdAt)}</p>
+                  <p className="font-bold text-[#26332f] dark:text-[#fafafa]">{formatCurrency(order.total, currency)}</p>
+                  <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{relativeDate(order.createdAt)}</p>
                 </div>
               </div>
             </div>
           ))}
           {orders.length === 0 && (
-            <div className="p-8 text-center text-xs text-[#8b8175] dark:text-[#8ea297]">No customer orders placed yet.</div>
+            <div className="p-8 text-center text-xs text-[#8b8175] dark:text-[#a1a1aa]">No customer orders placed yet.</div>
           )}
         </div>
 
         {/* Desktop View: Clean Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-[#f5f3ee] dark:bg-[#121816] text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175] dark:text-[#8ea297]">
+            <thead className="bg-[#f5f3ee] dark:bg-[#09090b] text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175] dark:text-[#a1a1aa]">
               <tr>
                 <th className="px-6 py-3">Order</th>
                 <th className="px-6 py-3">Customer</th>
@@ -664,28 +666,28 @@ function OverviewSection({ currency }: { currency: Currency }) {
                 <th className="px-6 py-3">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#eae7e0] dark:divide-[#24302c]">
+            <tbody className="divide-y divide-[#eae7e0] dark:divide-[#27272a]">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-white/60 dark:hover:bg-white/5 transition">
-                  <td className="px-6 py-4 font-mono font-semibold text-xs text-[#26332f] dark:text-[#edf2ee]">{order.id}</td>
+                  <td className="px-6 py-4 font-mono font-semibold text-xs text-[#26332f] dark:text-[#fafafa]">{order.id}</td>
                   <td className="px-6 py-4">
-                    <p className="font-semibold text-[#26332f] dark:text-[#edf2ee]">{order.customerName}</p>
-                    <p className="text-[10px] text-[#8b8175] dark:text-[#8ea297]">{order.customerEmail}</p>
+                    <p className="font-semibold text-[#26332f] dark:text-[#fafafa]">{order.customerName}</p>
+                    <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{order.customerEmail}</p>
                   </td>
-                  <td className="max-w-[200px] truncate px-6 py-4 text-[#736b61] dark:text-[#9bb0a5]">
+                  <td className="max-w-[200px] truncate px-6 py-4 text-[#736b61] dark:text-[#a1a1aa]">
                     {order.items.map((i) => i.title).join(", ")}
                   </td>
-                  <td className="px-6 py-4 font-bold text-[#26332f] dark:text-[#edf2ee]">{formatCurrency(order.total, currency)}</td>
+                  <td className="px-6 py-4 font-bold text-[#26332f] dark:text-[#fafafa]">{formatCurrency(order.total, currency)}</td>
                   <td className="px-6 py-4">
                     <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                      order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#192f21] text-[#4c7b55] dark:text-[#74b480]" : 
-                      order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#331c1c] text-[#b91c1c] dark:text-[#ea7171]" : 
-                      "bg-[#faedc9] dark:bg-[#332a13] text-[#9d7922] dark:text-[#e4be63]"
+                      order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#0f2418] text-[#4c7b55] dark:text-[#4ade80]" : 
+                      order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#2d1212] text-[#b91c1c] dark:text-[#f87171]" : 
+                      "bg-[#faedc9] dark:bg-[#2c220c] text-[#9d7922] dark:text-[#fbbf24]"
                     }`}>
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-[#8b8175] dark:text-[#8ea297]">{relativeDate(order.createdAt)}</td>
+                  <td className="px-6 py-4 text-xs text-[#8b8175] dark:text-[#a1a1aa]">{relativeDate(order.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -737,13 +739,13 @@ function OrdersSection({ currency }: { currency: Currency }) {
     <div className="space-y-4 sm:space-y-5">
       {/* Search & Status Filter */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="flex flex-1 items-center gap-2.5 rounded-full border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#18211e] px-4 py-2.5 text-sm shadow-sm focus-within:border-[#d86f45]">
-          <Search size={16} className="text-[#8b8175] dark:text-[#8ea297]" />
+        <label className="flex flex-1 items-center gap-2.5 rounded-full border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-4 py-2.5 text-sm shadow-sm focus-within:border-[#d86f45]">
+          <Search size={16} className="text-[#8b8175] dark:text-[#a1a1aa]" />
           <input 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Search by customer, email, or order ID..." 
-            className="w-full bg-transparent text-xs sm:text-sm text-[#26332f] dark:text-[#edf2ee] outline-none placeholder:text-[#9d9387] dark:placeholder:text-[#5f746b]" 
+            className="w-full bg-transparent text-xs sm:text-sm text-[#26332f] dark:text-[#fafafa] outline-none placeholder:text-[#9d9387] dark:placeholder:text-[#71717a]" 
           />
         </label>
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
@@ -754,7 +756,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
               className={`rounded-full px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition ${
                 statusFilter === s 
                   ? "bg-[#26332f] dark:bg-[#e58a61] text-white shadow-sm" 
-                  : "bg-white dark:bg-[#18211e] border border-[#d8d0c6] dark:border-[#2d3d37] text-[#736b61] dark:text-[#9bb0a5] hover:bg-[#eee7dc] dark:hover:bg-[#25322d]"
+                  : "bg-white dark:bg-[#121215] border border-[#d8d0c6] dark:border-[#27272a] text-[#736b61] dark:text-[#a1a1aa] hover:bg-[#eee7dc] dark:hover:bg-[#18181b]"
               }`}
             >
               {s}
@@ -764,23 +766,23 @@ function OrdersSection({ currency }: { currency: Currency }) {
       </div>
 
       {/* Orders List Container */}
-      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] shadow-sm">
         {/* Mobile View: Order Cards */}
-        <div className="divide-y divide-[#eae7e0] dark:divide-[#24302c] md:hidden">
+        <div className="divide-y divide-[#eae7e0] dark:divide-[#27272a] md:hidden">
           {filtered.map((order) => (
             <div key={order.id} className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-mono text-xs font-bold text-[#26332f] dark:text-[#edf2ee]">{order.id}</span>
-                  <p className="text-[10px] text-[#8b8175] dark:text-[#8ea297]">{relativeDate(order.createdAt)}</p>
+                  <span className="font-mono text-xs font-bold text-[#26332f] dark:text-[#fafafa]">{order.id}</span>
+                  <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{relativeDate(order.createdAt)}</p>
                 </div>
                 <select
                   value={order.status}
                   onChange={(e) => updateStatus(order.id, e.target.value)}
                   className={`rounded-full border-0 px-3 py-1 text-[11px] font-bold outline-none ${
-                    order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#192f21] text-[#4c7b55] dark:text-[#74b480]" : 
-                    order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#331c1c] text-[#b91c1c] dark:text-[#ea7171]" : 
-                    "bg-[#faedc9] dark:bg-[#332a13] text-[#9d7922] dark:text-[#e4be63]"
+                    order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#0f2418] text-[#4c7b55] dark:text-[#4ade80]" : 
+                    order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#2d1212] text-[#b91c1c] dark:text-[#f87171]" : 
+                    "bg-[#faedc9] dark:bg-[#2c220c] text-[#9d7922] dark:text-[#fbbf24]"
                   }`}
                 >
                   <option value="Paid">Paid</option>
@@ -789,27 +791,27 @@ function OrdersSection({ currency }: { currency: Currency }) {
                 </select>
               </div>
 
-              <div className="rounded-xl border border-[#eae7e0] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-3 space-y-1.5 text-xs">
+              <div className="rounded-xl border border-[#eae7e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-3 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between font-semibold">
-                  <span className="text-[#26332f] dark:text-[#edf2ee]">{order.customerName}</span>
-                  <span className="font-bold text-[#26332f] dark:text-[#edf2ee]">{formatCurrency(order.total, currency)}</span>
+                  <span className="text-[#26332f] dark:text-[#fafafa]">{order.customerName}</span>
+                  <span className="font-bold text-[#26332f] dark:text-[#fafafa]">{formatCurrency(order.total, currency)}</span>
                 </div>
-                <p className="text-[11px] text-[#8b8175] dark:text-[#8ea297]">{order.customerEmail}</p>
-                <div className="pt-1.5 border-t border-[#f5f3ee] dark:border-[#24302c] text-[11px] text-[#736b61] dark:text-[#9bb0a5]">
+                <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa]">{order.customerEmail}</p>
+                <div className="pt-1.5 border-t border-[#f5f3ee] dark:border-[#27272a] text-[11px] text-[#736b61] dark:text-[#a1a1aa]">
                   📚 {order.items.map((i) => i.title).join(", ")}
                 </div>
               </div>
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="p-12 text-center text-xs text-[#8b8175] dark:text-[#8ea297]">No matching orders found.</div>
+            <div className="p-12 text-center text-xs text-[#8b8175] dark:text-[#a1a1aa]">No matching orders found.</div>
           )}
         </div>
 
         {/* Desktop View: Full Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-[#f5f3ee] dark:bg-[#121816] text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175] dark:text-[#8ea297]">
+            <thead className="bg-[#f5f3ee] dark:bg-[#09090b] text-[10px] font-bold uppercase tracking-[0.12em] text-[#8b8175] dark:text-[#a1a1aa]">
               <tr>
                 <th className="px-6 py-3.5">Order</th>
                 <th className="px-6 py-3.5">Customer</th>
@@ -819,26 +821,26 @@ function OrdersSection({ currency }: { currency: Currency }) {
                 <th className="px-6 py-3.5">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#eae7e0] dark:divide-[#24302c]">
+            <tbody className="divide-y divide-[#eae7e0] dark:divide-[#27272a]">
               {filtered.map((order) => (
                 <tr key={order.id} className="hover:bg-white/60 dark:hover:bg-white/5 transition">
-                  <td className="px-6 py-4 font-mono font-semibold text-xs text-[#26332f] dark:text-[#edf2ee]">{order.id}</td>
+                  <td className="px-6 py-4 font-mono font-semibold text-xs text-[#26332f] dark:text-[#fafafa]">{order.id}</td>
                   <td className="px-6 py-4">
-                    <p className="font-semibold text-[#26332f] dark:text-[#edf2ee]">{order.customerName}</p>
-                    <p className="text-[10px] text-[#8b8175] dark:text-[#8ea297]">{order.customerEmail}</p>
+                    <p className="font-semibold text-[#26332f] dark:text-[#fafafa]">{order.customerName}</p>
+                    <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{order.customerEmail}</p>
                   </td>
-                  <td className="max-w-[220px] truncate px-6 py-4 text-[#736b61] dark:text-[#9bb0a5]">
+                  <td className="max-w-[220px] truncate px-6 py-4 text-[#736b61] dark:text-[#a1a1aa]">
                     {order.items.map((i) => i.title).join(", ")}
                   </td>
-                  <td className="px-6 py-4 font-bold text-[#26332f] dark:text-[#edf2ee]">{formatCurrency(order.total, currency)}</td>
+                  <td className="px-6 py-4 font-bold text-[#26332f] dark:text-[#fafafa]">{formatCurrency(order.total, currency)}</td>
                   <td className="px-6 py-4">
                     <select
                       value={order.status}
                       onChange={(e) => updateStatus(order.id, e.target.value)}
                       className={`rounded-full border-0 px-2.5 py-1 text-[11px] font-bold outline-none cursor-pointer ${
-                        order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#192f21] text-[#4c7b55] dark:text-[#74b480]" : 
-                        order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#331c1c] text-[#b91c1c] dark:text-[#ea7171]" : 
-                        "bg-[#faedc9] dark:bg-[#332a13] text-[#9d7922] dark:text-[#e4be63]"
+                        order.status === "Paid" ? "bg-[#dcebdd] dark:bg-[#0f2418] text-[#4c7b55] dark:text-[#4ade80]" : 
+                        order.status === "Refunded" ? "bg-[#fde8e8] dark:bg-[#2d1212] text-[#b91c1c] dark:text-[#f87171]" : 
+                        "bg-[#faedc9] dark:bg-[#2c220c] text-[#9d7922] dark:text-[#fbbf24]"
                       }`}
                     >
                       <option value="Paid">Paid</option>
@@ -846,12 +848,12 @@ function OrdersSection({ currency }: { currency: Currency }) {
                       <option value="Refunded">Refunded</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 text-xs text-[#8b8175] dark:text-[#8ea297]">{relativeDate(order.createdAt)}</td>
+                  <td className="px-6 py-4 text-xs text-[#8b8175] dark:text-[#a1a1aa]">{relativeDate(order.createdAt)}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-14 text-center text-sm text-[#8b8175] dark:text-[#8ea297]">
+                  <td colSpan={6} className="px-6 py-14 text-center text-sm text-[#8b8175] dark:text-[#a1a1aa]">
                     No orders match your search criteria.
                   </td>
                 </tr>
@@ -910,7 +912,7 @@ function ProductsSection({ currency }: { currency: Currency }) {
     <div className="space-y-4 sm:space-y-5">
       {/* Header bar */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-[#8b8175] dark:text-[#8ea297]">
+        <p className="text-xs font-semibold text-[#8b8175] dark:text-[#a1a1aa]">
           {products.length} product{products.length !== 1 ? "s" : ""} in catalog
         </p>
         <button 
@@ -922,13 +924,13 @@ function ProductsSection({ currency }: { currency: Currency }) {
       </div>
 
       {/* Products list */}
-      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] shadow-sm">
-        <div className="divide-y divide-[#eae7e0] dark:divide-[#24302c]">
+      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] shadow-sm">
+        <div className="divide-y divide-[#eae7e0] dark:divide-[#27272a]">
           {products.map((product) => (
             <div key={product.id} className="flex flex-col sm:flex-row sm:items-center gap-3.5 p-4 sm:p-5 hover:bg-white/60 dark:hover:bg-white/5 transition">
               <div className="flex items-center gap-3.5 min-w-0 flex-1">
                 {/* Book Thumbnail */}
-                <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-[#e2dfd8] dark:bg-[#25322d] shadow-sm border border-[#d8d0c6] dark:border-[#2d3d37]">
+                <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-[#e2dfd8] dark:bg-[#18181b] shadow-sm border border-[#d8d0c6] dark:border-[#27272a]">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.title} className="h-full w-full object-cover" />
                   ) : (
@@ -941,36 +943,36 @@ function ProductsSection({ currency }: { currency: Currency }) {
                 {/* Info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm sm:text-base text-[#26332f] dark:text-[#edf2ee] truncate">{product.title}</p>
+                    <p className="font-semibold text-sm sm:text-base text-[#26332f] dark:text-[#fafafa] truncate">{product.title}</p>
                     {product.bestseller && (
-                      <span className="rounded-full bg-[#fdf8ee] dark:bg-[#332a13] border border-[#faedd3] dark:border-[#4a3b1a] px-2 py-0.5 text-[9px] font-bold text-[#ad842a] dark:text-[#e4be63]">
+                      <span className="rounded-full bg-[#fdf8ee] dark:bg-[#2c220c] border border-[#faedd3] dark:border-[#423412] px-2 py-0.5 text-[9px] font-bold text-[#ad842a] dark:text-[#fbbf24]">
                         Bestseller
                       </span>
                     )}
                     {product.isNew && (
-                      <span className="rounded-full bg-[#eef1eb] dark:bg-[#192f21] px-2 py-0.5 text-[9px] font-bold text-[#5e8c67] dark:text-[#74b480]">
+                      <span className="rounded-full bg-[#eef1eb] dark:bg-[#0f2418] px-2 py-0.5 text-[9px] font-bold text-[#5e8c67] dark:text-[#4ade80]">
                         New
                       </span>
                     )}
                   </div>
                   
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#8b8175] dark:text-[#8ea297]">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#8b8175] dark:text-[#a1a1aa]">
                     <span>{product.category}</span>
                     <span>·</span>
                     <span>{product.pages} pages</span>
                     <span>·</span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#ad842a] dark:text-[#e4be63]">
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#ad842a] dark:text-[#fbbf24]">
                       <Star size={11} fill="currentColor" className="text-[#e4a83d]" /> {product.rating} ({product.reviews})
                     </span>
                   </div>
 
                   <div className="mt-1.5 flex items-center gap-2">
                     {product.pdfFileUrl ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1eb] dark:bg-[#192f21] px-2.5 py-0.5 text-[10px] font-bold text-[#5e8c67] dark:text-[#74b480]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1eb] dark:bg-[#0f2418] px-2.5 py-0.5 text-[10px] font-bold text-[#5e8c67] dark:text-[#4ade80]">
                         <FileCheck size={11} /> PDF Ebook Attached
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] dark:bg-[#331c1c] px-2.5 py-0.5 text-[10px] font-bold text-[#b91c1c] dark:text-[#ea7171]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] dark:bg-[#2d1212] px-2.5 py-0.5 text-[10px] font-bold text-[#b91c1c] dark:text-[#f87171]">
                         <AlertCircle size={11} /> No PDF Attached
                       </span>
                     )}
@@ -979,21 +981,21 @@ function ProductsSection({ currency }: { currency: Currency }) {
               </div>
 
               {/* Price & Action Buttons */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t border-[#f0eee8] dark:border-[#24302c] sm:border-0">
-                <span className="text-sm sm:text-base font-bold text-[#26332f] dark:text-[#edf2ee]">
+              <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t border-[#f0eee8] dark:border-[#27272a] sm:border-0">
+                <span className="text-sm sm:text-base font-bold text-[#26332f] dark:text-[#fafafa]">
                   {formatCurrency(product.price, currency)}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button 
                     onClick={() => setEditProduct(product)} 
-                    className="flex items-center gap-1 rounded-lg border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-3 py-1.5 text-xs font-semibold text-[#26332f] dark:text-[#edf2ee] transition hover:bg-[#eee7dc] dark:hover:bg-[#25322d]"
+                    className="flex items-center gap-1 rounded-lg border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-3 py-1.5 text-xs font-semibold text-[#26332f] dark:text-[#fafafa] transition hover:bg-[#eee7dc] dark:hover:bg-[#222227]"
                     aria-label={`Edit ${product.title}`}
                   >
                     <Pencil size={13} /> Edit
                   </button>
                   <button 
                     onClick={() => deleteProduct(product.id)} 
-                    className="flex items-center justify-center h-8 w-8 rounded-lg border border-[#fca5a5] dark:border-[#5c2424] bg-[#fff5f5] dark:bg-[#331c1c] text-[#b91c1c] dark:text-[#ea7171] transition hover:bg-[#fee2e2] dark:hover:bg-[#452222]"
+                    className="flex items-center justify-center h-8 w-8 rounded-lg border border-[#fca5a5] dark:border-[#4a1e1e] bg-[#fff5f5] dark:bg-[#2d1212] text-[#b91c1c] dark:text-[#f87171] transition hover:bg-[#fee2e2] dark:hover:bg-[#3d1818]"
                     aria-label={`Delete ${product.title}`}
                   >
                     <Trash2 size={14} />
@@ -1003,7 +1005,7 @@ function ProductsSection({ currency }: { currency: Currency }) {
             </div>
           ))}
           {products.length === 0 && (
-            <div className="px-6 py-16 text-center text-sm text-[#8b8175] dark:text-[#8ea297]">
+            <div className="px-6 py-16 text-center text-sm text-[#8b8175] dark:text-[#a1a1aa]">
               No products found in store. Click "Add new ebook" to publish your first guide!
             </div>
           )}
@@ -1278,34 +1280,34 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
   };
 
   return (
-    <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-4 sm:p-7 shadow-sm">
-      <div className="mb-6 flex items-center justify-between border-b border-[#e2dfd8] dark:border-[#24302c] pb-4">
+    <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-4 sm:p-7 shadow-sm">
+      <div className="mb-6 flex items-center justify-between border-b border-[#e2dfd8] dark:border-[#27272a] pb-4">
         <div>
-          <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">
+          <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">
             {isEdit ? "Edit ebook product" : "Create new ebook"}
           </h3>
-          <p className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-1">
+          <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-1">
             Fill in product info, pricing, cover image, and attach the real PDF ebook file.
           </p>
         </div>
         <button 
           type="button" 
           onClick={onCancel} 
-          className="text-xs font-bold text-[#8b8175] dark:text-[#8ea297] hover:text-[#d86f45] transition"
+          className="text-xs font-bold text-[#8b8175] dark:text-[#a1a1aa] hover:text-[#d86f45] transition"
         >
           Cancel
         </button>
       </div>
 
       {error && (
-        <div className="mb-5 rounded-xl bg-[#fef2f2] dark:bg-[#331c1c] p-3.5 text-sm font-semibold text-[#b91c1c] dark:text-[#ea7171] border border-[#fecaca] dark:border-[#5c2424]">
+        <div className="mb-5 rounded-xl bg-[#fef2f2] dark:bg-[#2d1212] p-3.5 text-sm font-semibold text-[#b91c1c] dark:text-[#f87171] border border-[#fecaca] dark:border-[#4a1e1e]">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Card 1: Core Details */}
-        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 sm:p-6 shadow-sm space-y-4">
+        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 sm:p-6 shadow-sm space-y-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45]">1. Ebook Details</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input 
@@ -1329,14 +1331,14 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
               placeholder="A complete operating system for deep work" 
             />
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">Category</label>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">Category</label>
               <select 
                 value={category} 
                 onChange={(e) => { 
                   setCategory(e.target.value); 
                   setCategorySlug(categories.find((c) => c.name === e.target.value)?.slug ?? ""); 
                 }} 
-                className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]"
+                className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-4 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]"
               >
                 {categories.map((c) => <option key={c.slug} value={c.name}>{c.name}</option>)}
               </select>
@@ -1361,35 +1363,35 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
         </div>
 
         {/* Card 2: PDF Ebook File Attachment (Automatic vs Manual) */}
-        <div className="rounded-xl border-2 border-[#e2dfd8] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 sm:p-6 shadow-sm">
+        <div className="rounded-xl border-2 border-[#e2dfd8] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 sm:p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <div>
               <div className="flex items-center gap-2">
                 <FileText className="text-[#d86f45]" size={18} />
-                <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#26332f] dark:text-[#edf2ee]">
+                <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#26332f] dark:text-[#fafafa]">
                   2. PDF Ebook Attachment
                 </label>
               </div>
-              <p className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-1">
+              <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-1">
                 Attach your PDF ebook file. Customers will receive this file immediately upon verified checkout.
               </p>
             </div>
             {pdfFileUrl && (
-              <span className="inline-flex items-center gap-1 self-start sm:self-auto rounded-full bg-[#eef1eb] dark:bg-[#192f21] px-3 py-1 text-[11px] font-bold text-[#5e8c67] dark:text-[#74b480]">
+              <span className="inline-flex items-center gap-1 self-start sm:self-auto rounded-full bg-[#eef1eb] dark:bg-[#0f2418] px-3 py-1 text-[11px] font-bold text-[#5e8c67] dark:text-[#4ade80]">
                 <FileCheck size={13} /> Ebook Ready
               </span>
             )}
           </div>
 
           {/* Mode Switcher */}
-          <div className="mb-4 flex rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-[#f8f6f0] dark:bg-[#1b2521] p-1 gap-1">
+          <div className="mb-4 flex rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-[#f8f6f0] dark:bg-[#121215] p-1 gap-1">
             <button
               type="button"
               onClick={() => setPdfSourceMode("automatic")}
               className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition ${
                 pdfSourceMode === "automatic"
                   ? "bg-[#26332f] dark:bg-[#e58a61] text-[#fffaf2] shadow-sm"
-                  : "text-[#736b61] dark:text-[#9bb0a5] hover:text-[#26332f] dark:hover:text-[#edf2ee]"
+                  : "text-[#736b61] dark:text-[#a1a1aa] hover:text-[#26332f] dark:hover:text-[#fafafa]"
               }`}
             >
               ⚡ Automatic (Upload PDF File)
@@ -1400,7 +1402,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
               className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition ${
                 pdfSourceMode === "manual"
                   ? "bg-[#26332f] dark:bg-[#e58a61] text-[#fffaf2] shadow-sm"
-                  : "text-[#736b61] dark:text-[#9bb0a5] hover:text-[#26332f] dark:hover:text-[#edf2ee]"
+                  : "text-[#736b61] dark:text-[#a1a1aa] hover:text-[#26332f] dark:hover:text-[#fafafa]"
               }`}
             >
               🔗 Manual (Google Drive Link)
@@ -1408,16 +1410,16 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
           </div>
 
           {pdfFileUrl ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#b8c7b2] dark:border-[#24302c] bg-[#f8f6f0] dark:bg-[#19231f] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[#b8c7b2] dark:border-[#27272a] bg-[#f8f6f0] dark:bg-[#121215] p-4">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#d86f45] text-white shadow-sm">
                   <FileText size={22} />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate text-[#26332f] dark:text-[#edf2ee]">
+                  <p className="font-semibold text-sm truncate text-[#26332f] dark:text-[#fafafa]">
                     {pdfFileName || "Ebook Guide.pdf"}
                   </p>
-                  <p className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-0.5 truncate max-w-md">
+                  <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-0.5 truncate max-w-md">
                     {pdfFileSize ? `${(pdfFileSize / (1024 * 1024)).toFixed(2)} MB · ` : ""}
                     {pdfFileUrl.includes("drive.google.com") ? "Google Drive Cloud Stream" : "Store Cloud Storage (Instant buyer delivery)"}
                   </p>
@@ -1428,14 +1430,14 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   href={pdfFileUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-3.5 py-1.5 text-xs font-bold text-[#26332f] dark:text-[#edf2ee] transition hover:bg-[#eee7dc] dark:hover:bg-[#25322d]"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-3.5 py-1.5 text-xs font-bold text-[#26332f] dark:text-[#fafafa] transition hover:bg-[#eee7dc] dark:hover:bg-[#222227]"
                 >
                   <Eye size={13} /> Test / Open PDF
                 </a>
                 <button
                   type="button"
                   onClick={() => { setPdfFileUrl(""); setPdfFileName(""); setPdfFileSize(undefined); }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] dark:border-[#5c2424] bg-[#fff5f5] dark:bg-[#331c1c] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] dark:text-[#ea7171] transition hover:bg-[#fee2e2] dark:hover:bg-[#452222]"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] dark:border-[#4a1e1e] bg-[#fff5f5] dark:bg-[#2d1212] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] dark:text-[#f87171] transition hover:bg-[#fee2e2] dark:hover:bg-[#3d1818]"
                 >
                   <Trash2 size={13} /> Remove
                 </button>
@@ -1453,33 +1455,33 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
               />
               <label 
                 htmlFor="product-pdf-file-upload"
-                className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] dark:border-[#2d3d37] bg-[#fcfbf9] dark:bg-[#161f1c] p-6 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2] dark:hover:bg-[#1c2723]"
+                className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] dark:border-[#27272a] bg-[#fcfbf9] dark:bg-[#121215] p-6 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2] dark:hover:bg-[#18181b]"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eee7dc] dark:bg-[#25322d] text-[#d86f45] mb-2">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eee7dc] dark:bg-[#18181b] text-[#d86f45] mb-2">
                   {uploadingPdf ? <Loader2 size={22} className="animate-spin" /> : <UploadCloud size={22} />}
                 </div>
-                <span className="text-sm font-semibold text-[#26332f] dark:text-[#edf2ee]">
+                <span className="text-sm font-semibold text-[#26332f] dark:text-[#fafafa]">
                   {uploadingPdf 
                     ? `Uploading PDF ebook... ${uploadProgress !== null ? `${uploadProgress}%` : ""}` 
                     : "Click to select PDF file from your device"}
                 </span>
                 {uploadingPdf && uploadProgress !== null && (
-                  <div className="my-2.5 w-full max-w-xs overflow-hidden rounded-full bg-[#e5ddd2] dark:bg-[#25322d] h-2">
+                  <div className="my-2.5 w-full max-w-xs overflow-hidden rounded-full bg-[#e5ddd2] dark:bg-[#27272a] h-2">
                     <div 
                       className="h-full bg-[#d86f45] transition-all duration-200"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
                 )}
-                <span className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-1">
+                <span className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-1">
                   Automatic chunked upload supports PDF ebooks up to 100MB
                 </span>
               </label>
             </div>
           ) : (
-            <div className="flex flex-col gap-3 rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-[#fcfbf9] dark:bg-[#161f1c] p-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-[#fcfbf9] dark:bg-[#121215] p-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[#736b61] dark:text-[#8ea297] mb-1">
+                <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[#736b61] dark:text-[#a1a1aa] mb-1">
                   Google Drive Sharing Link
                 </label>
                 <input
@@ -1497,10 +1499,10 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                     if (val && !pdfFileName) setPdfFileName(`${title || "Guide"}.pdf`);
                   }}
                   placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view?usp=sharing"
-                  className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45] placeholder:text-[#9d9387] dark:placeholder:text-[#5f746b]"
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-4 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45] placeholder:text-[#9d9387] dark:placeholder:text-[#71717a]"
                 />
               </div>
-              <p className="text-[11px] text-[#8b8175] dark:text-[#8ea297]">
+              <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa]">
                 💡 Tip: Make sure your Google Drive file's general access is set to <strong>"Anyone with the link can view"</strong> so customers can download it directly.
               </p>
             </div>
@@ -1508,20 +1510,20 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
         </div>
 
         {/* Card 3: Rating & Social Proof */}
-        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 sm:p-6 shadow-sm">
+        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 sm:p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45]">3. Reader Rating & Reviews</p>
-              <p className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-1">Showcase real reader satisfaction metrics on storefront cards.</p>
+              <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-1">Showcase real reader satisfaction metrics on storefront cards.</p>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fbfaf7] dark:bg-[#19221f] border border-[#e2dfd8] dark:border-[#24302c] px-3 py-1 text-xs font-bold text-[#26332f] dark:text-[#edf2ee] self-start sm:self-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fbfaf7] dark:bg-[#121215] border border-[#e2dfd8] dark:border-[#27272a] px-3 py-1 text-xs font-bold text-[#26332f] dark:text-[#fafafa] self-start sm:self-auto">
               <Star size={13} fill="currentColor" className="text-[#e4a83d]" /> {rating || "4.9"} ({reviews || "0"} reviews)
             </span>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">
                 Star Rating (1.0 - 5.0)
               </label>
               <div className="flex items-center gap-3">
@@ -1532,7 +1534,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                   step="0.1"
                   value={rating}
                   onChange={(e) => setRating(e.target.value)}
-                  className="h-12 w-24 rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-3 text-sm font-semibold text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]"
+                  className="h-12 w-24 rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-3 text-sm font-semibold text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]"
                   placeholder="4.9"
                 />
                 <div className="flex items-center gap-1 text-[#e4a83d]">
@@ -1548,7 +1550,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
                       >
                         <Star
                           size={18}
-                          className={r >= starIndex ? "fill-[#e4a83d] text-[#e4a83d]" : "text-[#d8d0c6] dark:text-[#384841]"}
+                          className={r >= starIndex ? "fill-[#e4a83d] text-[#e4a83d]" : "text-[#d8d0c6] dark:text-[#3f3f46]"}
                         />
                       </button>
                     );
@@ -1569,7 +1571,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
         </div>
 
         {/* Card 4: Pricing, Format & Specifications */}
-        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 sm:p-6 shadow-sm space-y-4">
+        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 sm:p-6 shadow-sm space-y-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45]">4. Pricing & Specifications</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Input label="Price (NGN)" type="number" value={price} onChange={setPrice} required placeholder="5000" />
@@ -1579,50 +1581,50 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">
               Key Benefits & Takeaways (One per line)
             </label>
             <textarea
               value={benefits}
               onChange={(e) => setBenefits(e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 py-3 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]"
+              className="w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-4 py-3 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]"
               placeholder="Step-by-step frameworks&#10;Actionable templates&#10;Lifetime access"
             />
           </div>
         </div>
 
         {/* Card 5: Product Cover Photo */}
-        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 sm:p-6 shadow-sm">
+        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45]">5. Product Cover Photo</p>
-              <p className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-1">Upload a cover image from your device or paste a photo link.</p>
+              <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-1">Upload a cover image from your device or paste a photo link.</p>
             </div>
             {imageUrl && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1eb] dark:bg-[#192f21] px-3 py-1 text-[11px] font-bold text-[#5e8c67] dark:text-[#74b480]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1eb] dark:bg-[#0f2418] px-3 py-1 text-[11px] font-bold text-[#5e8c67] dark:text-[#4ade80]">
                 <FileCheck size={13} /> Cover Selected
               </span>
             )}
           </div>
 
           {imageUrl ? (
-            <div className="flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-[#b8c7b2] dark:border-[#24302c] bg-[#f8f6f0] dark:bg-[#19231f] p-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-[#b8c7b2] dark:border-[#27272a] bg-[#f8f6f0] dark:bg-[#121215] p-4">
               <img
                 src={imageUrl}
                 alt="Cover Preview"
-                className="h-28 w-20 object-cover rounded-lg shadow-sm border border-[#d8d0c6] dark:border-[#2d3d37]"
+                className="h-28 w-20 object-cover rounded-lg shadow-sm border border-[#d8d0c6] dark:border-[#27272a]"
               />
               <div className="flex-1 min-w-0 text-center sm:text-left">
-                <p className="text-sm font-bold text-[#26332f] dark:text-[#edf2ee]">Cover Image Attached</p>
-                <p className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-0.5 truncate max-w-md">
+                <p className="text-sm font-bold text-[#26332f] dark:text-[#fafafa]">Cover Image Attached</p>
+                <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-0.5 truncate max-w-md">
                   {imageUrl.startsWith("data:") ? "Image loaded from computer (ready to publish)" : imageUrl}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setImageUrl("")}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] dark:border-[#5c2424] bg-[#fff5f5] dark:bg-[#331c1c] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] dark:text-[#ea7171] transition hover:bg-[#fee2e2] dark:hover:bg-[#452222]"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#fca5a5] dark:border-[#4a1e1e] bg-[#fff5f5] dark:bg-[#2d1212] px-3.5 py-1.5 text-xs font-bold text-[#b91c1c] dark:text-[#f87171] transition hover:bg-[#fee2e2] dark:hover:bg-[#3d1818]"
               >
                 <Trash2 size={13} /> Change Image
               </button>
@@ -1639,27 +1641,27 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
               />
               <label 
                 htmlFor="product-cover-image-upload"
-                className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] dark:border-[#2d3d37] bg-[#fcfbf9] dark:bg-[#161f1c] p-5 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2] dark:hover:bg-[#1c2723]"
+                className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d8d0c6] dark:border-[#27272a] bg-[#fcfbf9] dark:bg-[#121215] p-5 text-center cursor-pointer transition hover:border-[#d86f45] hover:bg-[#fffaf2] dark:hover:bg-[#18181b]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee7dc] dark:bg-[#25322d] text-[#d86f45] mb-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee7dc] dark:bg-[#18181b] text-[#d86f45] mb-2">
                   {uploadingImage ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={20} />}
                 </div>
-                <span className="text-sm font-semibold text-[#26332f] dark:text-[#edf2ee]">
+                <span className="text-sm font-semibold text-[#26332f] dark:text-[#fafafa]">
                   {uploadingImage ? "Processing cover photo..." : "Click to select cover photo from your device"}
                 </span>
-                <span className="text-xs text-[#8b8175] dark:text-[#8ea297] mt-0.5">
+                <span className="text-xs text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">
                   Supports JPG, PNG, or WebP
                 </span>
               </label>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#8b8175] dark:text-[#8ea297] whitespace-nowrap">Or Image URL:</span>
+                <span className="text-xs text-[#8b8175] dark:text-[#a1a1aa] whitespace-nowrap">Or Image URL:</span>
                 <input
                   type="text"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="https://..."
-                  className="h-10 flex-1 rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-3 text-xs text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]"
+                  className="h-10 flex-1 rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-3 text-xs text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]"
                 />
               </div>
             </div>
@@ -1667,7 +1669,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
         </div>
 
         {/* Card 6: Badges & Display Toggles */}
-        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 sm:p-6 shadow-sm">
+        <div className="rounded-xl border border-[#e2dfd8] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 sm:p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#d86f45] mb-3">6. Storefront Badges</p>
           <div className="flex flex-wrap items-center gap-6">
             <Checkbox label="Featured on Home" checked={featured} onChange={setFeatured} />
@@ -1677,11 +1679,11 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
         </div>
 
         {/* Bottom Actions Bar */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#e2dfd8] dark:border-[#24302c]">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#e2dfd8] dark:border-[#27272a]">
           <button 
             type="button" 
             onClick={onCancel} 
-            className="rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-5 py-2.5 text-xs font-bold text-[#736b61] dark:text-[#8ea297] hover:bg-[#eee7dc] dark:hover:bg-[#25322d] transition"
+            className="rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-5 py-2.5 text-xs font-bold text-[#736b61] dark:text-[#a1a1aa] hover:bg-[#eee7dc] dark:hover:bg-[#222227] transition"
           >
             Cancel
           </button>
@@ -1733,51 +1735,51 @@ function CustomersSection({ currency }: { currency: Currency }) {
       {/* Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b8175] dark:text-[#8ea297]" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b8175] dark:text-[#a1a1aa]" />
           <input
             type="text"
             placeholder="Search customers by name, email, or country..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-11 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] pl-10 pr-4 text-xs sm:text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45] shadow-sm placeholder:text-[#9d9387] dark:placeholder:text-[#5f746b]"
+            className="h-11 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] pl-10 pr-4 text-xs sm:text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45] shadow-sm placeholder:text-[#9d9387] dark:placeholder:text-[#71717a]"
           />
         </div>
-        <p className="text-xs font-semibold text-[#8b8175] dark:text-[#8ea297]">
+        <p className="text-xs font-semibold text-[#8b8175] dark:text-[#a1a1aa]">
           Total: {filtered.length} customer{filtered.length !== 1 ? "s" : ""}
         </p>
       </div>
 
       {/* Customer List */}
-      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] shadow-sm">
-        <div className="divide-y divide-[#e2dfd8] dark:divide-[#24302c]">
+      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] shadow-sm">
+        <div className="divide-y divide-[#e2dfd8] dark:divide-[#27272a]">
           {filtered.map((c) => (
             <div key={c.id} className="flex items-center gap-3.5 p-4 sm:p-5 hover:bg-white/60 dark:hover:bg-white/5 transition">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eee7dc] dark:bg-[#25322d] text-xs font-bold text-[#d86f45] shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eee7dc] dark:bg-[#18181b] text-xs font-bold text-[#d86f45] shadow-sm">
                 {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate font-semibold text-sm text-[#26332f] dark:text-[#edf2ee]">{c.name}</p>
+                  <p className="truncate font-semibold text-sm text-[#26332f] dark:text-[#fafafa]">{c.name}</p>
                   <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                    c.status === "Active" ? "bg-[#eef1eb] dark:bg-[#192f21] text-[#5e8c67] dark:text-[#74b480]" : "bg-[#faedc9] dark:bg-[#332a13] text-[#9d7922] dark:text-[#e4be63]"
+                    c.status === "Active" ? "bg-[#eef1eb] dark:bg-[#0f2418] text-[#5e8c67] dark:text-[#4ade80]" : "bg-[#faedc9] dark:bg-[#2c220c] text-[#9d7922] dark:text-[#fbbf24]"
                   }`}>
                     {c.status}
                   </span>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-[#8b8175] dark:text-[#8ea297]">
+                <p className="mt-0.5 truncate text-xs text-[#8b8175] dark:text-[#a1a1aa]">
                   {c.email} · {c.country || "Global"} · {c.orderCount} order{c.orderCount !== 1 ? "s" : ""}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-xs sm:text-sm font-bold text-[#26332f] dark:text-[#edf2ee]">
+                <span className="text-xs sm:text-sm font-bold text-[#26332f] dark:text-[#fafafa]">
                   {formatCurrency(c.totalSpent, currency)}
                 </span>
-                <p className="text-[10px] text-[#8b8175] dark:text-[#8ea297]">Total spent</p>
+                <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">Total spent</p>
               </div>
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="px-6 py-14 text-center text-sm text-[#8b8175] dark:text-[#8ea297]">No customers found.</div>
+            <div className="px-6 py-14 text-center text-sm text-[#8b8175] dark:text-[#a1a1aa]">No customers found.</div>
           )}
         </div>
       </section>
@@ -1813,20 +1815,20 @@ function AnalyticsSection({ currency }: { currency: Currency }) {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       {/* Revenue by Country */}
-      <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-5 sm:p-7 shadow-sm">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Global Distribution</p>
-        <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">Revenue by country</h3>
+      <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Global Distribution</p>
+        <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Revenue by country</h3>
         
         <div className="mt-6 space-y-4">
           {countryEntries.map(([country, rev]) => (
             <div key={country}>
               <div className="flex items-center justify-between text-xs sm:text-sm font-medium">
-                <span className="font-semibold text-[#26332f] dark:text-[#edf2ee]">{country}</span>
-                <span className="text-[#8b8175] dark:text-[#8ea297]">
+                <span className="font-semibold text-[#26332f] dark:text-[#fafafa]">{country}</span>
+                <span className="text-[#8b8175] dark:text-[#a1a1aa]">
                   {Math.round((rev / totalCountryRev) * 100)}% · {formatCurrency(rev, currency)}
                 </span>
               </div>
-              <div className="mt-1.5 h-2 rounded-full bg-[#eae7e0] dark:bg-[#25322d] overflow-hidden">
+              <div className="mt-1.5 h-2 rounded-full bg-[#eae7e0] dark:bg-[#27272a] overflow-hidden">
                 <div 
                   className="h-full rounded-full bg-[#d86f45] transition-all duration-500" 
                   style={{ width: `${(rev / totalCountryRev) * 100}%` }} 
@@ -1835,25 +1837,25 @@ function AnalyticsSection({ currency }: { currency: Currency }) {
             </div>
           ))}
           {countryEntries.length === 0 && (
-            <p className="text-xs text-[#8b8175] dark:text-[#8ea297] py-6 text-center">No regional sales data available yet.</p>
+            <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa] py-6 text-center">No regional sales data available yet.</p>
           )}
         </div>
       </section>
 
       {/* Retention Metrics */}
       <div className="space-y-5">
-        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-5 sm:p-7 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Retention</p>
-          <h3 className="mt-1 font-serif text-xl font-bold text-[#26332f] dark:text-[#edf2ee]">Repeat Customers</h3>
-          <p className="mt-3 font-serif text-4xl font-bold text-[#26332f] dark:text-[#edf2ee]">{analytics.repeatCustomerRate}%</p>
-          <p className="mt-1.5 text-xs text-[#8b8175] dark:text-[#8ea297]">Percentage of customers who purchased 2 or more ebooks.</p>
+        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Retention</p>
+          <h3 className="mt-1 font-serif text-xl font-bold text-[#26332f] dark:text-[#fafafa]">Repeat Customers</h3>
+          <p className="mt-3 font-serif text-4xl font-bold text-[#26332f] dark:text-[#fafafa]">{analytics.repeatCustomerRate}%</p>
+          <p className="mt-1.5 text-xs text-[#8b8175] dark:text-[#a1a1aa]">Percentage of customers who purchased 2 or more ebooks.</p>
         </section>
 
-        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-5 sm:p-7 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Category Leader</p>
-          <h3 className="mt-1 font-serif text-xl font-bold text-[#26332f] dark:text-[#edf2ee]">Top Ebook Category</h3>
-          <p className="mt-3 font-serif text-3xl font-bold text-[#26332f] dark:text-[#edf2ee]">{analytics.topCategory || "General"}</p>
-          <p className="mt-1.5 text-xs text-[#8b8175] dark:text-[#8ea297]">Best performing digital category by total sales volume.</p>
+        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Category Leader</p>
+          <h3 className="mt-1 font-serif text-xl font-bold text-[#26332f] dark:text-[#fafafa]">Top Ebook Category</h3>
+          <p className="mt-3 font-serif text-3xl font-bold text-[#26332f] dark:text-[#fafafa]">{analytics.topCategory || "General"}</p>
+          <p className="mt-1.5 text-xs text-[#8b8175] dark:text-[#a1a1aa]">Best performing digital category by total sales volume.</p>
         </section>
       </div>
     </div>
@@ -1913,40 +1915,40 @@ function PromotionsSection() {
         </button>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] shadow-sm">
-        <div className="divide-y divide-[#eae7e0] dark:divide-[#24302c]">
+      <section className="overflow-hidden rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] shadow-sm">
+        <div className="divide-y divide-[#eae7e0] dark:divide-[#27272a]">
           {promotions.map((p) => (
             <div key={p.id} className="flex items-center gap-3 p-4 sm:p-5 hover:bg-white/60 dark:hover:bg-white/5 transition">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate font-semibold text-sm sm:text-base text-[#26332f] dark:text-[#edf2ee]">{p.title}</p>
-                  <span className="rounded-full bg-[#faedc9] dark:bg-[#332a13] px-2.5 py-0.5 text-[10px] font-bold text-[#ad842a] dark:text-[#e4be63]">
+                  <p className="truncate font-semibold text-sm sm:text-base text-[#26332f] dark:text-[#fafafa]">{p.title}</p>
+                  <span className="rounded-full bg-[#faedc9] dark:bg-[#2c220c] px-2.5 py-0.5 text-[10px] font-bold text-[#ad842a] dark:text-[#fbbf24]">
                     {p.discountPercent}% OFF
                   </span>
                 </div>
-                <p className="mt-1 truncate text-xs text-[#8b8175] dark:text-[#8ea297]">
+                <p className="mt-1 truncate text-xs text-[#8b8175] dark:text-[#a1a1aa]">
                   {p.description} · Valid {p.startDate} to {p.endDate}
                 </p>
               </div>
               <span className={`hidden sm:inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                p.status === "Active" ? "bg-[#eef1eb] dark:bg-[#192f21] text-[#5e8c67] dark:text-[#74b480]" : 
-                p.status === "Draft" ? "bg-[#faedc9] dark:bg-[#332a13] text-[#9d7922] dark:text-[#e4be63]" : 
-                "bg-[#eae7e0] dark:bg-[#25322d] text-[#8b8175] dark:text-[#8ea297]"
+                p.status === "Active" ? "bg-[#eef1eb] dark:bg-[#0f2418] text-[#5e8c67] dark:text-[#4ade80]" : 
+                p.status === "Draft" ? "bg-[#faedc9] dark:bg-[#2c220c] text-[#9d7922] dark:text-[#fbbf24]" : 
+                "bg-[#eae7e0] dark:bg-[#27272a] text-[#8b8175] dark:text-[#a1a1aa]"
               }`}>
                 {p.status}
               </span>
               <div className="flex items-center gap-1">
-                <button onClick={() => setEditPromo(p)} className="p-1.5 text-[#8b8175] dark:text-[#8ea297] hover:text-[#d86f45]" aria-label="Edit promotion">
+                <button onClick={() => setEditPromo(p)} className="p-1.5 text-[#8b8175] dark:text-[#a1a1aa] hover:text-[#d86f45]" aria-label="Edit promotion">
                   <Pencil size={15} />
                 </button>
-                <button onClick={() => deletePromo(p.id)} className="p-1.5 text-[#8b8175] dark:text-[#8ea297] hover:text-[#b91c1c]" aria-label="Delete promotion">
+                <button onClick={() => deletePromo(p.id)} className="p-1.5 text-[#8b8175] dark:text-[#a1a1aa] hover:text-[#b91c1c]" aria-label="Delete promotion">
                   <Trash2 size={15} />
                 </button>
               </div>
             </div>
           ))}
           {promotions.length === 0 && (
-            <div className="px-6 py-14 text-center text-sm text-[#8b8175] dark:text-[#8ea297]">No promotional campaigns active.</div>
+            <div className="px-6 py-14 text-center text-sm text-[#8b8175] dark:text-[#a1a1aa]">No promotional campaigns active.</div>
           )}
         </div>
       </section>
@@ -1982,14 +1984,14 @@ function PromoForm({ promo, onSaved, onCancel }: { promo: Promotion | null; onSa
   };
 
   return (
-    <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-4 sm:p-7 shadow-sm">
-      <div className="mb-6 flex items-center justify-between border-b border-[#e2dfd8] dark:border-[#24302c] pb-4">
-        <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">
+    <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-4 sm:p-7 shadow-sm">
+      <div className="mb-6 flex items-center justify-between border-b border-[#e2dfd8] dark:border-[#27272a] pb-4">
+        <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">
           {isEdit ? "Edit promotion" : "New promotion"}
         </h3>
-        <button onClick={onCancel} className="text-xs font-bold text-[#8b8175] dark:text-[#8ea297] hover:text-[#d86f45]">Cancel</button>
+        <button onClick={onCancel} className="text-xs font-bold text-[#8b8175] dark:text-[#a1a1aa] hover:text-[#d86f45]">Cancel</button>
       </div>
-      {error && <div className="mb-5 rounded-xl bg-[#fef2f2] dark:bg-[#331c1c] p-3 text-sm font-semibold text-[#b91c1c] dark:text-[#ea7171]">{error}</div>}
+      {error && <div className="mb-5 rounded-xl bg-[#fef2f2] dark:bg-[#2d1212] p-3 text-sm font-semibold text-[#b91c1c] dark:text-[#f87171]">{error}</div>}
       <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input label="Campaign Title" value={title} onChange={setTitle} required placeholder="e.g. Black Friday 2026" />
         <Input label="Discount %" value={discountPercent} onChange={setDiscountPercent} type="number" required placeholder="20" />
@@ -1999,15 +2001,15 @@ function PromoForm({ promo, onSaved, onCancel }: { promo: Promotion | null; onSa
         <Input label="Start Date" value={startDate} onChange={setStartDate} type="date" required />
         <Input label="End Date" value={endDate} onChange={setEndDate} type="date" required />
         <div>
-          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">Status</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value as Promotion["status"])} className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]">
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">Status</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value as Promotion["status"])} className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#121215] px-4 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]">
             <option value="Active">Active</option>
             <option value="Draft">Draft</option>
             <option value="Expired">Expired</option>
           </select>
         </div>
         <div className="sm:col-span-2 pt-3 flex justify-end gap-2">
-          <button type="button" onClick={onCancel} className="rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-5 py-2.5 text-xs font-bold text-[#736b61] dark:text-[#8ea297]">Cancel</button>
+          <button type="button" onClick={onCancel} className="rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-5 py-2.5 text-xs font-bold text-[#736b61] dark:text-[#a1a1aa]">Cancel</button>
           <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-xl bg-[#d86f45] px-6 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white disabled:opacity-60 shadow-sm">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {isEdit ? "Save changes" : "Create campaign"}
@@ -2043,6 +2045,10 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
   const [credSuccess, setCredSuccess] = useState("");
   const [credError, setCredError] = useState("");
 
+  // Test Cloud Push state
+  const [testingCloudPush, setTestingCloudPush] = useState(false);
+  const [cloudPushSuccess, setCloudPushSuccess] = useState("");
+
   useEffect(() => {
     apiFetch<SettingsResponse>("/api/admin/settings")
       .then((data) => {
@@ -2066,6 +2072,21 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
       alert("Settings saved successfully!");
     } catch (e: any) { alert(e.message); }
     finally { setSaving(false); }
+  };
+
+  const triggerCloudPushTest = async () => {
+    setTestingCloudPush(true);
+    setCloudPushSuccess("");
+    try {
+      const res = await apiFetch<{ success: boolean; dispatched: number }>("/api/admin/push-test", {
+        method: "POST",
+      });
+      setCloudPushSuccess(`Test push dispatched to ${res.dispatched} registered device(s)! Lock your phone now or close your browser to verify.`);
+    } catch (err: any) {
+      alert(`Cloud Push error: ${err.message}`);
+    } finally {
+      setTestingCloudPush(false);
+    }
   };
 
   if (loading) return <LoadingBlock />;
@@ -2093,21 +2114,21 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
     <div className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Store Defaults */}
-        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-5 sm:p-7 shadow-sm space-y-5">
+        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm space-y-5">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Store Defaults</p>
-            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">Store Information</h3>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Store Information</h3>
           </div>
 
           <div className="space-y-4">
             <Input label="Store Name" value={storeName} onChange={setStoreName} />
             <Input label="Support Email" value={supportEmail} onChange={setSupportEmail} type="email" />
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">Default Currency</label>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">Default Currency</label>
               <select 
                 value={storeCurrency} 
                 onChange={(e) => setStoreCurrency(e.target.value as Currency)} 
-                className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]"
+                className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-4 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]"
               >
                 {currencyOptions.map((option) => (
                   <option key={option.code} value={option.code}>
@@ -2117,11 +2138,11 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">Download Access</label>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">Download Access</label>
               <select 
                 value={downloadMode} 
                 onChange={(e) => setDownloadMode(e.target.value as "instant" | "email")} 
-                className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45]"
+                className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-4 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45]"
               >
                 <option value="instant">Instant download after payment</option>
                 <option value="email">Email delivery link</option>
@@ -2138,85 +2159,105 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
         </section>
 
         {/* Current Active Configuration */}
-        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-5 sm:p-7 shadow-sm flex flex-col justify-between">
+        <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm flex flex-col justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#8ea297]">Configuration Summary</p>
-            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">Active Store Setup</h3>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b8175] dark:text-[#a1a1aa]">Configuration Summary</p>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Active Store Setup</h3>
             <div className="mt-6 space-y-4">
-              <div className="rounded-xl bg-white dark:bg-[#141b18] border border-[#eae7e0] dark:border-[#24302c] p-3.5">
-                <p className="text-xs text-[#8b8175] dark:text-[#8ea297]">Store Name</p>
-                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#edf2ee]">{settings?.storeName ?? "ApexMindReads"}</p>
+              <div className="rounded-xl bg-white dark:bg-[#18181b] border border-[#eae7e0] dark:border-[#27272a] p-3.5">
+                <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Store Name</p>
+                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#fafafa]">{settings?.storeName ?? "ApexMindReads"}</p>
               </div>
-              <div className="rounded-xl bg-white dark:bg-[#141b18] border border-[#eae7e0] dark:border-[#24302c] p-3.5">
-                <p className="text-xs text-[#8b8175] dark:text-[#8ea297]">Support Email</p>
-                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#edf2ee]">{settings?.supportEmail ?? "support@apexmindreads.com"}</p>
+              <div className="rounded-xl bg-white dark:bg-[#18181b] border border-[#eae7e0] dark:border-[#27272a] p-3.5">
+                <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Support Email</p>
+                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#fafafa]">{settings?.supportEmail ?? "support@apexmindreads.com"}</p>
               </div>
-              <div className="rounded-xl bg-white dark:bg-[#141b18] border border-[#eae7e0] dark:border-[#24302c] p-3.5">
-                <p className="text-xs text-[#8b8175] dark:text-[#8ea297]">Default Currency</p>
-                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#edf2ee]">{settings?.currency ?? "NGN"}</p>
+              <div className="rounded-xl bg-white dark:bg-[#18181b] border border-[#eae7e0] dark:border-[#27272a] p-3.5">
+                <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Default Currency</p>
+                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#fafafa]">{settings?.currency ?? "NGN"}</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-[#eae7e0] dark:border-[#24302c] flex items-center gap-2 text-xs text-[#5e8c67] dark:text-[#74b480] font-semibold">
+          <div className="mt-6 pt-4 border-t border-[#eae7e0] dark:border-[#27272a] flex items-center gap-2 text-xs text-[#5e8c67] dark:text-[#4ade80] font-semibold">
             <ShieldCheck size={16} /> Store secure & Paystack Live connected
           </div>
         </section>
       </div>
 
       {/* Real-Time Sales Push Alerts & Audio Notifications */}
-      <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#24302c] bg-[#fbfaf7] dark:bg-[#18211e] p-5 sm:p-7 shadow-sm">
+      <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Live Alerts</p>
-            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#edf2ee]">Real-Time Sales & Sound Notifications</h3>
-            <p className="mt-1 max-w-xl text-xs text-[#8b8175] dark:text-[#8ea297]">
-              Get instant cash register sound alerts and notifications with customer name and order amount whenever a sale occurs.
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Global Live Alerts</p>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Real-Time Sales & Push Notifications</h3>
+            <p className="mt-1 max-w-xl text-xs text-[#8b8175] dark:text-[#a1a1aa]">
+              Get instant cash register sounds and background push notifications directly on your phone/desktop even when your browser is completely closed.
             </p>
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-[#eae7e0] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 flex items-center justify-between">
+        {cloudPushSuccess && (
+          <div className="mt-4 rounded-xl bg-[#ecfdf5] dark:bg-[#0f2418] border border-[#a7f3d0] dark:border-[#1e462b] p-3.5 text-xs font-semibold text-[#059669] dark:text-[#4ade80]">
+            ✓ {cloudPushSuccess}
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-[#eae7e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-bold text-[#26332f] dark:text-[#edf2ee]">Real-Time Push Alerts</p>
-              <p className="text-[11px] text-[#8b8175] dark:text-[#8ea297] mt-0.5">
+              <p className="text-xs font-bold text-[#26332f] dark:text-[#fafafa]">Real-Time Push Alerts</p>
+              <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">
                 {notifEnabled ? "Active on this device" : "Disabled on this device"}
               </p>
             </div>
             <button
               onClick={toggleNotifications}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                notifEnabled ? "bg-[#eef1eb] dark:bg-[#192f21] text-[#5e8c67] dark:text-[#74b480]" : "bg-[#f5f3ee] dark:bg-[#25322d] text-[#736b61] dark:text-[#9bb0a5] hover:bg-[#e2dfd8] dark:hover:bg-[#2e3e38]"
+              className={`mt-4 rounded-full px-3 py-1.5 text-xs font-bold transition self-start ${
+                notifEnabled ? "bg-[#eef1eb] dark:bg-[#0f2418] text-[#5e8c67] dark:text-[#4ade80]" : "bg-[#f5f3ee] dark:bg-[#27272a] text-[#736b61] dark:text-[#a1a1aa] hover:bg-[#e2dfd8] dark:hover:bg-[#323238]"
               }`}
             >
               {notifEnabled ? "Active ✓" : "Enable Alerts"}
             </button>
           </div>
 
-          <div className="rounded-xl border border-[#eae7e0] dark:border-[#24302c] bg-white dark:bg-[#141b18] p-4 flex items-center justify-between">
+          <div className="rounded-xl border border-[#eae7e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-bold text-[#26332f] dark:text-[#edf2ee]">Notification Sound & Vibration</p>
-              <p className="text-[11px] text-[#8b8175] dark:text-[#8ea297] mt-0.5">Cash register "Ka-Ching" sound effect</p>
+              <p className="text-xs font-bold text-[#26332f] dark:text-[#fafafa]">In-App Sound & Vibration</p>
+              <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">Cash register "Ka-Ching" sound effect</p>
             </div>
             <button
               onClick={testNotification}
-              className="rounded-full bg-[#faedc9] dark:bg-[#332a13] px-3.5 py-1.5 text-xs font-bold text-[#ad842a] dark:text-[#e4be63] hover:bg-[#f6e4b4] dark:hover:bg-[#403518] transition flex items-center gap-1.5"
+              className="mt-4 rounded-full bg-[#faedc9] dark:bg-[#2c220c] px-3.5 py-1.5 text-xs font-bold text-[#ad842a] dark:text-[#fbbf24] hover:bg-[#f6e4b4] dark:hover:bg-[#382b0e] transition flex items-center gap-1.5 self-start"
             >
               <Volume2 size={13} /> Test Sound
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-[#eae7e0] dark:border-[#27272a] bg-white dark:bg-[#18181b] p-4 flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#26332f] dark:text-[#fafafa]">Closed-Browser Push Test</p>
+              <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa] mt-0.5">Send a real push notification from server</p>
+            </div>
+            <button
+              onClick={triggerCloudPushTest}
+              disabled={testingCloudPush}
+              className="mt-4 rounded-full bg-[#d86f45] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#bf5937] transition flex items-center gap-1.5 self-start disabled:opacity-50"
+            >
+              {testingCloudPush ? <Loader2 size={13} className="animate-spin" /> : <BellRing size={13} />} Test Closed Push
             </button>
           </div>
         </div>
       </section>
 
       {/* Admin Credentials Security Card */}
-      <section className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-5 sm:p-7 shadow-sm">
+      <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#27272a] bg-[#fbfaf7] dark:bg-[#121215] p-5 sm:p-7 shadow-sm">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Security</p>
-        <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f]">Admin Login Credentials</h3>
-        <p className="mt-1 max-w-xl text-xs text-[#8b8175]">Update your admin email address or password.</p>
+        <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#fafafa]">Admin Login Credentials</h3>
+        <p className="mt-1 max-w-xl text-xs text-[#8b8175] dark:text-[#a1a1aa]">Update your admin email address or password.</p>
         
-        {credSuccess && <div className="mt-4 max-w-md rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] p-3 text-xs font-semibold text-[#059669]">{credSuccess}</div>}
-        {credError && <div className="mt-4 max-w-md rounded-xl bg-[#fef2f2] border border-[#fecaca] p-3 text-xs font-semibold text-[#b91c1c]">{credError}</div>}
+        {credSuccess && <div className="mt-4 max-w-md rounded-xl bg-[#ecfdf5] dark:bg-[#0f2418] border border-[#a7f3d0] dark:border-[#1e462b] p-3 text-xs font-semibold text-[#059669] dark:text-[#4ade80]">{credSuccess}</div>}
+        {credError && <div className="mt-4 max-w-md rounded-xl bg-[#fef2f2] dark:bg-[#2d1212] border border-[#fecaca] dark:border-[#4a1e1e] p-3 text-xs font-semibold text-[#b91c1c] dark:text-[#f87171]">{credError}</div>}
 
         <div className="mt-5 max-w-md space-y-4">
           <Input label="Admin Email" value={adminEmail} onChange={setAdminEmail} type="email" placeholder="Leave blank to keep current" />
@@ -2225,7 +2266,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
           <button 
             onClick={updateCredentials} 
             disabled={credSaving} 
-            className="flex items-center gap-2 rounded-xl bg-[#26332f] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white disabled:opacity-60 hover:bg-[#3b4b45] transition shadow-sm"
+            className="flex items-center gap-2 rounded-xl bg-[#26332f] dark:bg-[#e58a61] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white disabled:opacity-60 hover:bg-[#3b4b45] dark:hover:bg-[#d86f45] transition shadow-sm"
           >
             {credSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Update credentials
           </button>
@@ -2239,14 +2280,14 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
 function Input({ label, value, onChange, type = "text", required = false, placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; placeholder?: string }) {
   return (
     <div className="block">
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">{label}</label>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">{label}</label>
       <input 
         type={type} 
         value={value} 
         onChange={(e) => onChange(e.target.value)} 
         required={required} 
         placeholder={placeholder} 
-        className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45] shadow-xs placeholder:text-[#9d9387] dark:placeholder:text-[#5f746b]" 
+        className="h-12 w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-4 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45] shadow-xs placeholder:text-[#9d9387] dark:placeholder:text-[#71717a]" 
       />
     </div>
   );
@@ -2255,12 +2296,12 @@ function Input({ label, value, onChange, type = "text", required = false, placeh
 function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="block">
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#8ea297]">{label}</label>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61] dark:text-[#a1a1aa]">{label}</label>
       <textarea 
         value={value} 
         onChange={(e) => onChange(e.target.value)} 
         rows={4} 
-        className="w-full rounded-xl border border-[#d8d0c6] dark:border-[#2d3d37] bg-white dark:bg-[#141b18] px-4 py-3 text-sm text-[#26332f] dark:text-[#edf2ee] outline-none focus:border-[#d86f45] shadow-xs" 
+        className="w-full rounded-xl border border-[#d8d0c6] dark:border-[#27272a] bg-white dark:bg-[#18181b] px-4 py-3 text-sm text-[#26332f] dark:text-[#fafafa] outline-none focus:border-[#d86f45] shadow-xs" 
       />
     </div>
   );
@@ -2275,7 +2316,7 @@ function Checkbox({ label, checked, onChange }: { label: string; checked: boolea
         onChange={(e) => onChange(e.target.checked)} 
         className="h-4 w-4 rounded accent-[#d86f45] cursor-pointer" 
       />
-      <span className="text-xs sm:text-sm font-semibold text-[#26332f] dark:text-[#edf2ee]">{label}</span>
+      <span className="text-xs sm:text-sm font-semibold text-[#26332f] dark:text-[#fafafa]">{label}</span>
     </label>
   );
 }
