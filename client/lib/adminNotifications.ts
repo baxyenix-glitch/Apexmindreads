@@ -562,14 +562,14 @@ export function useOrderLiveAlerts(currency: Currency) {
         if (!initialLoadDoneRef.current) {
           initialLoadDoneRef.current = true;
         }
-      }, (err) => {
-        console.warn("Firestore onSnapshot error, relying on REST polling:", err);
+      }, () => {
+        // Silently rely on secure authenticated backend REST polling
       });
-    } catch (e) {
-      console.warn("Firestore listener setup failed:", e);
+    } catch {
+      // quiet
     }
 
-    // 2. Continuous REST API Polling Backup
+    // 2. Continuous REST API Polling
     const checkOrdersViaApi = async () => {
       try {
         const headers = await adminAuthHeaders();
@@ -599,7 +599,7 @@ export function useOrderLiveAlerts(currency: Currency) {
     };
 
     checkOrdersViaApi();
-    const interval = setInterval(checkOrdersViaApi, 5000);
+    const interval = setInterval(checkOrdersViaApi, 3000);
 
     return () => {
       unsubscribeFirestore();
