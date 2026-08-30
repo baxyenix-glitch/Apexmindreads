@@ -283,6 +283,31 @@ export default function AdminDashboard() {
 
         {/* Main Section Content */}
         <main className="mx-auto max-w-[1280px] px-3.5 py-5 sm:px-8 lg:px-10 lg:py-8">
+          {/* Push Notification Setup Banner if Inactive on this device */}
+          {!notifEnabled && (
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 rounded-2xl border border-[#d86f45]/40 bg-[#fff8f5] dark:bg-[#180e09] p-4 sm:p-5 shadow-sm animate-fade-in">
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d86f45] text-white shadow-sm">
+                  <BellRing size={20} />
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-[#26332f] dark:text-[#fafafa]">
+                    Order Push Notifications Inactive on this Device
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#736b61] dark:text-[#a1a1aa]">
+                    Tap below to register this phone with Google Cloud Push. You will receive real-time cash register chimes and order notifications even when Chrome is closed.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={toggleNotifications}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#d86f45] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#bf5937] active:scale-95 shrink-0"
+              >
+                <BellRing size={14} /> Enable Push Alerts
+              </button>
+            </div>
+          )}
+
           {/* Section Description Header */}
           <div className="mb-5 sm:mb-7">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d86f45]">{active}</p>

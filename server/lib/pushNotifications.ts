@@ -30,11 +30,13 @@ export interface PushSubscriptionData {
 export async function savePushSubscription(sub: PushSubscriptionData): Promise<void> {
   if (!sub || !sub.endpoint) return;
   try {
-    const docId = Buffer.from(sub.endpoint).toString("base64url").slice(0, 100);
+    const crypto = await import("crypto");
+    const docId = crypto.createHash("sha256").update(sub.endpoint).digest("hex");
     await adminDb.collection("admin_push_subscriptions").doc(docId).set({
       ...sub,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
+    console.log(`[PushNotification] Saved subscription for device: ${sub.userAgent?.slice(0, 50) || "Unknown"} (docId: ${docId.slice(0, 16)}...)`);
   } catch (err) {
     console.error("Failed to save push subscription:", err);
   }
@@ -46,8 +48,10 @@ export async function savePushSubscription(sub: PushSubscriptionData): Promise<v
 export async function removePushSubscription(endpoint: string): Promise<void> {
   if (!endpoint) return;
   try {
-    const docId = Buffer.from(endpoint).toString("base64url").slice(0, 100);
+    const crypto = await import("crypto");
+    const docId = crypto.createHash("sha256").update(endpoint).digest("hex");
     await adminDb.collection("admin_push_subscriptions").doc(docId).delete();
+    console.log(`[PushNotification] Removed expired subscription: ${docId.slice(0, 16)}...`);
   } catch (err) {
     console.error("Failed to remove push subscription:", err);
   }
@@ -59,7 +63,9 @@ export async function removePushSubscription(endpoint: string): Promise<void> {
 export async function getPushSubscriptions(): Promise<PushSubscriptionData[]> {
   try {
     const snapshot = await adminDb.collection("admin_push_subscriptions").get();
-    return snapshot.docs.map((doc) => doc.data() as PushSubscriptionData);
+    const subs = snapshot.docs.map((doc) => doc.data() as PushSubscriptionData);
+    console.log(`[PushNotification] Retrieved ${subs.length} active subscription(s) from Firestore`);
+    return subs;
   } catch (err) {
     console.error("Failed to get push subscriptions:", err);
     return [];
@@ -78,6 +84,7 @@ export async function sendOrderPushNotification(payload: {
 }): Promise<{ sent: number; failed: number }> {
   const subscriptions = await getPushSubscriptions();
   if (subscriptions.length === 0) {
+    console.warn("[PushNotification] No active admin push subscriptions found in Firestore. Make sure to tap 'Enable Alerts' in Admin Dashboard on your device.");
     return { sent: 0, failed: 0 };
   }
 
@@ -113,15 +120,16 @@ export async function sendOrderPushNotification(payload: {
       sent++;
     } catch (err: any) {
       failed++;
+      console.warn(`[PushNotification] Delivery failed for ${sub.endpoint.slice(0, 45)}... status: ${err.statusCode || err.message}`);
       // If subscription has expired or is unregistered, prune it from database
       if (err.statusCode === 404 || err.statusCode === 410) {
         await removePushSubscription(sub.endpoint);
-      } else {
-        console.warn("Web Push send error for endpoint:", err.message || err);
       }
     }
   });
 
   await Promise.allSettled(promises);
+  console.log(`[PushNotification] Push dispatch completed: ${sent} delivered, ${failed} failed out of ${subscriptions.length} device(s)`);
   return { sent, failed };
 }
+

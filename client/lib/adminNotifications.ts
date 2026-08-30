@@ -264,33 +264,44 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+function arrayBufferToBase64Url(buffer: ArrayBuffer | null): string {
+  if (!buffer) return "";
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 /**
  * Subscribe admin device for background Web Push notifications.
  * Works even when the browser or app is completely closed.
  */
 export async function subscribeAdminToPush(): Promise<boolean> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    console.warn("[Push] ServiceWorker or PushManager not available in this browser context");
     return false;
   }
+
   try {
-    let reg: ServiceWorkerRegistration | undefined;
-    try {
-      reg = await navigator.serviceWorker.ready;
-    } catch {
-      reg = await navigator.serviceWorker.register("/sw.js");
-    }
-    if (!reg) {
-      reg = await navigator.serviceWorker.register("/sw.js");
-    }
-
+    // 1. Explicitly register Service Worker with root scope
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    
+    // 2. Fetch server VAPID public key
     const keyRes = await fetch("/api/admin/push-vapid-public-key");
-    if (!keyRes.ok) return false;
+    if (!keyRes.ok) {
+      throw new Error(`Failed to fetch VAPID key: HTTP ${keyRes.status}`);
+    }
     const { publicKey } = await keyRes.json();
-    if (!publicKey) return false;
+    if (!publicKey) {
+      throw new Error("Empty VAPID public key received from server");
+    }
 
+    // 3. Get existing push subscription
     let subscription = await reg.pushManager.getSubscription();
 
-    // If subscription already exists, test if it is valid or renew it
+    // 4. If none exists, create new subscription with VAPID applicationServerKey
     if (!subscription) {
       subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -298,27 +309,48 @@ export async function subscribeAdminToPush(): Promise<boolean> {
       });
     }
 
+    // 5. Extract keys cleanly
     const subJson = subscription.toJSON ? subscription.toJSON() : (subscription as any);
-    const p256dh = subJson.keys?.p256dh || (subscription.getKey ? btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))) : "");
-    const auth = subJson.keys?.auth || (subscription.getKey ? btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))) : "");
+    let p256dh = subJson.keys?.p256dh || (subscription.getKey ? arrayBufferToBase64Url(subscription.getKey("p256dh")) : "");
+    let auth = subJson.keys?.auth || (subscription.getKey ? arrayBufferToBase64Url(subscription.getKey("auth")) : "");
 
-    // Save to server database so backend can push notifications globally across devices
+    // If existing subscription had missing keys, re-subscribe
+    if (!p256dh || !auth) {
+      await subscription.unsubscribe().catch(() => {});
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+      const freshJson = subscription.toJSON();
+      p256dh = freshJson.keys?.p256dh || "";
+      auth = freshJson.keys?.auth || "";
+    }
+
+    const payload = {
+      subscription: {
+        endpoint: subscription.endpoint,
+        keys: { p256dh, auth },
+      },
+    };
+
+    // 6. Save subscription to server backend
     const response = await fetch("/api/admin/push-subscribe", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        subscription: {
-          endpoint: subscription.endpoint,
-          keys: { p256dh, auth },
-        },
-      }),
+      body: JSON.stringify(payload),
     });
 
-    return response.ok;
+    if (!response.ok) {
+      console.warn("[Push] Server subscription registration failed with HTTP", response.status);
+    } else {
+      console.log("[Push] Successfully registered device for background push alerts");
+    }
+
+    return true;
   } catch (err) {
-    console.warn("Background Web Push registration error:", err);
+    console.error("[Push] Background Web Push registration error:", err);
     return false;
   }
 }
@@ -328,7 +360,7 @@ export async function subscribeAdminToPush(): Promise<boolean> {
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === "undefined" || !("Notification" in window)) {
-    alert("Notifications are not supported in this browser. Please open in Safari or Chrome on your device.");
+    alert("Notifications are not supported in this browser. Please open in Chrome or Safari on your mobile device.");
     return false;
   }
 
@@ -338,8 +370,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       localStorage.setItem("apexmind_admin_notifications_enabled", "true");
-      // Also register background Web Push subscription
-      subscribeAdminToPush().catch(() => {});
+      // Immediately register background Web Push subscription
+      await subscribeAdminToPush();
       return true;
     } else {
       localStorage.setItem("apexmind_admin_notifications_enabled", "false");
