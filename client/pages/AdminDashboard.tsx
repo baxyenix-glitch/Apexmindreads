@@ -41,6 +41,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, type Currency, currencyOptions } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
 import { useOrderLiveAlerts } from "@/lib/adminNotifications";
+import { toast } from "sonner";
 import type { 
   AnalyticsResponse, 
   OrderListResponse, 
@@ -2052,7 +2053,17 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
         setSupportEmail(data.settings.supportEmail);
         setDownloadMode(data.settings.downloadMode);
         setStoreCurrency((data.settings.currency as Currency) || "NGN");
-        setPaymentGateway((data.settings.paymentGateway as PaymentGateway) || "paystack");
+        const gw = (data.settings.paymentGateway as PaymentGateway) || (localStorage.getItem("apexmind_payment_gateway") as PaymentGateway) || "paystack";
+        setPaymentGateway(gw);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("apexmind_payment_gateway", gw);
+        }
+      })
+      .catch(() => {
+        if (typeof window !== "undefined") {
+          const storedGw = localStorage.getItem("apexmind_payment_gateway") as PaymentGateway;
+          if (storedGw) setPaymentGateway(storedGw);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -2060,6 +2071,9 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
   const save = async (customGateway?: PaymentGateway) => {
     setSaving(true);
     const activeGateway = customGateway || paymentGateway;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("apexmind_payment_gateway", activeGateway);
+    }
     try {
       const data = await apiFetch<SettingsResponse>("/api/admin/settings", {
         method: "PUT",
@@ -2072,12 +2086,18 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
         }),
       });
       setSettings(data.settings);
-      if (customGateway) {
+      if (data.settings?.paymentGateway) {
+        setPaymentGateway(data.settings.paymentGateway as PaymentGateway);
+        localStorage.setItem("apexmind_payment_gateway", data.settings.paymentGateway);
+      } else if (customGateway) {
         setPaymentGateway(customGateway);
       }
-      alert("Settings saved successfully!");
-    } catch (e: any) { alert(e.message); }
-    finally { setSaving(false); }
+      toast.success("Active payment gateway saved successfully!");
+    } catch (e: any) { 
+      toast.error(e.message || "Failed to update settings"); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   if (loading) return <LoadingBlock />;
@@ -2110,7 +2130,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Payment Gateway Mode</p>
             <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#f4f4f5]">Active Payment Processor</h3>
             <p className="mt-1 max-w-xl text-xs text-[#8b8175] dark:text-[#a1a1aa]">
-              Choose which payment gateway processes checkout transactions on your storefront. Both live keys are active and verified.
+              Choose which payment gateway processes checkout transactions on your storefront. Clicking either card immediately switches and saves your active processor.
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-[#ecfdf5] dark:bg-[#0f2415] border border-[#a7f3d0] dark:border-[#1e4d2b] px-3.5 py-1 text-xs font-bold text-[#059669] dark:text-[#4ade80]">
@@ -2121,10 +2141,13 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {/* Paystack Card */}
           <div 
-            onClick={() => setPaymentGateway("paystack")}
+            onClick={() => {
+              setPaymentGateway("paystack");
+              save("paystack");
+            }}
             className={`cursor-pointer rounded-2xl p-5 border-2 transition-all relative ${
               paymentGateway === "paystack" 
-                ? "border-[#26332f] dark:border-[#f4f4f5] bg-white dark:bg-[#18181b] shadow-md" 
+                ? "border-[#26332f] dark:border-[#f4f4f5] bg-white dark:bg-[#18181b] shadow-md ring-2 ring-[#00c3f7]/20" 
                 : "border-[#e5ddd2] dark:border-[#262626] bg-[#f8f4ec]/60 dark:bg-[#141414] hover:border-[#d8d0c6] dark:hover:border-[#383838]"
             }`}
           >
@@ -2142,7 +2165,10 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
                 type="radio" 
                 name="paymentGateway" 
                 checked={paymentGateway === "paystack"} 
-                onChange={() => setPaymentGateway("paystack")}
+                onChange={() => {
+                  setPaymentGateway("paystack");
+                  save("paystack");
+                }}
                 className="mt-1 h-4 w-4 text-[#d86f45] focus:ring-[#d86f45]" 
               />
             </div>
@@ -2156,10 +2182,13 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
 
           {/* Flutterwave Card */}
           <div 
-            onClick={() => setPaymentGateway("flutterwave")}
+            onClick={() => {
+              setPaymentGateway("flutterwave");
+              save("flutterwave");
+            }}
             className={`cursor-pointer rounded-2xl p-5 border-2 transition-all relative ${
               paymentGateway === "flutterwave" 
-                ? "border-[#26332f] dark:border-[#f4f4f5] bg-white dark:bg-[#18181b] shadow-md" 
+                ? "border-[#26332f] dark:border-[#f4f4f5] bg-white dark:bg-[#18181b] shadow-md ring-2 ring-[#fb9129]/20" 
                 : "border-[#e5ddd2] dark:border-[#262626] bg-[#f8f4ec]/60 dark:bg-[#141414] hover:border-[#d8d0c6] dark:hover:border-[#383838]"
             }`}
           >
@@ -2177,7 +2206,10 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
                 type="radio" 
                 name="paymentGateway" 
                 checked={paymentGateway === "flutterwave"} 
-                onChange={() => setPaymentGateway("flutterwave")}
+                onChange={() => {
+                  setPaymentGateway("flutterwave");
+                  save("flutterwave");
+                }}
                 className="mt-1 h-4 w-4 text-[#d86f45] focus:ring-[#d86f45]" 
               />
             </div>

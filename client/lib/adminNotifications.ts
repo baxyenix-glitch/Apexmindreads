@@ -1,8 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { formatCurrency, type Currency } from "@/lib/currency";
 import { adminAuthHeaders } from "@/lib/admin-auth";
-import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import type { Order, OrderListResponse } from "@shared/api";
 import { toast } from "sonner";
 
@@ -485,39 +483,7 @@ export function useOrderLiveAlerts(currency: Currency) {
       navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
     }
 
-    // 1. Real-time Firestore Listener (foreground active tab)
-    let unsubscribeFirestore = () => {};
-    try {
-      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(25));
-      unsubscribeFirestore = onSnapshot(q, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          const order = change.doc.data() as Order;
-          const orderId = change.doc.id || order.id;
-
-          if (change.type === "added") {
-            if (!initialLoadDoneRef.current) {
-              // Pre-populate known order IDs on initial load without firing alerts
-              notifiedOrderIds.add(orderId);
-            } else {
-              // Only fire if order is new and hasn't been notified yet
-              if (markOrderAsNotified(orderId)) {
-                triggerOrderAlert(order, currencyRef.current);
-              }
-            }
-          }
-        });
-
-        if (!initialLoadDoneRef.current) {
-          initialLoadDoneRef.current = true;
-        }
-      }, (err) => {
-        console.warn("Firestore onSnapshot error, relying on REST polling:", err);
-      });
-    } catch (e) {
-      console.warn("Firestore listener setup failed:", e);
-    }
-
-    // 2. Continuous REST API Polling Backup
+    // 1. Continuous Authenticated REST Polling Stream
     const checkOrdersViaApi = async () => {
       try {
         const headers = await adminAuthHeaders();
@@ -547,10 +513,9 @@ export function useOrderLiveAlerts(currency: Currency) {
     };
 
     checkOrdersViaApi();
-    const interval = setInterval(checkOrdersViaApi, 5000);
+    const interval = setInterval(checkOrdersViaApi, 4000);
 
     return () => {
-      unsubscribeFirestore();
       clearInterval(interval);
       if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
         navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);

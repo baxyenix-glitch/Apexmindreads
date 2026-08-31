@@ -76,7 +76,13 @@ export default function Checkout() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [country, setCountry] = useState(() => detectedCountry || "NG");
-  const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>("paystack");
+  const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("apexmind_payment_gateway");
+      if (stored === "flutterwave" || stored === "paystack") return stored;
+    }
+    return "paystack";
+  });
   const [flwPubKey, setFlwPubKey] = useState(FLUTTERWAVE_PUBLIC_KEY);
 
   useEffect(() => {
@@ -85,6 +91,9 @@ export default function Checkout() {
       .then((data: PublicStoreConfigResponse) => {
         if (data.paymentGateway) {
           setPaymentGateway(data.paymentGateway);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("apexmind_payment_gateway", data.paymentGateway);
+          }
         }
         if (data.flutterwavePublicKey) {
           setFlwPubKey(data.flutterwavePublicKey);

@@ -149,38 +149,44 @@ export async function deletePromotion(id: string): Promise<void> {
 }
 
 // ─── Settings ─────────────────────────────────────────────
+let cachedSettings: StoreSettings = {
+  storeName: "ApexMindReads",
+  supportEmail: "support@apexmindreads.com",
+  downloadMode: "instant",
+  currency: "NGN",
+  paymentGateway: (process.env.PAYMENT_GATEWAY as any) || "paystack",
+};
+
 export async function getSettings(): Promise<StoreSettings> {
-  const defaults: StoreSettings = {
-    storeName: "ApexMindReads",
-    supportEmail: "support@apexmindreads.com",
-    downloadMode: "instant",
-    currency: "NGN",
-    paymentGateway: "paystack",
-  };
   try {
     const doc = await adminDb.collection("settings").doc("store").get();
     if (doc.exists) {
       const data = doc.data() as Partial<StoreSettings>;
-      return {
-        ...defaults,
+      cachedSettings = {
+        ...cachedSettings,
         ...data,
-        paymentGateway: data.paymentGateway || "paystack",
+        paymentGateway: data.paymentGateway || cachedSettings.paymentGateway || "paystack",
       };
+      return cachedSettings;
     }
-    await adminDb.collection("settings").doc("store").set(defaults).catch(() => {});
-    return defaults;
+    await adminDb.collection("settings").doc("store").set(cachedSettings).catch(() => {});
+    return cachedSettings;
   } catch (e) {
     console.error("Error fetching settings from Firestore:", e);
-    return defaults;
+    return cachedSettings;
   }
 }
 
 export async function updateSettings(updates: Partial<StoreSettings>): Promise<StoreSettings> {
   const clean = JSON.parse(JSON.stringify(updates));
+  cachedSettings = {
+    ...cachedSettings,
+    ...clean,
+  };
   try {
     await adminDb.collection("settings").doc("store").set(clean, { merge: true });
   } catch (e) {
     console.error("Error updating settings in Firestore:", e);
   }
-  return getSettings();
+  return cachedSettings;
 }
