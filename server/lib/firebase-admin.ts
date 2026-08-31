@@ -30,6 +30,8 @@ function parseServiceAccount(raw: string): any {
 let serviceAccount: any = null;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   serviceAccount = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+} else if (process.env.FIREBASE_SERVICE_ACCOUNT_B64) {
+  serviceAccount = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT_B64);
 }
 
 if (!serviceAccount) {
@@ -53,7 +55,7 @@ if (!getApps().length) {
     });
   } else {
     initializeApp({
-      projectId: "apexmind-673c2"
+      projectId: "apexmind-a81d0"
     });
   }
 }
