@@ -1,50 +1,21 @@
 import { adminDb } from "../lib/firebase-admin.js";
 import type { Product, Order, Promotion, StoreSettings } from "../../shared/schema";
 import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 
 export function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomBytes(6).toString("hex")}`;
 }
 
-// ─── Initial In-Memory Seed from Default JSON files ────────
-function loadSeedJson<T>(filename: string): T[] {
-  try {
-    const filePath = path.join(process.cwd(), "server/data", filename);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf-8");
-      return JSON.parse(content);
-    }
-  } catch (err) {
-    console.error(`Failed to load seed JSON ${filename}:`, err);
-  }
-  return [];
-}
-
-const seedProducts: Product[] = loadSeedJson<Product>("default-products.json");
-const seedOrders: Order[] = loadSeedJson<Order>("default-orders.json");
-
+// ─── In-Memory Caches for Blazing Fast 0ms API Latency ────
 const inMemoryProducts = new Map<string, Product>();
-for (const p of seedProducts) {
-  if (p && p.id) {
-    inMemoryProducts.set(p.id, p);
-  }
-}
-
 const inMemoryOrders = new Map<string, Order>();
-for (const o of seedOrders) {
-  if (o && o.id) {
-    inMemoryOrders.set(o.id, o);
-  }
-}
-
 const inMemoryPromotions = new Map<string, Promotion>();
 
 // Helper to strictly deduplicate products by ID and slug
 function getUniqueProducts(): Product[] {
   const bySlug = new Map<string, Product>();
   for (const p of inMemoryProducts.values()) {
+    if (!p) continue;
     const key = (p.slug || p.id || "").toLowerCase();
     if (!bySlug.has(key)) {
       bySlug.set(key, p);
@@ -53,43 +24,43 @@ function getUniqueProducts(): Product[] {
   return Array.from(bySlug.values());
 }
 
+// ─── Products ─────────────────────────────────────────────
 let lastProductSyncTime = 0;
 let isSyncingProducts = false;
 
-async function syncProductsFromFirestore(): Promise<void> {
+async function syncProductsFromRTDB(): Promise<void> {
   if (isSyncingProducts) return;
   isSyncingProducts = true;
   try {
-    const snapshot = await adminDb.collection("products").get();
-    if (!snapshot.empty) {
-      // Clear and re-populate to prevent stale duplicates
+    const snapshot = await adminDb.ref("products").get();
+    if (snapshot.exists()) {
+      const data = snapshot.val();
       inMemoryProducts.clear();
-      snapshot.docs.forEach((doc) => {
-        const item = { id: doc.id, ...doc.data() } as Product;
-        inMemoryProducts.set(item.id, item);
-      });
+      if (data && typeof data === "object") {
+        Object.values(data).forEach((item: any) => {
+          if (item && item.id) {
+            inMemoryProducts.set(item.id, item as Product);
+          }
+        });
+      }
       lastProductSyncTime = Date.now();
     }
   } catch (err: any) {
-    console.warn("Background Firestore products sync notice:", err?.message || err);
+    console.warn("Background RTDB products sync notice:", err?.message || err);
   } finally {
     isSyncingProducts = false;
   }
 }
 
-// ─── Products ─────────────────────────────────────────────
 export async function getProducts(): Promise<Product[]> {
-  // If we have cached products, return them immediately for 0ms response time
   if (inMemoryProducts.size > 0) {
-    // Background sync if cache is older than 15s
-    if (Date.now() - lastProductSyncTime > 15000) {
-      syncProductsFromFirestore().catch(() => {});
+    if (Date.now() - lastProductSyncTime > 10000) {
+      syncProductsFromRTDB().catch(() => {});
     }
     return getUniqueProducts();
   }
 
-  // First cold load: sync from Firestore synchronously
-  await syncProductsFromFirestore();
+  await syncProductsFromRTDB();
   return getUniqueProducts();
 }
 
@@ -102,26 +73,25 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 
   try {
-    const doc = await adminDb.collection("products").doc(id).get();
-    if (doc.exists) {
-      const item = { id: doc.id, ...doc.data() } as Product;
+    const snap = await adminDb.ref(`products/${id}`).get();
+    if (snap.exists()) {
+      const item = snap.val() as Product;
       inMemoryProducts.set(item.id, item);
       return item;
     }
-    const byId = await adminDb.collection("products").where("id", "==", id).limit(1).get();
-    if (!byId.empty) {
-      const item = { id: byId.docs[0].id, ...byId.docs[0].data() } as Product;
-      inMemoryProducts.set(item.id, item);
-      return item;
-    }
-    const bySlug = await adminDb.collection("products").where("slug", "==", id).limit(1).get();
-    if (!bySlug.empty) {
-      const item = { id: bySlug.docs[0].id, ...bySlug.docs[0].data() } as Product;
-      inMemoryProducts.set(item.id, item);
-      return item;
+    // Search by slug if not found by direct ID key
+    const allSnap = await adminDb.ref("products").get();
+    if (allSnap.exists()) {
+      const data = allSnap.val();
+      for (const p of Object.values(data) as Product[]) {
+        if (p && (p.id === id || p.slug === id)) {
+          inMemoryProducts.set(p.id, p);
+          return p;
+        }
+      }
     }
   } catch (err: any) {
-    console.warn("Firestore product lookup notice:", err?.message || err);
+    console.warn("RTDB product lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -135,14 +105,18 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 
   try {
-    const snapshot = await adminDb.collection("products").where("slug", "==", slug).limit(1).get();
-    if (!snapshot.empty) {
-      const item = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Product;
-      inMemoryProducts.set(item.id, item);
-      return item;
+    const allSnap = await adminDb.ref("products").get();
+    if (allSnap.exists()) {
+      const data = allSnap.val();
+      for (const p of Object.values(data) as Product[]) {
+        if (p && ((p.slug && p.slug.toLowerCase() === norm) || (p.id && p.id.toLowerCase() === norm))) {
+          inMemoryProducts.set(p.id, p);
+          return p;
+        }
+      }
     }
   } catch (err: any) {
-    console.warn("Firestore slug lookup notice:", err?.message || err);
+    console.warn("RTDB slug lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -151,9 +125,9 @@ export async function createProduct(product: Product): Promise<void> {
   inMemoryProducts.set(product.id, product);
   try {
     const clean = JSON.parse(JSON.stringify(product));
-    await adminDb.collection("products").doc(product.id).set(clean);
+    await adminDb.ref(`products/${product.id}`).set(clean);
   } catch (err) {
-    console.error("Async Firestore createProduct failed:", err);
+    console.error("RTDB createProduct failed:", err);
   }
 }
 
@@ -164,18 +138,18 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   }
   try {
     const clean = JSON.parse(JSON.stringify(updates));
-    await adminDb.collection("products").doc(id).set(clean, { merge: true });
+    await adminDb.ref(`products/${id}`).update(clean);
   } catch (err) {
-    console.error("Async Firestore updateProduct failed:", err);
+    console.error("RTDB updateProduct failed:", err);
   }
 }
 
 export async function deleteProduct(id: string): Promise<void> {
   inMemoryProducts.delete(id);
   try {
-    await adminDb.collection("products").doc(id).delete();
+    await adminDb.ref(`products/${id}`).remove();
   } catch (err) {
-    console.error("Async Firestore deleteProduct failed:", err);
+    console.error("RTDB deleteProduct failed:", err);
   }
 }
 
@@ -183,33 +157,25 @@ export async function deleteProduct(id: string): Promise<void> {
 let lastOrderSyncTime = 0;
 let isSyncingOrders = false;
 
-async function syncOrdersFromFirestore(): Promise<void> {
+async function syncOrdersFromRTDB(): Promise<void> {
   if (isSyncingOrders) return;
   isSyncingOrders = true;
   try {
-    const snapshot = await adminDb.collection("orders").orderBy("createdAt", "desc").get();
-    if (!snapshot.empty) {
+    const snapshot = await adminDb.ref("orders").get();
+    if (snapshot.exists()) {
+      const data = snapshot.val();
       inMemoryOrders.clear();
-      snapshot.docs.forEach((doc) => {
-        const item = { id: doc.id, ...doc.data() } as Order;
-        inMemoryOrders.set(item.id, item);
-      });
+      if (data && typeof data === "object") {
+        Object.values(data).forEach((item: any) => {
+          if (item && item.id) {
+            inMemoryOrders.set(item.id, item as Order);
+          }
+        });
+      }
       lastOrderSyncTime = Date.now();
     }
-  } catch {
-    try {
-      const snapshot = await adminDb.collection("orders").get();
-      if (!snapshot.empty) {
-        inMemoryOrders.clear();
-        snapshot.docs.forEach((doc) => {
-          const item = { id: doc.id, ...doc.data() } as Order;
-          inMemoryOrders.set(item.id, item);
-        });
-        lastOrderSyncTime = Date.now();
-      }
-    } catch (e) {
-      console.warn("Background Firestore orders sync notice:", e);
-    }
+  } catch (err: any) {
+    console.warn("Background RTDB orders sync notice:", err?.message || err);
   } finally {
     isSyncingOrders = false;
   }
@@ -218,12 +184,12 @@ async function syncOrdersFromFirestore(): Promise<void> {
 export async function getOrders(): Promise<Order[]> {
   if (inMemoryOrders.size > 0) {
     if (Date.now() - lastOrderSyncTime > 10000) {
-      syncOrdersFromFirestore().catch(() => {});
+      syncOrdersFromRTDB().catch(() => {});
     }
     return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   }
 
-  await syncOrdersFromFirestore();
+  await syncOrdersFromRTDB();
   return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
@@ -232,14 +198,14 @@ export async function getOrderById(id: string): Promise<Order | null> {
     return inMemoryOrders.get(id)!;
   }
   try {
-    const doc = await adminDb.collection("orders").doc(id).get();
-    if (doc.exists) {
-      const item = { id: doc.id, ...doc.data() } as Order;
+    const snap = await adminDb.ref(`orders/${id}`).get();
+    if (snap.exists()) {
+      const item = snap.val() as Order;
       inMemoryOrders.set(item.id, item);
       return item;
     }
   } catch (err: any) {
-    console.warn("Firestore order lookup notice:", err?.message || err);
+    console.warn("RTDB order lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -248,9 +214,9 @@ export async function createOrder(order: Order): Promise<void> {
   inMemoryOrders.set(order.id, order);
   try {
     const clean = JSON.parse(JSON.stringify(order));
-    await adminDb.collection("orders").doc(order.id).set(clean);
+    await adminDb.ref(`orders/${order.id}`).set(clean);
   } catch (err) {
-    console.error("Async Firestore createOrder failed:", err);
+    console.error("RTDB createOrder failed:", err);
   }
 }
 
@@ -261,9 +227,9 @@ export async function updateOrder(id: string, updates: Partial<Order>): Promise<
   }
   try {
     const clean = JSON.parse(JSON.stringify(updates));
-    await adminDb.collection("orders").doc(id).update(clean);
+    await adminDb.ref(`orders/${id}`).update(clean);
   } catch (err) {
-    console.error("Async Firestore updateOrder failed:", err);
+    console.error("RTDB updateOrder failed:", err);
   }
 }
 
@@ -272,46 +238,61 @@ export async function getUserOrders(email: string): Promise<Order[]> {
     .filter((o) => o.customerEmail?.toLowerCase() === email.toLowerCase())
     .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
+  if (matches.length > 0) return matches;
+
   try {
-    const snapshot = await adminDb.collection("orders").where("customerEmail", "==", email).get();
-    if (!snapshot.empty) {
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Order)).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    const snapshot = await adminDb.ref("orders").get();
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const all = Object.values(data) as Order[];
+      return all
+        .filter((o) => o && o.customerEmail?.toLowerCase() === email.toLowerCase())
+        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     }
   } catch (e) {
-    console.warn("Firestore user orders lookup notice:", e);
+    console.warn("RTDB user orders lookup notice:", e);
   }
   return matches;
 }
 
 // ─── Promotions ───────────────────────────────────────────
+let lastPromoSyncTime = 0;
+let isSyncingPromotions = false;
+
+async function syncPromotionsFromRTDB(): Promise<void> {
+  if (isSyncingPromotions) return;
+  isSyncingPromotions = true;
+  try {
+    const snapshot = await adminDb.ref("promotions").get();
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      inMemoryPromotions.clear();
+      if (data && typeof data === "object") {
+        Object.values(data).forEach((item: any) => {
+          if (item && item.id) {
+            inMemoryPromotions.set(item.id, item as Promotion);
+          }
+        });
+      }
+      lastPromoSyncTime = Date.now();
+    }
+  } catch (err: any) {
+    console.warn("Background RTDB promotions sync notice:", err?.message || err);
+  } finally {
+    isSyncingPromotions = false;
+  }
+}
+
 export async function getPromotions(): Promise<Promotion[]> {
   if (inMemoryPromotions.size > 0) {
-    return Array.from(inMemoryPromotions.values());
-  }
-  try {
-    const snapshot = await adminDb.collection("promotions").orderBy("createdAt", "desc").get();
-    if (!snapshot.empty) {
-      snapshot.docs.forEach((doc) => {
-        const item = { id: doc.id, ...doc.data() } as Promotion;
-        inMemoryPromotions.set(item.id, item);
-      });
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Promotion));
+    if (Date.now() - lastPromoSyncTime > 10000) {
+      syncPromotionsFromRTDB().catch(() => {});
     }
-  } catch {
-    try {
-      const snapshot = await adminDb.collection("promotions").get();
-      if (!snapshot.empty) {
-        snapshot.docs.forEach((doc) => {
-          const item = { id: doc.id, ...doc.data() } as Promotion;
-          inMemoryPromotions.set(item.id, item);
-        });
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Promotion));
-      }
-    } catch (e) {
-      console.warn("Firestore promotions read notice:", e);
-    }
+    return Array.from(inMemoryPromotions.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   }
-  return Array.from(inMemoryPromotions.values());
+
+  await syncPromotionsFromRTDB();
+  return Array.from(inMemoryPromotions.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 export async function getPromotionById(id: string): Promise<Promotion | null> {
@@ -319,14 +300,14 @@ export async function getPromotionById(id: string): Promise<Promotion | null> {
     return inMemoryPromotions.get(id)!;
   }
   try {
-    const doc = await adminDb.collection("promotions").doc(id).get();
-    if (doc.exists) {
-      const item = { id: doc.id, ...doc.data() } as Promotion;
+    const snap = await adminDb.ref(`promotions/${id}`).get();
+    if (snap.exists()) {
+      const item = snap.val() as Promotion;
       inMemoryPromotions.set(item.id, item);
       return item;
     }
   } catch (err: any) {
-    console.warn("Firestore promotion lookup notice:", err?.message || err);
+    console.warn("RTDB promotion lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -335,9 +316,9 @@ export async function createPromotion(promo: Promotion): Promise<void> {
   inMemoryPromotions.set(promo.id, promo);
   try {
     const clean = JSON.parse(JSON.stringify(promo));
-    await adminDb.collection("promotions").doc(promo.id).set(clean);
+    await adminDb.ref(`promotions/${promo.id}`).set(clean);
   } catch (err) {
-    console.error("Async Firestore createPromotion failed:", err);
+    console.error("RTDB createPromotion failed:", err);
   }
 }
 
@@ -348,18 +329,18 @@ export async function updatePromotion(id: string, updates: Partial<Promotion>): 
   }
   try {
     const clean = JSON.parse(JSON.stringify(updates));
-    await adminDb.collection("promotions").doc(id).update(clean);
+    await adminDb.ref(`promotions/${id}`).update(clean);
   } catch (err) {
-    console.error("Async Firestore updatePromotion failed:", err);
+    console.error("RTDB updatePromotion failed:", err);
   }
 }
 
 export async function deletePromotion(id: string): Promise<void> {
   inMemoryPromotions.delete(id);
   try {
-    await adminDb.collection("promotions").doc(id).delete();
+    await adminDb.ref(`promotions/${id}`).remove();
   } catch (err) {
-    console.error("Async Firestore deletePromotion failed:", err);
+    console.error("RTDB deletePromotion failed:", err);
   }
 }
 
@@ -371,23 +352,30 @@ let cachedSettings: StoreSettings = {
   currency: "NGN",
   paymentGateway: (process.env.PAYMENT_GATEWAY as any) || "flutterwave",
 };
+let lastSettingsSyncTime = 0;
 
 export async function getSettings(): Promise<StoreSettings> {
+  if (Date.now() - lastSettingsSyncTime < 15000) {
+    return cachedSettings;
+  }
   try {
-    const doc = await adminDb.collection("settings").doc("store").get();
-    if (doc.exists) {
-      const data = doc.data() as Partial<StoreSettings>;
+    const snap = await adminDb.ref("settings/store").get();
+    if (snap.exists()) {
+      const data = snap.val() as Partial<StoreSettings>;
       cachedSettings = {
         ...cachedSettings,
         ...data,
         paymentGateway: data.paymentGateway || cachedSettings.paymentGateway || "flutterwave",
       };
+      lastSettingsSyncTime = Date.now();
       return cachedSettings;
     }
-    await adminDb.collection("settings").doc("store").set(cachedSettings).catch(() => {});
+    // Initialize default if absent
+    await adminDb.ref("settings/store").set(cachedSettings).catch(() => {});
+    lastSettingsSyncTime = Date.now();
     return cachedSettings;
   } catch (e) {
-    console.warn("Firestore settings read notice (serving defaults):", e);
+    console.warn("RTDB settings read notice (serving cached defaults):", e);
     return cachedSettings;
   }
 }
@@ -398,11 +386,11 @@ export async function updateSettings(updates: Partial<StoreSettings>): Promise<S
     ...cachedSettings,
     ...clean,
   };
+  lastSettingsSyncTime = Date.now();
   try {
-    await adminDb.collection("settings").doc("store").set(clean, { merge: true });
+    await adminDb.ref("settings/store").update(clean);
   } catch (e) {
-    console.warn("Async Firestore updateSettings notice:", e);
+    console.warn("RTDB updateSettings notice:", e);
   }
   return cachedSettings;
 }
-

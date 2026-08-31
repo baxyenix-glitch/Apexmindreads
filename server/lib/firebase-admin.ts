@@ -1,8 +1,12 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getDatabase } from "firebase-admin/database";
 import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
+
+const RTDB_URL = "https://apexmindreads-default-rtdb.firebaseio.com";
+const PROJECT_ID = "apexmindreads";
 
 function parseServiceAccount(raw: string): any {
   if (!raw) return null;
@@ -55,21 +59,19 @@ if (!getApps().length) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
     }
     initializeApp({
-      credential: cert(serviceAccount)
+      credential: cert(serviceAccount),
+      databaseURL: RTDB_URL,
+      projectId: serviceAccount.project_id || PROJECT_ID,
     });
   } else {
     initializeApp({
-      projectId: "apexmind-a81d0"
+      projectId: PROJECT_ID,
+      databaseURL: RTDB_URL,
     });
   }
 }
 
 export const adminAuth = getAuth();
-export const adminDb = getFirestore();
-
-try {
-  adminDb.settings({ ignoreUndefinedProperties: true });
-} catch {
-  // Already initialized
-}
+export const adminDb = getDatabase();
+export const adminFirestore = getFirestore();
 

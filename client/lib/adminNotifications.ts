@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { formatCurrency, type Currency } from "@/lib/currency";
 import { adminAuthHeaders } from "@/lib/admin-auth";
+import { rtdb } from "@/lib/firebase";
+import { ref as rtdbRef, onChildAdded, limitToLast, query as rtdbQuery } from "firebase/database";
 import type { Order, OrderListResponse } from "@shared/api";
 import { toast } from "sonner";
 
@@ -483,7 +485,32 @@ export function useOrderLiveAlerts(currency: Currency) {
       navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
     }
 
-    // 1. Continuous Authenticated REST Polling Stream
+    // 1. Firebase Realtime Database Native WebSocket Listener
+    let unsubscribeRtdb: (() => void) | null = null;
+    try {
+      const ordersRef = rtdbQuery(rtdbRef(rtdb, "orders"), limitToLast(20));
+      let isFirstRtdbBatch = true;
+      const rtdbUnsub = onChildAdded(ordersRef, (snapshot) => {
+        const order = snapshot.val() as Order;
+        if (!order || !order.id) return;
+        
+        if (isFirstRtdbBatch) {
+          notifiedOrderIds.add(order.id);
+          return;
+        }
+
+        if (markOrderAsNotified(order.id)) {
+          triggerOrderAlert(order, currencyRef.current);
+        }
+      });
+      // After first batch load (2s), all new items trigger real-time alerts
+      setTimeout(() => { isFirstRtdbBatch = false; }, 2000);
+      unsubscribeRtdb = () => rtdbUnsub();
+    } catch (e) {
+      console.warn("RTDB live orders listener notice:", e);
+    }
+
+    // 2. Continuous Authenticated REST Polling Stream Backup
     const checkOrdersViaApi = async () => {
       try {
         const headers = await adminAuthHeaders();
@@ -513,10 +540,11 @@ export function useOrderLiveAlerts(currency: Currency) {
     };
 
     checkOrdersViaApi();
-    const interval = setInterval(checkOrdersViaApi, 4000);
+    const interval = setInterval(checkOrdersViaApi, 3000);
 
     return () => {
       clearInterval(interval);
+      if (unsubscribeRtdb) unsubscribeRtdb();
       if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
         navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
       }

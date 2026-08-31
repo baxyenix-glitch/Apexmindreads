@@ -52,7 +52,7 @@ export const handleUploadPdfInit: RequestHandler = async (req, res) => {
       return;
     }
     const fileId = `ebook_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    await adminDb.collection("ebook_files").doc(fileId).set({
+    await adminDb.ref(`ebook_files/${fileId}`).set({
       fileName,
       fileSize: Number(fileSize),
       totalChunks: Number(totalChunks),
@@ -68,7 +68,7 @@ export const handleUploadPdfInit: RequestHandler = async (req, res) => {
 
 /**
  * POST /api/admin/upload-pdf-chunk — admin only
- * Receives and stores a single chunk (< 1MB) safely into Firestore
+ * Receives and stores a single chunk (< 1MB) safely into Realtime Database
  */
 export const handleUploadPdfChunk: RequestHandler = async (req, res) => {
   try {
@@ -77,15 +77,10 @@ export const handleUploadPdfChunk: RequestHandler = async (req, res) => {
       res.status(400).json({ error: "Missing fileId, chunkIndex, or chunk data" });
       return;
     }
-    await adminDb
-      .collection("ebook_files")
-      .doc(fileId)
-      .collection("chunks")
-      .doc(String(chunkIndex).padStart(4, "0"))
-      .set({
-        index: Number(chunkIndex),
-        data: String(data),
-      });
+    await adminDb.ref(`ebook_files/${fileId}/chunks/${String(chunkIndex).padStart(4, "0")}`).set({
+      index: Number(chunkIndex),
+      data: String(data),
+    });
     res.json({ success: true, chunkIndex });
   } catch (err: any) {
     console.error("PDF chunk error:", err);
@@ -104,14 +99,13 @@ export const handleUploadPdfComplete: RequestHandler = async (req, res) => {
       res.status(400).json({ error: "Missing fileId" });
       return;
     }
-    const docRef = adminDb.collection("ebook_files").doc(fileId);
-    const doc = await docRef.get();
-    if (!doc.exists) {
+    const snap = await adminDb.ref(`ebook_files/${fileId}`).get();
+    if (!snap.exists()) {
       res.status(404).json({ error: "File record not found" });
       return;
     }
-    const meta = doc.data()!;
-    await docRef.update({ status: "ready" });
+    const meta = snap.val();
+    await adminDb.ref(`ebook_files/${fileId}`).update({ status: "ready" });
 
     const url = `/api/ebooks/${fileId}.pdf`;
     res.json({
@@ -142,12 +136,12 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
     const fileSize = req.file.size;
     const fileId = `ebook_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    // Split file into 700KB chunks
-    const CHUNK_SIZE = 700 * 1024;
+    // Split file into 500KB chunks
+    const CHUNK_SIZE = 500 * 1024;
     const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
 
     // Save metadata
-    await adminDb.collection("ebook_files").doc(fileId).set({
+    await adminDb.ref(`ebook_files/${fileId}`).set({
       fileName,
       fileSize,
       totalChunks,
@@ -162,7 +156,7 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
       const chunkSlice = fileBuffer.subarray(start, end);
       const chunkBase64 = chunkSlice.toString("base64");
 
-      await adminDb.collection("ebook_files").doc(fileId).collection("chunks").doc(String(i).padStart(4, "0")).set({
+      await adminDb.ref(`ebook_files/${fileId}/chunks/${String(i).padStart(4, "0")}`).set({
         index: i,
         data: chunkBase64,
       });
@@ -190,30 +184,28 @@ export const handleGetEbookFile: RequestHandler = async (req, res) => {
   const fileId = rawId.replace(/\.pdf$/i, "");
   
   try {
-    const metaDoc = await adminDb.collection("ebook_files").doc(fileId).get();
-    if (!metaDoc.exists) {
+    const snap = await adminDb.ref(`ebook_files/${fileId}`).get();
+    if (!snap.exists()) {
       res.status(404).send("PDF file not found");
       return;
     }
 
-    const meta = metaDoc.data()!;
-    const chunksSnapshot = await adminDb
-      .collection("ebook_files")
-      .doc(fileId)
-      .collection("chunks")
-      .orderBy("index", "asc")
-      .get();
-
-    if (chunksSnapshot.empty) {
+    const meta = snap.val();
+    const chunksObj = meta.chunks || {};
+    const chunkValues = Object.values(chunksObj) as { index: number; data: string }[];
+    
+    if (chunkValues.length === 0) {
       res.status(404).send("PDF content not found");
       return;
     }
 
+    // Sort by chunk index
+    chunkValues.sort((a, b) => a.index - b.index);
+
     const chunkBuffers: Buffer[] = [];
-    for (const doc of chunksSnapshot.docs) {
-      const dataBase64 = doc.data().data;
-      if (dataBase64) {
-        chunkBuffers.push(Buffer.from(dataBase64, "base64"));
+    for (const c of chunkValues) {
+      if (c.data) {
+        chunkBuffers.push(Buffer.from(c.data, "base64"));
       }
     }
 

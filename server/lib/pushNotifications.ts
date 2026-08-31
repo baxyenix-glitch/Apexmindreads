@@ -25,16 +25,16 @@ export interface PushSubscriptionData {
 }
 
 /**
- * Save a push subscription to Firestore
+ * Save a push subscription to Realtime Database
  */
 export async function savePushSubscription(sub: PushSubscriptionData): Promise<void> {
   if (!sub || !sub.endpoint) return;
   try {
     const docId = Buffer.from(sub.endpoint).toString("base64url").slice(0, 100);
-    await adminDb.collection("admin_push_subscriptions").doc(docId).set({
+    await adminDb.ref(`admin_push_subscriptions/${docId}`).set({
       ...sub,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    });
   } catch (err) {
     console.error("Failed to save push subscription:", err);
   }
@@ -47,19 +47,23 @@ export async function removePushSubscription(endpoint: string): Promise<void> {
   if (!endpoint) return;
   try {
     const docId = Buffer.from(endpoint).toString("base64url").slice(0, 100);
-    await adminDb.collection("admin_push_subscriptions").doc(docId).delete();
+    await adminDb.ref(`admin_push_subscriptions/${docId}`).remove();
   } catch (err) {
     console.error("Failed to remove push subscription:", err);
   }
 }
 
 /**
- * Fetch all active admin push subscriptions from Firestore
+ * Fetch all active admin push subscriptions from Realtime Database
  */
 export async function getPushSubscriptions(): Promise<PushSubscriptionData[]> {
   try {
-    const snapshot = await adminDb.collection("admin_push_subscriptions").get();
-    return snapshot.docs.map((doc) => doc.data() as PushSubscriptionData);
+    const snapshot = await adminDb.ref("admin_push_subscriptions").get();
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      return Object.values(data) as PushSubscriptionData[];
+    }
+    return [];
   } catch (err) {
     console.error("Failed to get push subscriptions:", err);
     return [];

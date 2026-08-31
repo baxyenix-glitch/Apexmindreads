@@ -1921,34 +1921,44 @@ function AnalyticsSection({ currency }: { currency: Currency }) {
 // ═══════════════════════════════════════════════════════════
 // PROMOTIONS SECTION
 // ═══════════════════════════════════════════════════════════
+let cachedPromotionsList: Promotion[] = [];
+
 function PromotionsSection() {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [promotions, setPromotions] = useState<Promotion[]>(cachedPromotionsList);
+  const [loading, setLoading] = useState(cachedPromotionsList.length === 0);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editPromo, setEditPromo] = useState<Promotion | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent && cachedPromotionsList.length === 0) setLoading(true);
     try {
       const data = await apiFetch<PromotionListResponse>("/api/admin/promotions");
+      cachedPromotionsList = data.promotions;
       setPromotions(data.promotions);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      if (cachedPromotionsList.length === 0) setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(cachedPromotionsList.length > 0); }, [load]);
 
   const deletePromo = async (id: string) => {
     if (!confirm("Delete this promotion campaign?")) return;
     try {
       await apiFetch(`/api/admin/promotions/${id}`, { method: "DELETE" });
-      setPromotions((prev) => prev.filter((p) => p.id !== id));
+      setPromotions((prev) => {
+        const next = prev.filter((p) => p.id !== id);
+        cachedPromotionsList = next;
+        return next;
+      });
     } catch (e: any) { alert(e.message); }
   };
 
-  if (loading) return <LoadingBlock />;
-  if (error) return <ErrorBlock message={error} onRetry={load} />;
+  if (loading && promotions.length === 0) return <LoadingBlock />;
+  if (error && promotions.length === 0) return <ErrorBlock message={error} onRetry={() => load(false)} />;
 
   if (showForm || editPromo) {
     return (
@@ -2085,15 +2095,29 @@ interface SettingsSectionProps {
   testNotification: () => void;
 }
 
+let cachedSettingsData: StoreSettings = {
+  storeName: "ApexMindReads",
+  supportEmail: "support@apexmindreads.com",
+  downloadMode: "instant",
+  currency: "NGN",
+  paymentGateway: "flutterwave",
+};
+try {
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("apexmind_cached_settings");
+    if (local) cachedSettingsData = { ...cachedSettingsData, ...JSON.parse(local) };
+  }
+} catch {}
+
 function SettingsSection({ notifEnabled, toggleNotifications, testNotification }: SettingsSectionProps) {
-  const [settings, setSettings] = useState<StoreSettings | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<StoreSettings>(cachedSettingsData);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [storeName, setStoreName] = useState("");
-  const [supportEmail, setSupportEmail] = useState("");
-  const [downloadMode, setDownloadMode] = useState<"instant" | "email">("instant");
-  const [storeCurrency, setStoreCurrency] = useState<Currency>("NGN");
-  const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>("paystack");
+  const [storeName, setStoreName] = useState(cachedSettingsData.storeName);
+  const [supportEmail, setSupportEmail] = useState(cachedSettingsData.supportEmail);
+  const [downloadMode, setDownloadMode] = useState<"instant" | "email">((cachedSettingsData.downloadMode as any) || "instant");
+  const [storeCurrency, setStoreCurrency] = useState<Currency>((cachedSettingsData.currency as Currency) || "NGN");
+  const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>((cachedSettingsData.paymentGateway as PaymentGateway) || "paystack");
 
   // Credentials update state
   const [adminEmail, setAdminEmail] = useState("");
@@ -2105,15 +2129,21 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
   useEffect(() => {
     apiFetch<SettingsResponse>("/api/admin/settings")
       .then((data) => {
-        setSettings(data.settings);
-        setStoreName(data.settings.storeName);
-        setSupportEmail(data.settings.supportEmail);
-        setDownloadMode(data.settings.downloadMode);
-        setStoreCurrency((data.settings.currency as Currency) || "NGN");
-        const gw = (data.settings.paymentGateway as PaymentGateway) || (localStorage.getItem("apexmind_payment_gateway") as PaymentGateway) || "paystack";
-        setPaymentGateway(gw);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("apexmind_payment_gateway", gw);
+        if (data && data.settings) {
+          cachedSettingsData = { ...cachedSettingsData, ...data.settings };
+          try {
+            localStorage.setItem("apexmind_cached_settings", JSON.stringify(data.settings));
+          } catch {}
+          setSettings(data.settings);
+          setStoreName(data.settings.storeName);
+          setSupportEmail(data.settings.supportEmail);
+          setDownloadMode(data.settings.downloadMode);
+          setStoreCurrency((data.settings.currency as Currency) || "NGN");
+          const gw = (data.settings.paymentGateway as PaymentGateway) || (localStorage.getItem("apexmind_payment_gateway") as PaymentGateway) || "paystack";
+          setPaymentGateway(gw);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("apexmind_payment_gateway", gw);
+          }
         }
       })
       .catch(() => {
@@ -2121,8 +2151,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
           const storedGw = localStorage.getItem("apexmind_payment_gateway") as PaymentGateway;
           if (storedGw) setPaymentGateway(storedGw);
         }
-      })
-      .finally(() => setLoading(false));
+      });
   }, []);
 
   const save = async (customGateway?: PaymentGateway) => {

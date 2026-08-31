@@ -54,21 +54,17 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
     }
 
     if (fileId) {
-      const metaDoc = await adminDb.collection("ebook_files").doc(fileId).get();
-      if (metaDoc.exists) {
-        const chunksSnapshot = await adminDb
-          .collection("ebook_files")
-          .doc(fileId)
-          .collection("chunks")
-          .orderBy("index", "asc")
-          .get();
-
-        if (!chunksSnapshot.empty) {
+      const snap = await adminDb.ref(`ebook_files/${fileId}`).get();
+      if (snap.exists()) {
+        const meta = snap.val();
+        const chunksObj = meta.chunks || {};
+        const chunkValues = Object.values(chunksObj) as { index: number; data: string }[];
+        if (chunkValues.length > 0) {
+          chunkValues.sort((a, b) => a.index - b.index);
           const chunkBuffers: Buffer[] = [];
-          for (const doc of chunksSnapshot.docs) {
-            const dataBase64 = doc.data().data;
-            if (dataBase64) {
-              chunkBuffers.push(Buffer.from(dataBase64, "base64"));
+          for (const c of chunkValues) {
+            if (c.data) {
+              chunkBuffers.push(Buffer.from(c.data, "base64"));
             }
           }
           const fullPdfBuffer = Buffer.concat(chunkBuffers);
