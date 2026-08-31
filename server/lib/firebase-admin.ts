@@ -6,21 +6,25 @@ import path from "path";
 
 function parseServiceAccount(raw: string): any {
   if (!raw) return null;
+  const trimmed = raw.trim();
   // 1. Direct JSON parse
   try {
-    return JSON.parse(raw);
+    return JSON.parse(trimmed);
   } catch {}
 
-  // 2. Base64 decoded JSON parse
+  // 2. Base64 decoded JSON parse (handles surrounding quotes, spaces, etc.)
   try {
-    const decoded = Buffer.from(raw, "base64").toString("utf-8");
-    return JSON.parse(decoded);
+    const unquoted = trimmed.replace(/^["']|["']$/g, "").trim();
+    const decoded = Buffer.from(unquoted, "base64").toString("utf-8");
+    if (decoded.includes("private_key") || decoded.includes("project_id")) {
+      return JSON.parse(decoded);
+    }
   } catch {}
 
   // 3. Normalized string parse
   try {
-    const sanitized = raw.trim();
-    return JSON.parse(sanitized);
+    const unquoted = trimmed.replace(/^["']|["']$/g, "").trim();
+    return JSON.parse(unquoted.replace(/\\n/g, "\n"));
   } catch (e) {
     console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT env variable:", e);
     return null;
