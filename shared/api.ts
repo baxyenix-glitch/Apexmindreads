@@ -2,9 +2,9 @@
  * Shared API types between client and server.
  */
 
-import type { Product, Order, CustomerView, Promotion, StoreSettings } from "./schema";
+import type { Product, Order, CustomerView, Promotion, StoreSettings, PaymentGateway } from "./schema";
 
-export type { Product, Order, CustomerView, Promotion, StoreSettings };
+export type { Product, Order, CustomerView, Promotion, StoreSettings, PaymentGateway };
 
 // ─── Auth ────────────────────────────────────────────────
 export interface AuthResponse {
@@ -56,6 +56,25 @@ export interface PaystackVerifyResponse {
   downloadUrls?: { productId: string; title: string; downloadUrl: string }[];
 }
 
+// ─── Flutterwave ─────────────────────────────────────────
+export interface FlutterwaveInitResponse {
+  link: string;
+  tx_ref: string;
+  amount: number;
+  currency: string;
+  publicKey: string;
+  customer: {
+    email: string;
+    name: string;
+  };
+}
+
+export interface FlutterwaveVerifyResponse {
+  ok: boolean;
+  order: Order;
+  downloadUrls?: { productId: string; title: string; downloadUrl: string }[];
+}
+
 // ─── Customers ───────────────────────────────────────────
 export interface CustomerListResponse {
   customers: CustomerView[];
@@ -86,6 +105,16 @@ export interface AnalyticsResponse {
 // ─── Settings ────────────────────────────────────────────
 export interface SettingsResponse {
   settings: StoreSettings;
+}
+
+export interface PublicStoreConfigResponse {
+  storeName: string;
+  supportEmail: string;
+  downloadMode: "instant" | "email";
+  currency: string;
+  paymentGateway: PaymentGateway;
+  paystackPublicKey?: string;
+  flutterwavePublicKey?: string;
 }
 
 // ─── Generic ─────────────────────────────────────────────

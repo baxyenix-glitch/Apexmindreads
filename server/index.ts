@@ -8,7 +8,7 @@ import { handleListOrders, handleGetOrder, handleUpdateOrderStatus, handleCreate
 import { handleListCustomers } from "./routes/customers.js";
 import { handleListPromotions, handleCreatePromotion, handleUpdatePromotion, handleDeletePromotion } from "./routes/promotions.js";
 import { handleAnalytics } from "./routes/analytics.js";
-import { handleGetSettings, handleUpdateSettings } from "./routes/settings.js";
+import { handleGetSettings, handleUpdateSettings, handleGetPublicStoreConfig } from "./routes/settings.js";
 import { 
   handleUploadImage, 
   handleUploadPdf, 
@@ -21,6 +21,7 @@ import {
 } from "./routes/upload.js";
 import { handleUpdateCredentials } from "./routes/admin.js";
 import { handleInitializePaystack, handleVerifyPaystack } from "./routes/paystack.js";
+import { handleInitializeFlutterwave, handleVerifyFlutterwave } from "./routes/flutterwave.js";
 import { handleDownloadGuide } from "./routes/downloads.js";
 import { 
   handleGetVapidPublicKey, 
@@ -49,14 +50,18 @@ export function createServer() {
   });
   router.get("/demo", handleDemo);
 
-  // ─── Public product routes ─────────────────────────────
+  // ─── Public product & store config routes ───────────────
   router.get("/products", handleListProducts);
   router.get("/products/:slug", handleGetProduct);
+  router.get("/store/config", handleGetPublicStoreConfig);
+  router.get("/public-settings", handleGetPublicStoreConfig);
 
   // ─── Public order & payment routes ─────────────────────
   router.post("/orders", handleCreateOrder);
   router.post("/paystack/initialize", handleInitializePaystack);
   router.post("/paystack/verify", handleVerifyPaystack);
+  router.post("/flutterwave/initialize", handleInitializeFlutterwave);
+  router.post("/flutterwave/verify", handleVerifyFlutterwave);
   router.get("/orders/:orderId/download/:productId", handleDownloadGuide);
   router.get("/ebooks/:fileId", handleGetEbookFile);
   router.post("/test-upload", upload.single("image"), handleUploadImage);

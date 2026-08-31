@@ -12,6 +12,24 @@ export const handleGetSettings: RequestHandler = async (_req, res) => {
   }
 };
 
+/** GET /api/store/config — Public store settings & active gateway info */
+export const handleGetPublicStoreConfig: RequestHandler = async (_req, res) => {
+  try {
+    const settings = await getSettings();
+    res.json({
+      storeName: settings.storeName,
+      supportEmail: settings.supportEmail,
+      downloadMode: settings.downloadMode,
+      currency: settings.currency,
+      paymentGateway: settings.paymentGateway || "paystack",
+      paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || "",
+      flutterwavePublicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || process.env.VITE_FLUTTERWAVE_PUBLIC_KEY || "",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch store configuration" });
+  }
+};
+
 /** PUT /api/admin/settings */
 export const handleUpdateSettings: RequestHandler = async (req, res) => {
   const parsed = UpdateSettingsInputSchema.safeParse(req.body);

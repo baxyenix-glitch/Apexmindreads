@@ -7,15 +7,26 @@ import { formatCurrency, useCurrency } from "@/lib/currency";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { authHeaders } from "@/lib/firebase";
-import type { Order, OrderResponse, PaystackInitResponse, PaystackVerifyResponse } from "@shared/api";
+import type { 
+  Order, 
+  OrderResponse, 
+  PaystackInitResponse, 
+  PaystackVerifyResponse,
+  FlutterwaveInitResponse,
+  FlutterwaveVerifyResponse,
+  PublicStoreConfigResponse,
+  PaymentGateway
+} from "@shared/api";
 
 declare global {
   interface Window {
     PaystackPop?: any;
+    FlutterwaveCheckout?: any;
   }
 }
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_59aa3a5df5556d85bf2d983a952d26b4b36f1678";
+const FLUTTERWAVE_PUBLIC_KEY = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK-d8262581bc1777745d463d8dbbbccc5d-X";
 
 const GLOBAL_COUNTRIES = [
   { code: "NG", name: "Nigeria (NG)" },
@@ -65,6 +76,22 @@ export default function Checkout() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [country, setCountry] = useState(() => detectedCountry || "NG");
+  const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>("paystack");
+  const [flwPubKey, setFlwPubKey] = useState(FLUTTERWAVE_PUBLIC_KEY);
+
+  useEffect(() => {
+    fetch("/api/store/config")
+      .then((res) => res.json())
+      .then((data: PublicStoreConfigResponse) => {
+        if (data.paymentGateway) {
+          setPaymentGateway(data.paymentGateway);
+        }
+        if (data.flutterwavePublicKey) {
+          setFlwPubKey(data.flutterwavePublicKey);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (detectedCountry) {
@@ -80,15 +107,26 @@ export default function Checkout() {
     }
   }, [user]);
 
-  // Check if returning from Paystack redirect (e.g. ?reference=...)
+  // Check if returning from redirect (Paystack ?reference=... or Flutterwave ?gateway=flutterwave...)
   useEffect(() => {
+    const gatewayParam = searchParams.get("gateway");
+    const flwTxRef = searchParams.get("tx_ref");
+    const flwTxId = searchParams.get("transaction_id");
+    const flwStatus = searchParams.get("status");
+    const orderIdParam = searchParams.get("orderId");
+
+    if (gatewayParam === "flutterwave" || (flwTxRef && flwStatus)) {
+      verifyFlutterwaveTransaction(flwTxId || undefined, flwTxRef || undefined, orderIdParam || undefined);
+      return;
+    }
+
     const reference = searchParams.get("reference") || searchParams.get("trxref");
     if (reference) {
-      verifyTransaction(reference);
+      verifyPaystackTransaction(reference);
     }
   }, [searchParams]);
 
-  const verifyTransaction = async (reference: string, orderId?: string) => {
+  const verifyPaystackTransaction = async (reference: string, orderId?: string) => {
     setVerifying(true);
     setError("");
     try {
@@ -101,6 +139,33 @@ export default function Checkout() {
       const data: PaystackVerifyResponse = await res.json();
       if (!res.ok || !data.ok) {
         throw new Error((data as any).error || "Payment verification failed");
+      }
+
+      setCompletedOrder(data.order);
+      setDownloadLinks(data.downloadUrls || []);
+      setSubmitted(true);
+      clearCart();
+    } catch (err: any) {
+      setError(err.message || "Failed to verify transaction. Please contact support.");
+    } finally {
+      setVerifying(false);
+      setSubmitting(false);
+    }
+  };
+
+  const verifyFlutterwaveTransaction = async (transaction_id?: string, tx_ref?: string, orderId?: string) => {
+    setVerifying(true);
+    setError("");
+    try {
+      const res = await fetch("/api/flutterwave/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transaction_id, tx_ref, orderId }),
+      });
+
+      const data: FlutterwaveVerifyResponse = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error((data as any).error || "Flutterwave payment verification failed");
       }
 
       setCompletedOrder(data.order);
@@ -158,7 +223,72 @@ export default function Checkout() {
       const orderData: OrderResponse = await orderRes.json();
       const orderId = orderData.order.id;
 
-      // Step 2: Initialize Paystack transaction with global currency support
+      // ─── Step 2: Route to Active Payment Gateway ────────────
+      if (paymentGateway === "flutterwave") {
+        // Initialize Flutterwave
+        const flwInitRes = await fetch("/api/flutterwave/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId,
+            email: customerEmail,
+            customerName,
+            amount: subtotal,
+            currency: currency,
+            callbackUrl: `${window.location.origin}/checkout?gateway=flutterwave&orderId=${orderId}`,
+          }),
+        });
+
+        const initData: FlutterwaveInitResponse = await flwInitRes.json();
+
+        if (!flwInitRes.ok) {
+          throw new Error((initData as any).error || "Could not start Flutterwave transaction");
+        }
+
+        // Trigger Flutterwave Inline Modal
+        if (typeof window !== "undefined" && typeof window.FlutterwaveCheckout === "function") {
+          try {
+            window.FlutterwaveCheckout({
+              public_key: initData.publicKey || flwPubKey,
+              tx_ref: initData.tx_ref,
+              amount: initData.amount,
+              currency: initData.currency,
+              payment_options: "card,mobilemoney,ussd,banktransfer",
+              customer: {
+                email: customerEmail,
+                name: customerName,
+              },
+              customizations: {
+                title: "ApexMindReads",
+                description: `Order ${orderId}`,
+                logo: `${window.location.origin}/logo.png`,
+              },
+              callback: function (data: any) {
+                verifyFlutterwaveTransaction(
+                  data.transaction_id ? String(data.transaction_id) : undefined, 
+                  data.tx_ref || initData.tx_ref, 
+                  orderId
+                );
+              },
+              onclose: function () {
+                setSubmitting(false);
+              },
+            });
+            return;
+          } catch (flwErr) {
+            console.warn("Flutterwave inline error, falling back to redirect:", flwErr);
+          }
+        }
+
+        if (initData.link) {
+          window.location.href = initData.link;
+        } else {
+          throw new Error("Unable to open Flutterwave checkout. Please try again.");
+        }
+        return;
+      }
+
+      // Default: Paystack
       const paystackInitRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +307,7 @@ export default function Checkout() {
         throw new Error((initData as any).error || "Could not start Paystack transaction");
       }
 
-      // Step 3: Trigger Paystack Popup or redirect
+      // Trigger Paystack Popup or redirect
       if (typeof window !== "undefined" && window.PaystackPop) {
         try {
           if (typeof window.PaystackPop === "function") {
@@ -185,7 +315,7 @@ export default function Checkout() {
             if (initData.access_code && typeof popup.resumeTransaction === "function") {
               popup.resumeTransaction(initData.access_code, {
                 onSuccess: (transaction: any) => {
-                  verifyTransaction(transaction.reference || initData.reference, orderId);
+                  verifyPaystackTransaction(transaction.reference || initData.reference, orderId);
                 },
                 onCancel: () => {
                   setSubmitting(false);
@@ -382,16 +512,30 @@ export default function Checkout() {
                   2
                 </span>
                 <div>
-                  <h2 className="font-serif text-2xl">Payment method</h2>
-                  <p className="text-xs text-[#8b8175]">International Cards (Visa, Mastercard, Amex), Apple Pay & Bank</p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-serif text-2xl">Payment method</h2>
+                    <span className="rounded-full bg-[#eef1eb] px-2.5 py-0.5 text-[10px] font-bold text-[#5e8c67]">
+                      {paymentGateway === "flutterwave" ? "Flutterwave Secure" : "Paystack Secure"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#8b8175]">
+                    {paymentGateway === "flutterwave" 
+                      ? "Global Cards (Visa, Mastercard, Amex), Mobile Money, Bank & USSD" 
+                      : "International Cards (Visa, Mastercard, Amex), Apple Pay & Bank"}
+                  </p>
                 </div>
               </div>
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/0/0b/Paystack_Logo.png"
-                alt="Paystack"
-                className="h-6 object-contain opacity-80"
-                onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-              />
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {paymentGateway === "flutterwave" ? (
+                  <span className="flex items-center gap-1.5 rounded-xl bg-[#fb9129]/10 px-3 py-1 text-[#fb9129] font-black">
+                    Flutterwave
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 rounded-xl bg-[#00c3f7]/10 px-3 py-1 text-[#00c3f7] font-black">
+                    Paystack
+                  </span>
+                )}
+              </div>
             </div>
 
             <button
@@ -401,11 +545,11 @@ export default function Checkout() {
             >
               {submitting ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 size={17} className="animate-spin" /> Connecting to Paystack...
+                  <Loader2 size={17} className="animate-spin" /> Connecting to {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"}...
                 </span>
               ) : (
                 <>
-                  Pay {formatCurrency(subtotal, currency)} with Paystack <ArrowRight size={17} />
+                  Pay {formatCurrency(subtotal, currency)} with {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"} <ArrowRight size={17} />
                 </>
               )}
             </button>

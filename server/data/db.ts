@@ -155,11 +155,17 @@ export async function getSettings(): Promise<StoreSettings> {
     supportEmail: "support@apexmindreads.com",
     downloadMode: "instant",
     currency: "NGN",
+    paymentGateway: "paystack",
   };
   try {
     const doc = await adminDb.collection("settings").doc("store").get();
     if (doc.exists) {
-      return doc.data() as StoreSettings;
+      const data = doc.data() as Partial<StoreSettings>;
+      return {
+        ...defaults,
+        ...data,
+        paymentGateway: data.paymentGateway || "paystack",
+      };
     }
     await adminDb.collection("settings").doc("store").set(defaults).catch(() => {});
     return defaults;

@@ -78,6 +78,7 @@ export const OrderSchema = z.object({
   total: z.number(),
   status: z.enum(["Pending", "Paid", "Refunded"]),
   paymentReference: z.string().optional(),
+  paymentGateway: z.string().optional(),
   paidAt: z.string().optional(),
   createdAt: z.string(),
 });
@@ -114,11 +115,15 @@ export const PromotionSchema = z.object({
 export type Promotion = z.infer<typeof PromotionSchema>;
 
 // ─── Store settings ──────────────────────────────────────
+export const PaymentGatewaySchema = z.enum(["paystack", "flutterwave"]);
+export type PaymentGateway = z.infer<typeof PaymentGatewaySchema>;
+
 export const StoreSettingsSchema = z.object({
   storeName: z.string(),
   supportEmail: z.string().email(),
   downloadMode: z.enum(["instant", "email"]),
   currency: z.string(),
+  paymentGateway: PaymentGatewaySchema.default("paystack"),
 });
 
 export type StoreSettings = z.infer<typeof StoreSettingsSchema>;

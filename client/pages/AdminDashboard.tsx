@@ -49,7 +49,7 @@ import type {
   ProductListResponse, 
   SettingsResponse 
 } from "@shared/api";
-import type { Product, Order, CustomerView, Promotion, StoreSettings } from "@shared/schema";
+import type { Product, Order, CustomerView, Promotion, StoreSettings, PaymentGateway } from "@shared/schema";
 
 const navItems = [
   { label: "Overview", path: "/admin", icon: LayoutDashboard },
@@ -2035,6 +2035,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
   const [supportEmail, setSupportEmail] = useState("");
   const [downloadMode, setDownloadMode] = useState<"instant" | "email">("instant");
   const [storeCurrency, setStoreCurrency] = useState<Currency>("NGN");
+  const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>("paystack");
 
   // Credentials update state
   const [adminEmail, setAdminEmail] = useState("");
@@ -2051,18 +2052,29 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
         setSupportEmail(data.settings.supportEmail);
         setDownloadMode(data.settings.downloadMode);
         setStoreCurrency((data.settings.currency as Currency) || "NGN");
+        setPaymentGateway((data.settings.paymentGateway as PaymentGateway) || "paystack");
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const save = async () => {
+  const save = async (customGateway?: PaymentGateway) => {
     setSaving(true);
+    const activeGateway = customGateway || paymentGateway;
     try {
       const data = await apiFetch<SettingsResponse>("/api/admin/settings", {
         method: "PUT",
-        body: JSON.stringify({ storeName, supportEmail, downloadMode, currency: storeCurrency }),
+        body: JSON.stringify({ 
+          storeName, 
+          supportEmail, 
+          downloadMode, 
+          currency: storeCurrency,
+          paymentGateway: activeGateway 
+        }),
       });
       setSettings(data.settings);
+      if (customGateway) {
+        setPaymentGateway(customGateway);
+      }
       alert("Settings saved successfully!");
     } catch (e: any) { alert(e.message); }
     finally { setSaving(false); }
@@ -2091,6 +2103,104 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
 
   return (
     <div className="space-y-6">
+      {/* Payment Gateway Mode Selector */}
+      <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#222222] bg-[#fbfaf7] dark:bg-[#121212] p-5 sm:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d86f45]">Payment Gateway Mode</p>
+            <h3 className="mt-1 font-serif text-xl sm:text-2xl font-bold text-[#26332f] dark:text-[#f4f4f5]">Active Payment Processor</h3>
+            <p className="mt-1 max-w-xl text-xs text-[#8b8175] dark:text-[#a1a1aa]">
+              Choose which payment gateway processes checkout transactions on your storefront. Both live keys are active and verified.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-[#ecfdf5] dark:bg-[#0f2415] border border-[#a7f3d0] dark:border-[#1e4d2b] px-3.5 py-1 text-xs font-bold text-[#059669] dark:text-[#4ade80]">
+            <Check size={13} /> Active: {paymentGateway === "flutterwave" ? "Flutterwave Live" : "Paystack Live"}
+          </span>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {/* Paystack Card */}
+          <div 
+            onClick={() => setPaymentGateway("paystack")}
+            className={`cursor-pointer rounded-2xl p-5 border-2 transition-all relative ${
+              paymentGateway === "paystack" 
+                ? "border-[#26332f] dark:border-[#f4f4f5] bg-white dark:bg-[#18181b] shadow-md" 
+                : "border-[#e5ddd2] dark:border-[#262626] bg-[#f8f4ec]/60 dark:bg-[#141414] hover:border-[#d8d0c6] dark:hover:border-[#383838]"
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00c3f7]/10 text-[#00c3f7] font-black text-sm">
+                  P
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#26332f] dark:text-[#f4f4f5] text-base">Paystack</h4>
+                  <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa]">Direct card, bank transfer, USSD & Apple Pay</p>
+                </div>
+              </div>
+              <input 
+                type="radio" 
+                name="paymentGateway" 
+                checked={paymentGateway === "paystack"} 
+                onChange={() => setPaymentGateway("paystack")}
+                className="mt-1 h-4 w-4 text-[#d86f45] focus:ring-[#d86f45]" 
+              />
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#eae7e0] dark:border-[#222222] flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-[11px] text-[#736b61] dark:text-[#a1a1aa]">Supports: NGN, USD, GHS, ZAR, KES</span>
+              <span className="rounded-full bg-[#f0bc58]/20 dark:bg-[#f0bc58]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#9b6e14] dark:text-[#facc15]">
+                Live Keys Connected
+              </span>
+            </div>
+          </div>
+
+          {/* Flutterwave Card */}
+          <div 
+            onClick={() => setPaymentGateway("flutterwave")}
+            className={`cursor-pointer rounded-2xl p-5 border-2 transition-all relative ${
+              paymentGateway === "flutterwave" 
+                ? "border-[#26332f] dark:border-[#f4f4f5] bg-white dark:bg-[#18181b] shadow-md" 
+                : "border-[#e5ddd2] dark:border-[#262626] bg-[#f8f4ec]/60 dark:bg-[#141414] hover:border-[#d8d0c6] dark:hover:border-[#383838]"
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fb9129]/10 text-[#fb9129] font-black text-sm">
+                  F
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#26332f] dark:text-[#f4f4f5] text-base">Flutterwave</h4>
+                  <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa]">Global multi-currency, cards, mobile money & USSD</p>
+                </div>
+              </div>
+              <input 
+                type="radio" 
+                name="paymentGateway" 
+                checked={paymentGateway === "flutterwave"} 
+                onChange={() => setPaymentGateway("flutterwave")}
+                className="mt-1 h-4 w-4 text-[#d86f45] focus:ring-[#d86f45]" 
+              />
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#eae7e0] dark:border-[#222222] flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-[11px] text-[#736b61] dark:text-[#a1a1aa]">Supports: 15+ African & Global Currencies</span>
+              <span className="rounded-full bg-[#f0bc58]/20 dark:bg-[#f0bc58]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#9b6e14] dark:text-[#facc15]">
+                Live Keys Connected
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button 
+            onClick={() => save()} 
+            disabled={saving} 
+            className="flex items-center gap-2 rounded-xl bg-[#26332f] dark:bg-white dark:text-[#18181b] px-6 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white disabled:opacity-60 shadow-sm hover:bg-[#384843] dark:hover:bg-[#e4e4e7] transition"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Save Active Gateway
+          </button>
+        </div>
+      </section>
+
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Store Defaults */}
         <section className="rounded-2xl border border-[#e2dfd8] dark:border-[#222222] bg-[#fbfaf7] dark:bg-[#121212] p-5 sm:p-7 shadow-sm space-y-5">
@@ -2128,7 +2238,7 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
               </select>
             </div>
             <button 
-              onClick={save} 
+              onClick={() => save()} 
               disabled={saving} 
               className="flex items-center gap-2 rounded-xl bg-[#d86f45] px-6 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white disabled:opacity-60 shadow-sm hover:bg-[#bf5937] transition"
             >
@@ -2155,11 +2265,18 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
                 <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Default Currency</p>
                 <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#f4f4f5]">{settings?.currency ?? "NGN"}</p>
               </div>
+              <div className="rounded-xl bg-white dark:bg-[#171717] border border-[#eae7e0] dark:border-[#222222] p-3.5">
+                <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Active Payment Gateway</p>
+                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#f4f4f5] flex items-center gap-2">
+                  <span className={`inline-block h-2 w-2 rounded-full ${paymentGateway === "flutterwave" ? "bg-[#fb9129]" : "bg-[#00c3f7]"}`} />
+                  {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"}
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-[#eae7e0] dark:border-[#222222] flex items-center gap-2 text-xs text-[#5e8c67] dark:text-[#4ade80] font-semibold">
-            <ShieldCheck size={16} /> Store secure & Paystack Live connected
+            <ShieldCheck size={16} /> Store secure & {paymentGateway === "flutterwave" ? "Flutterwave Live" : "Paystack Live"} connected
           </div>
         </section>
       </div>
