@@ -41,6 +41,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, type Currency, currencyOptions } from "@/lib/currency";
 import { useAdminAuth, adminAuthHeaders } from "@/lib/admin-auth";
 import { useOrderLiveAlerts } from "@/lib/adminNotifications";
+import { adminAuthClient } from "@/lib/firebase";
 import { toast } from "sonner";
 import type { 
   AnalyticsResponse, 
@@ -77,10 +78,26 @@ const sectionIntro: Record<Section, string> = {
 // ─── Helpers ─────────────────────────────────────────────
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
   const headers = await adminAuthHeaders();
-  const res = await fetch(url, { 
+  let res = await fetch(url, { 
     ...opts, 
     headers: { ...headers, "Content-Type": "application/json", ...opts?.headers } 
   });
+  if (res.status === 401) {
+    try {
+      const user = adminAuthClient.currentUser;
+      if (user) {
+        const freshToken = await user.getIdToken(true);
+        if (freshToken) {
+          res = await fetch(url, {
+            ...opts,
+            headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json", ...opts?.headers }
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error ?? "Request failed");
@@ -473,20 +490,40 @@ function LoadingBlock() {
 }
 
 function ErrorBlock({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const isAuthError = message.toLowerCase().includes("session") || message.toLowerCase().includes("unauthorized") || message.toLowerCase().includes("auth");
+  const { adminLogout } = useAdminAuth();
+  const navigate = useNavigate();
+
+  const handleReLogin = async () => {
+    await adminLogout();
+    navigate("/admin/login");
+  };
+
   return (
     <div className="rounded-2xl border border-[#e2dfd8] bg-[#fbfaf7] p-8 text-center max-w-md mx-auto my-10 shadow-sm">
       <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#fef2f2] text-[#b91c1c] mb-3">
         <AlertCircle size={22} />
       </div>
       <p className="text-sm font-semibold text-[#b91c1c]">{message}</p>
-      {onRetry && (
-        <button 
-          onClick={onRetry} 
-          className="mt-4 rounded-full bg-[#26332f] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#3b4b45]"
-        >
-          Try again
-        </button>
-      )}
+      <div className="mt-4 flex items-center justify-center gap-3">
+        {isAuthError ? (
+          <button 
+            onClick={handleReLogin} 
+            className="rounded-full bg-[#d86f45] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#bf5937] shadow-sm"
+          >
+            Sign In Again
+          </button>
+        ) : (
+          onRetry && (
+            <button 
+              onClick={onRetry} 
+              className="rounded-full bg-[#26332f] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#3b4b45]"
+            >
+              Try again
+            </button>
+          )
+        )}
+      </div>
     </div>
   );
 }

@@ -33,13 +33,13 @@ export async function authHeaders(): Promise<HeadersInit> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function getAdminAuthToken(): Promise<string | null> {
+export async function getAdminAuthToken(forceRefresh = false): Promise<string | null> {
   const user = adminAuthClient.currentUser;
   if (!user) return null;
-  return await user.getIdToken();
+  return await user.getIdToken(forceRefresh);
 }
 
-export async function getAdminAuthHeaders(): Promise<HeadersInit> {
-  const token = await getAdminAuthToken();
+export async function getAdminAuthHeaders(forceRefresh = false): Promise<HeadersInit> {
+  const token = await getAdminAuthToken(forceRefresh);
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
