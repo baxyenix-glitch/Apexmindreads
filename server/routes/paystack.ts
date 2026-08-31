@@ -43,6 +43,11 @@ export const handleInitializePaystack: RequestHandler = async (req, res) => {
     return;
   }
 
+  if (!PAYSTACK_SECRET) {
+    res.status(400).json({ error: "Paystack secret key is not configured. Please add PAYSTACK_SECRET_KEY to your environment variables." });
+    return;
+  }
+
   try {
     const order = await getOrderById(orderId);
     if (!order) {

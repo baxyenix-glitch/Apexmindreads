@@ -44,6 +44,11 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
     return;
   }
 
+  if (!FLUTTERWAVE_SECRET) {
+    res.status(400).json({ error: "Flutterwave secret key is not configured. Please add FLUTTERWAVE_SECRET_KEY to your environment variables." });
+    return;
+  }
+
   try {
     const order = await getOrderById(orderId);
     if (!order) {

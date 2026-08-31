@@ -2130,8 +2130,8 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00c3f7]/10 text-[#00c3f7] font-black text-sm">
-                  P
+                <div className="flex h-11 items-center rounded-xl border border-[#e5ddd2] bg-white px-3 py-1 shadow-sm">
+                  <img src="/paystack-logo.png" alt="Paystack" className="h-6 w-auto max-w-[130px] object-contain" />
                 </div>
                 <div>
                   <h4 className="font-bold text-[#26332f] dark:text-[#f4f4f5] text-base">Paystack</h4>
@@ -2165,8 +2165,8 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fb9129]/10 text-[#fb9129] font-black text-sm">
-                  F
+                <div className="flex h-11 items-center rounded-xl border border-[#e5ddd2] bg-white px-3 py-1 shadow-sm">
+                  <img src="/flutterwave-logo.png" alt="Flutterwave" className="h-6 w-auto max-w-[130px] object-contain" />
                 </div>
                 <div>
                   <h4 className="font-bold text-[#26332f] dark:text-[#f4f4f5] text-base">Flutterwave</h4>
@@ -2265,12 +2265,21 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
                 <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Default Currency</p>
                 <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#f4f4f5]">{settings?.currency ?? "NGN"}</p>
               </div>
-              <div className="rounded-xl bg-white dark:bg-[#171717] border border-[#eae7e0] dark:border-[#222222] p-3.5">
-                <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Active Payment Gateway</p>
-                <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#f4f4f5] flex items-center gap-2">
-                  <span className={`inline-block h-2 w-2 rounded-full ${paymentGateway === "flutterwave" ? "bg-[#fb9129]" : "bg-[#00c3f7]"}`} />
-                  {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"}
-                </p>
+              <div className="rounded-xl bg-white dark:bg-[#171717] border border-[#eae7e0] dark:border-[#222222] p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-[#8b8175] dark:text-[#a1a1aa]">Active Payment Gateway</p>
+                  <p className="mt-0.5 font-bold text-[#26332f] dark:text-[#f4f4f5] flex items-center gap-2">
+                    <span className={`inline-block h-2 w-2 rounded-full ${paymentGateway === "flutterwave" ? "bg-[#fb9129]" : "bg-[#00c3f7]"}`} />
+                    {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"}
+                  </p>
+                </div>
+                <div className="flex h-8 items-center rounded-lg border border-[#e5ddd2] bg-white px-2.5 shadow-sm">
+                  <img 
+                    src={paymentGateway === "flutterwave" ? "/flutterwave-logo.png" : "/paystack-logo.png"} 
+                    alt={paymentGateway} 
+                    className="h-4 w-auto max-w-[90px] object-contain" 
+                  />
+                </div>
               </div>
             </div>
           </div>

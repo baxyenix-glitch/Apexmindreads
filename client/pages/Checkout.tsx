@@ -506,9 +506,9 @@ export default function Checkout() {
               </label>
             </div>
 
-            <div className="my-8 flex items-center justify-between border-y border-[#e5ddd2] py-5">
+            <div className="my-8 flex flex-col gap-4 border-y border-[#e5ddd2] py-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
                   2
                 </span>
                 <div>
@@ -525,15 +525,23 @@ export default function Checkout() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 font-bold text-xs">
+              <div className="flex items-center self-start sm:self-auto">
                 {paymentGateway === "flutterwave" ? (
-                  <span className="flex items-center gap-1.5 rounded-xl bg-[#fb9129]/10 px-3 py-1 text-[#fb9129] font-black">
-                    Flutterwave
-                  </span>
+                  <div className="flex h-11 items-center rounded-xl border border-[#e5ddd2] bg-white px-3.5 py-1.5 shadow-sm">
+                    <img 
+                      src="/flutterwave-logo.png" 
+                      alt="Flutterwave" 
+                      className="h-6 w-auto max-w-[140px] object-contain" 
+                    />
+                  </div>
                 ) : (
-                  <span className="flex items-center gap-1.5 rounded-xl bg-[#00c3f7]/10 px-3 py-1 text-[#00c3f7] font-black">
-                    Paystack
-                  </span>
+                  <div className="flex h-11 items-center rounded-xl border border-[#e5ddd2] bg-white px-3.5 py-1.5 shadow-sm">
+                    <img 
+                      src="/paystack-logo.png" 
+                      alt="Paystack" 
+                      className="h-6 w-auto max-w-[140px] object-contain" 
+                    />
+                  </div>
                 )}
               </div>
             </div>
