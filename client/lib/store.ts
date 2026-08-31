@@ -57,52 +57,71 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-export const formatNGN = (value: number) => `₦${value.toLocaleString("en-NG")}`;
+let globalProductsCache: Product[] = [];
+try {
+  const local = localStorage.getItem("apexmind_products_cache");
+  if (local) {
+    globalProductsCache = JSON.parse(local);
+  }
+} catch {}
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(globalProductsCache);
+  const [loading, setLoading] = useState(globalProductsCache.length === 0);
 
   useEffect(() => {
+    let mounted = true;
     fetch("/api/products")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load products");
         return res.json();
       })
       .then((data) => {
-        setProducts(data.products || []);
-        setLoading(false);
+        if (mounted && data.products) {
+          globalProductsCache = data.products;
+          try {
+            localStorage.setItem("apexmind_products_cache", JSON.stringify(data.products));
+          } catch {}
+          setProducts(data.products);
+          setLoading(false);
+        }
       })
       .catch((err) => {
-        console.error("Failed to load products:", err);
-        setProducts([]);
-        setLoading(false);
+        console.warn("Products fetch notice:", err);
+        if (mounted) setLoading(false);
       });
+    return () => { mounted = false; };
   }, []);
 
   return { products, loading };
 }
 
 export function useProduct(slug: string) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = globalProductsCache.find(
+    (p) => p.slug?.toLowerCase() === slug?.toLowerCase() || p.id === slug
+  ) || null;
+  const [product, setProduct] = useState<Product | null>(cached);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     if (!slug) return;
+    let mounted = true;
     fetch(`/api/products/${slug}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load product");
         return res.json();
       })
       .then((data) => {
-        setProduct(data.product || null);
-        setLoading(false);
+        if (mounted && data.product) {
+          setProduct(data.product);
+          setLoading(false);
+        }
       })
       .catch((err) => {
-        console.error("Failed to load product:", err);
-        setProduct(null);
-        setLoading(false);
+        console.warn("Product fetch notice:", err);
+        if (mounted) setLoading(false);
       });
+    return () => { mounted = false; };
   }, [slug]);
 
   return { product, loading };

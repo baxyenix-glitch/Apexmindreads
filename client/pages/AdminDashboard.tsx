@@ -528,39 +528,45 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry?: () => voi
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// OVERVIEW SECTION (REDESIGNED FOR MOBILE & DESKTOP)
-// ═══════════════════════════════════════════════════════════
+let cachedOverviewAnalytics: AnalyticsResponse | null = null;
+let cachedOverviewOrders: Order[] = [];
+let cachedOverviewProducts: Product[] = [];
+
 function OverviewSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(cachedOverviewAnalytics);
+  const [orders, setOrders] = useState<Order[]>(cachedOverviewOrders);
+  const [products, setProducts] = useState<Product[]>(cachedOverviewProducts);
+  const [loading, setLoading] = useState(!cachedOverviewAnalytics);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent && !cachedOverviewAnalytics) {
+      setLoading(true);
+      setError("");
+    }
     try {
       const [a, o, p] = await Promise.all([
         apiFetch<AnalyticsResponse>("/api/admin/analytics"),
         apiFetch<OrderListResponse>("/api/admin/orders"),
         apiFetch<ProductListResponse>("/api/products"),
       ]);
+      cachedOverviewAnalytics = a;
+      cachedOverviewOrders = o.orders.slice(0, 6);
+      cachedOverviewProducts = p.products;
       setAnalytics(a);
       setOrders(o.orders.slice(0, 6));
       setProducts(p.products);
     } catch (e: any) {
-      setError(e.message);
+      if (!cachedOverviewAnalytics) setError(e.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(!!cachedOverviewAnalytics); }, [load]);
 
-  if (loading) return <LoadingBlock />;
-  if (error || !analytics) return <ErrorBlock message={error || "Failed to load dashboard"} onRetry={load} />;
+  if (loading && !analytics) return <LoadingBlock />;
+  if (error && !analytics) return <ErrorBlock message={error || "Failed to load dashboard"} onRetry={() => load(false)} />;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -734,36 +740,43 @@ function OverviewSection({ currency }: { currency: Currency }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// ORDERS SECTION (MOBILE & DESKTOP OPTIMIZED)
-// ═══════════════════════════════════════════════════════════
+let cachedAdminOrdersList: Order[] = [];
+
 function OrdersSection({ currency }: { currency: Currency }) {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<Order[]>(cachedAdminOrdersList);
+  const [loading, setLoading] = useState(cachedAdminOrdersList.length === 0);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent && cachedAdminOrdersList.length === 0) setLoading(true);
     try {
       const data = await apiFetch<OrderListResponse>("/api/admin/orders");
+      cachedAdminOrdersList = data.orders;
       setOrders(data.orders);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      if (cachedAdminOrdersList.length === 0) setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(cachedAdminOrdersList.length > 0); }, [load]);
 
   const updateStatus = async (orderId: string, status: string) => {
     try {
       await apiFetch(`/api/admin/orders/${orderId}`, { method: "PATCH", body: JSON.stringify({ status }) });
-      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: status as Order["status"] } : o));
+      setOrders((prev) => {
+        const next = prev.map((o) => o.id === orderId ? { ...o, status: status as Order["status"] } : o);
+        cachedAdminOrdersList = next;
+        return next;
+      });
     } catch (e: any) { alert(e.message); }
   };
 
-  if (loading) return <LoadingBlock />;
-  if (error) return <ErrorBlock message={error} onRetry={load} />;
+  if (loading && orders.length === 0) return <LoadingBlock />;
+  if (error && orders.length === 0) return <ErrorBlock message={error} onRetry={() => load(false)} />;
 
   const filtered = orders.filter((o) => {
     const matchesSearch = !search || `${o.id} ${o.customerName} ${o.customerEmail}`.toLowerCase().includes(search.toLowerCase());
@@ -902,37 +915,44 @@ function OrdersSection({ currency }: { currency: Currency }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// PRODUCTS SECTION & PRODUCT FORM (COMPLETELY FIXED & RESPONSIVE)
-// ═══════════════════════════════════════════════════════════
+let cachedAdminProductsList: Product[] = [];
+
 function ProductsSection({ currency }: { currency: Currency }) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(cachedAdminProductsList);
+  const [loading, setLoading] = useState(cachedAdminProductsList.length === 0);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isSilent = false) => {
+    if (!isSilent && cachedAdminProductsList.length === 0) setLoading(true);
     try {
       const data = await apiFetch<ProductListResponse>("/api/products");
+      cachedAdminProductsList = data.products;
       setProducts(data.products);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      if (cachedAdminProductsList.length === 0) setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(cachedAdminProductsList.length > 0); }, [load]);
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await apiFetch(`/api/admin/products/${id}`, { method: "DELETE" });
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setProducts((prev) => {
+        const next = prev.filter((p) => p.id !== id);
+        cachedAdminProductsList = next;
+        return next;
+      });
     } catch (e: any) { alert(e.message); }
   };
 
-  if (loading) return <LoadingBlock />;
-  if (error) return <ErrorBlock message={error} onRetry={load} />;
+  if (loading && products.length === 0) return <LoadingBlock />;
+  if (error && products.length === 0) return <ErrorBlock message={error} onRetry={() => load(false)} />;
 
   if (showForm || editProduct) {
     return (

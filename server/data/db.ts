@@ -27,38 +27,76 @@ const seedOrders: Order[] = loadSeedJson<Order>("default-orders.json");
 
 const inMemoryProducts = new Map<string, Product>();
 for (const p of seedProducts) {
-  inMemoryProducts.set(p.id, p);
+  if (p && p.id) {
+    inMemoryProducts.set(p.id, p);
+  }
 }
 
 const inMemoryOrders = new Map<string, Order>();
 for (const o of seedOrders) {
-  inMemoryOrders.set(o.id, o);
+  if (o && o.id) {
+    inMemoryOrders.set(o.id, o);
+  }
 }
 
 const inMemoryPromotions = new Map<string, Promotion>();
 
-// ─── Products ─────────────────────────────────────────────
-export async function getProducts(): Promise<Product[]> {
+// Helper to strictly deduplicate products by ID and slug
+function getUniqueProducts(): Product[] {
+  const bySlug = new Map<string, Product>();
+  for (const p of inMemoryProducts.values()) {
+    const key = (p.slug || p.id || "").toLowerCase();
+    if (!bySlug.has(key)) {
+      bySlug.set(key, p);
+    }
+  }
+  return Array.from(bySlug.values());
+}
+
+let lastProductSyncTime = 0;
+let isSyncingProducts = false;
+
+async function syncProductsFromFirestore(): Promise<void> {
+  if (isSyncingProducts) return;
+  isSyncingProducts = true;
   try {
     const snapshot = await adminDb.collection("products").get();
     if (!snapshot.empty) {
+      // Clear and re-populate to prevent stale duplicates
+      inMemoryProducts.clear();
       snapshot.docs.forEach((doc) => {
         const item = { id: doc.id, ...doc.data() } as Product;
         inMemoryProducts.set(item.id, item);
       });
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+      lastProductSyncTime = Date.now();
     }
   } catch (err: any) {
-    console.warn("Firestore products read failed (serving from cache):", err?.message || err);
+    console.warn("Background Firestore products sync notice:", err?.message || err);
+  } finally {
+    isSyncingProducts = false;
   }
-  return Array.from(inMemoryProducts.values());
+}
+
+// ─── Products ─────────────────────────────────────────────
+export async function getProducts(): Promise<Product[]> {
+  // If we have cached products, return them immediately for 0ms response time
+  if (inMemoryProducts.size > 0) {
+    // Background sync if cache is older than 15s
+    if (Date.now() - lastProductSyncTime > 15000) {
+      syncProductsFromFirestore().catch(() => {});
+    }
+    return getUniqueProducts();
+  }
+
+  // First cold load: sync from Firestore synchronously
+  await syncProductsFromFirestore();
+  return getUniqueProducts();
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
   if (inMemoryProducts.has(id)) {
     return inMemoryProducts.get(id)!;
   }
-  // Try finding by slug or other properties in memory
   for (const p of inMemoryProducts.values()) {
     if (p.id === id || p.slug === id) return p;
   }
@@ -83,14 +121,17 @@ export async function getProductById(id: string): Promise<Product | null> {
       return item;
     }
   } catch (err: any) {
-    console.warn("Firestore product lookup failed (fallback checked):", err?.message || err);
+    console.warn("Firestore product lookup notice:", err?.message || err);
   }
   return null;
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
+  const norm = slug.toLowerCase();
   for (const p of inMemoryProducts.values()) {
-    if (p.slug === slug || p.id === slug) return p;
+    if ((p.slug && p.slug.toLowerCase() === norm) || (p.id && p.id.toLowerCase() === norm)) {
+      return p;
+    }
   }
 
   try {
@@ -101,7 +142,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       return item;
     }
   } catch (err: any) {
-    console.warn("Firestore slug lookup failed (fallback checked):", err?.message || err);
+    console.warn("Firestore slug lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -139,32 +180,50 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 // ─── Orders ───────────────────────────────────────────────
-export async function getOrders(): Promise<Order[]> {
+let lastOrderSyncTime = 0;
+let isSyncingOrders = false;
+
+async function syncOrdersFromFirestore(): Promise<void> {
+  if (isSyncingOrders) return;
+  isSyncingOrders = true;
   try {
     const snapshot = await adminDb.collection("orders").orderBy("createdAt", "desc").get();
     if (!snapshot.empty) {
+      inMemoryOrders.clear();
       snapshot.docs.forEach((doc) => {
         const item = { id: doc.id, ...doc.data() } as Order;
         inMemoryOrders.set(item.id, item);
       });
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Order));
+      lastOrderSyncTime = Date.now();
     }
-  } catch (err) {
+  } catch {
     try {
       const snapshot = await adminDb.collection("orders").get();
       if (!snapshot.empty) {
+        inMemoryOrders.clear();
         snapshot.docs.forEach((doc) => {
           const item = { id: doc.id, ...doc.data() } as Order;
           inMemoryOrders.set(item.id, item);
         });
-        return snapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() } as Order))
-          .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+        lastOrderSyncTime = Date.now();
       }
     } catch (e) {
-      console.warn("Firestore orders read failed (serving from memory cache):", e);
+      console.warn("Background Firestore orders sync notice:", e);
     }
+  } finally {
+    isSyncingOrders = false;
   }
+}
+
+export async function getOrders(): Promise<Order[]> {
+  if (inMemoryOrders.size > 0) {
+    if (Date.now() - lastOrderSyncTime > 10000) {
+      syncOrdersFromFirestore().catch(() => {});
+    }
+    return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  }
+
+  await syncOrdersFromFirestore();
   return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
@@ -180,7 +239,7 @@ export async function getOrderById(id: string): Promise<Order | null> {
       return item;
     }
   } catch (err: any) {
-    console.warn("Firestore order lookup failed:", err?.message || err);
+    console.warn("Firestore order lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -219,13 +278,16 @@ export async function getUserOrders(email: string): Promise<Order[]> {
       return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Order)).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     }
   } catch (e) {
-    console.warn("Firestore user orders lookup failed:", e);
+    console.warn("Firestore user orders lookup notice:", e);
   }
   return matches;
 }
 
 // ─── Promotions ───────────────────────────────────────────
 export async function getPromotions(): Promise<Promotion[]> {
+  if (inMemoryPromotions.size > 0) {
+    return Array.from(inMemoryPromotions.values());
+  }
   try {
     const snapshot = await adminDb.collection("promotions").orderBy("createdAt", "desc").get();
     if (!snapshot.empty) {
@@ -246,7 +308,7 @@ export async function getPromotions(): Promise<Promotion[]> {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Promotion));
       }
     } catch (e) {
-      console.warn("Firestore promotions read failed:", e);
+      console.warn("Firestore promotions read notice:", e);
     }
   }
   return Array.from(inMemoryPromotions.values());
@@ -264,7 +326,7 @@ export async function getPromotionById(id: string): Promise<Promotion | null> {
       return item;
     }
   } catch (err: any) {
-    console.warn("Firestore promotion lookup failed:", err?.message || err);
+    console.warn("Firestore promotion lookup notice:", err?.message || err);
   }
   return null;
 }
@@ -325,7 +387,7 @@ export async function getSettings(): Promise<StoreSettings> {
     await adminDb.collection("settings").doc("store").set(cachedSettings).catch(() => {});
     return cachedSettings;
   } catch (e) {
-    console.warn("Firestore settings read failed (serving defaults):", e);
+    console.warn("Firestore settings read notice (serving defaults):", e);
     return cachedSettings;
   }
 }
@@ -339,7 +401,8 @@ export async function updateSettings(updates: Partial<StoreSettings>): Promise<S
   try {
     await adminDb.collection("settings").doc("store").set(clean, { merge: true });
   } catch (e) {
-    console.warn("Async Firestore updateSettings failed:", e);
+    console.warn("Async Firestore updateSettings notice:", e);
   }
   return cachedSettings;
 }
+
