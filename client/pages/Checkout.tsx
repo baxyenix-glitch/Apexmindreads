@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Download, Globe, LockKeyhole, Loader2, Sh
 import { Link, useSearchParams } from "react-router-dom";
 import { CoverArt } from "@/components/storefront/CoverArt";
 import { type Product } from "@/lib/store";
-import { formatCurrency, useCurrency } from "@/lib/currency";
+import { formatCurrency, useCurrency, countryToCurrencyMap } from "@/lib/currency";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { authHeaders } from "@/lib/firebase";
@@ -69,7 +69,7 @@ export default function Checkout() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [downloadLinks, setDownloadLinks] = useState<{ productId: string; title: string; downloadUrl: string }[]>([]);
   const [error, setError] = useState("");
-  const { currency, detectedCountry } = useCurrency();
+  const { currency, detectedCountry, setCurrency } = useCurrency();
   const { user } = useAuth();
   const subtotal = useMemo(() => cart.reduce((total, item) => total + (item.price || 0), 0), [cart]);
 
@@ -84,6 +84,25 @@ export default function Checkout() {
     return "paystack";
   });
   const [flwPubKey, setFlwPubKey] = useState(FLUTTERWAVE_PUBLIC_KEY);
+
+  // Guarantee currency matches country (e.g. US customers get USD, UK gets GBP, etc.)
+  const effectiveCurrency = useMemo(() => {
+    if (country === "US") return "USD";
+    if (country === "GB") return "GBP";
+    if (country === "CA") return "CAD";
+    if (currency === "NGN" && country !== "NG") {
+      return countryToCurrencyMap[country.toUpperCase()] || "USD";
+    }
+    return currency;
+  }, [currency, country]);
+
+  const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    const matched = countryToCurrencyMap[newCountry.toUpperCase()];
+    if (matched) {
+      setCurrency(matched, true);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/store/config")
@@ -105,8 +124,15 @@ export default function Checkout() {
   useEffect(() => {
     if (detectedCountry) {
       setCountry(detectedCountry);
+      const isManual = typeof window !== "undefined" && window.localStorage.getItem("apexmindreads-currency-manual") === "true";
+      if (!isManual) {
+        const matched = countryToCurrencyMap[detectedCountry.toUpperCase()];
+        if (matched) {
+          setCurrency(matched, false);
+        }
+      }
     }
-  }, [detectedCountry]);
+  }, [detectedCountry, setCurrency]);
 
   // Pre-fill from auth if available
   useEffect(() => {
@@ -243,7 +269,7 @@ export default function Checkout() {
             email: customerEmail,
             customerName,
             amount: subtotal,
-            currency: currency,
+            currency: effectiveCurrency,
             callbackUrl: `${window.location.origin}/checkout?gateway=flutterwave&orderId=${orderId}`,
           }),
         });
@@ -262,7 +288,7 @@ export default function Checkout() {
               tx_ref: initData.tx_ref,
               amount: initData.amount,
               currency: initData.currency,
-              payment_options: "card,mobilemoney,ussd,banktransfer",
+              payment_options: initData.currency === "NGN" ? "card,mobilemoney,ussd,banktransfer" : "card",
               customer: {
                 email: customerEmail,
                 name: customerName,
@@ -305,7 +331,7 @@ export default function Checkout() {
           orderId,
           email: customerEmail,
           amount: subtotal,
-          currency: currency,
+          currency: effectiveCurrency,
           callbackUrl: `${window.location.origin}/checkout`,
         }),
       });
@@ -498,12 +524,13 @@ export default function Checkout() {
                 />
               </label>
               <label>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
-                  Country
+                <span className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
+                  <span>Country</span>
+                  <span className="text-[11px] font-semibold text-[#d86f45]">Currency: {effectiveCurrency}</span>
                 </span>
                 <select
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
+                  onChange={(e) => handleCountryChange(e.target.value)}
                   className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
                 >
                   {GLOBAL_COUNTRIES.map((c) => (
@@ -566,7 +593,7 @@ export default function Checkout() {
                 </span>
               ) : (
                 <>
-                  Pay {formatCurrency(subtotal, currency)} with {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"} <ArrowRight size={17} />
+                  Pay {formatCurrency(subtotal, effectiveCurrency)} with {paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"} <ArrowRight size={17} />
                 </>
               )}
             </button>
@@ -603,8 +630,8 @@ export default function Checkout() {
 
           <div className="space-y-3 border-t border-[#53625b] pt-5 text-sm">
             <div className="flex justify-between text-[#bec5bb]">
-              <span>Subtotal ({currency})</span>
-              <span>{formatCurrency(subtotal, currency)}</span>
+              <span>Subtotal ({effectiveCurrency})</span>
+              <span>{formatCurrency(subtotal, effectiveCurrency)}</span>
             </div>
             <div className="flex justify-between text-[#bec5bb]">
               <span>Delivery</span>
@@ -612,7 +639,7 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between border-t border-[#53625b] pt-4 text-lg font-semibold">
               <span>Total</span>
-              <span>{formatCurrency(subtotal, currency)}</span>
+              <span>{formatCurrency(subtotal, effectiveCurrency)}</span>
             </div>
           </div>
 

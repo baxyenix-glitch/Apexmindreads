@@ -69,43 +69,54 @@ export const handleInitializePaystack: RequestHandler = async (req, res) => {
       } else {
         const rate = NGN_RATES[requestedCurrency] || 1550;
         const converted = baseNgnAmount / rate;
-        // Minor units (e.g. cents, pesewas)
-        amountInMinor = Math.max(1, Math.round(converted * 100));
+        // Minor units (e.g. cents, pesewas), minimum 1 unit (100 cents = $1.00)
+        amountInMinor = Math.max(100, Math.round(converted * 100));
       }
     } else {
-      // For all other global currencies (GBP, EUR, CAD, etc.), charge in NGN so international cards process seamlessly
-      targetCurrency = "NGN";
-      amountInMinor = Math.round(baseNgnAmount * 100);
+      // For all other global currencies, charge in USD (minimum 100 cents = $1.00)
+      targetCurrency = "USD";
+      const rate = NGN_RATES["USD"] || 1550;
+      const converted = baseNgnAmount / rate;
+      amountInMinor = Math.max(100, Math.round(converted * 100));
     }
 
+    const origin = req.headers.origin || `${req.protocol}://${req.get("host")}`;
     const makePaystackInit = async (curr: string, amtMinor: number) => {
-      return fetch("https://api.paystack.co/transaction/initialize", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          amount: amtMinor,
-          currency: curr,
-          reference: `AMR-${orderId}-${Date.now()}`,
-          callback_url: callbackUrl || `${req.protocol}://${req.get("host")}/checkout?reference=`,
-          metadata: {
-            orderId,
-            customerName: order.customerName,
-            originalCurrency: requestedCurrency,
-            baseNgnAmount,
-            chargedCurrency: curr,
-            chargedAmountMinor: amtMinor,
-            custom_fields: [
-              { display_name: "Order ID", variable_name: "order_id", value: orderId },
-              { display_name: "Customer Name", variable_name: "customer_name", value: order.customerName },
-              { display_name: "Selected Currency", variable_name: "selected_currency", value: requestedCurrency },
-            ],
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await fetch("https://api.paystack.co/transaction/initialize", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${PAYSTACK_SECRET}`,
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            email: email.trim(),
+            amount: amtMinor,
+            currency: curr,
+            reference: `AMR-${orderId}-${Date.now()}`,
+            callback_url: callbackUrl || `${origin}/checkout?reference=`,
+            metadata: {
+              orderId,
+              customerName: order.customerName,
+              originalCurrency: requestedCurrency,
+              baseNgnAmount,
+              chargedCurrency: curr,
+              chargedAmountMinor: amtMinor,
+              custom_fields: [
+                { display_name: "Order ID", variable_name: "order_id", value: orderId },
+                { display_name: "Customer Name", variable_name: "customer_name", value: order.customerName },
+                { display_name: "Selected Currency", variable_name: "selected_currency", value: requestedCurrency },
+              ],
+            },
+          }),
+          signal: controller.signal,
+        });
+        return res;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     };
 
     let paystackRes = await makePaystackInit(targetCurrency, amountInMinor);

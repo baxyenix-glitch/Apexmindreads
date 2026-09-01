@@ -57,29 +57,39 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
     }
 
     const requestedCurrency = String(currency).toUpperCase();
-    const baseNgnAmount = Number(amount);
+    const baseNgnAmount = Math.max(1, Number(amount) || 0);
 
     let targetCurrency = "NGN";
     let targetAmount = baseNgnAmount;
 
-    // Check if currency is directly supported
+    // Check if currency is directly supported by Flutterwave
     if (NATIVE_FLUTTERWAVE_CURRENCIES.includes(requestedCurrency)) {
       targetCurrency = requestedCurrency;
       if (requestedCurrency === "NGN") {
-        targetAmount = baseNgnAmount;
+        targetAmount = Math.max(100, Math.round(baseNgnAmount));
       } else {
         const rate = NGN_RATES[requestedCurrency] || 1550;
         targetAmount = Number((baseNgnAmount / rate).toFixed(2));
       }
     } else {
-      // Fallback to NGN for unsupported currencies
-      targetCurrency = "NGN";
-      targetAmount = baseNgnAmount;
+      // For all international currencies not directly supported (e.g. AUD, CHF, JPY), charge in USD
+      targetCurrency = "USD";
+      const rate = NGN_RATES["USD"] || 1550;
+      targetAmount = Number((baseNgnAmount / rate).toFixed(2));
+    }
+
+    // Minimum transaction amount enforcement:
+    // Flutterwave requires at least 1.00 unit for all non-NGN foreign currencies (USD, GBP, EUR, CAD, etc.)
+    if (targetCurrency !== "NGN" && targetAmount < 1.00) {
+      targetAmount = 1.00;
     }
 
     const txRef = `AMR-${orderId}-${Date.now()}`;
-    const clientName = customerName || order.customerName || "Valued Reader";
-    const redirectUrl = callbackUrl || `${req.protocol}://${req.get("host")}/checkout?gateway=flutterwave&tx_ref=${txRef}&orderId=${orderId}`;
+    const clientName = (customerName || order.customerName || "Valued Reader").trim();
+    
+    // Ensure redirect URL is always a valid absolute URL
+    const origin = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+    const redirectUrl = callbackUrl || `${origin}/checkout?gateway=flutterwave&tx_ref=${txRef}&orderId=${orderId}`;
 
     const flwPayload = {
       tx_ref: txRef,
@@ -87,13 +97,13 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
       currency: targetCurrency,
       redirect_url: redirectUrl,
       customer: {
-        email,
+        email: email.trim(),
         name: clientName,
       },
       customizations: {
         title: "ApexMindReads",
         description: `Payment for Order ${orderId}`,
-        logo: `${req.protocol}://${req.get("host")}/logo.png`,
+        logo: `${origin}/logo.png`,
       },
       meta: {
         orderId,
@@ -105,6 +115,9 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
       },
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const flwRes = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
@@ -112,13 +125,18 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(flwPayload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const data = await flwRes.json();
 
     if (!flwRes.ok || data.status !== "success") {
       console.error("Flutterwave API Error:", data);
-      res.status(400).json({ error: data.message || "Failed to initialize Flutterwave transaction" });
+      const detailedError = (Array.isArray(data.errors) && data.errors.length > 0)
+        ? data.errors.map((e: any) => e.message).join(", ")
+        : (data.message || "Failed to initialize Flutterwave transaction");
+      res.status(400).json({ error: detailedError });
       return;
     }
 
