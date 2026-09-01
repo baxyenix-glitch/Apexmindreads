@@ -39,7 +39,8 @@ export const handleUpdateSettings: RequestHandler = async (req, res) => {
   }
 
   try {
-    await updateSettings(parsed.data);
+    const adminToken = (req as any).adminToken;
+    await updateSettings(parsed.data, adminToken);
     const settings = await getSettings();
     res.json({ settings });
   } catch (err) {

@@ -77,17 +77,26 @@ const sectionIntro: Record<Section, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const headers = await adminAuthHeaders();
+  let headers = (await adminAuthHeaders()) as Record<string, string>;
+  if (!headers.Authorization && typeof window !== "undefined") {
+    const cachedToken = localStorage.getItem("apexmind_admin_id_token");
+    if (cachedToken) {
+      headers = { ...headers, Authorization: `Bearer ${cachedToken}` };
+    }
+  }
+
   let res = await fetch(url, { 
     ...opts, 
     headers: { ...headers, "Content-Type": "application/json", ...opts?.headers } 
   });
+
   if (res.status === 401) {
     try {
       const user = adminAuthClient.currentUser;
       if (user) {
         const freshToken = await user.getIdToken(true);
         if (freshToken) {
+          try { localStorage.setItem("apexmind_admin_id_token", freshToken); } catch {}
           res = await fetch(url, {
             ...opts,
             headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json", ...opts?.headers }
@@ -98,9 +107,10 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
       // ignore
     }
   }
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(err.error ?? "Request failed");
+    const err = await res.json().catch(() => ({ error: `Request failed (${res.status})` }));
+    throw new Error(err.error ?? `Request failed (${res.status})`);
   }
   return res.json();
 }
@@ -1370,9 +1380,12 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
       } else {
         await apiFetch("/api/admin/products", { method: "POST", body: JSON.stringify(body) });
       }
+      toast.success(isEdit ? "Product updated successfully!" : "Product published successfully!");
       onSaved();
     } catch (e: any) {
-      setError(e.message);
+      console.error("Product save failed:", e);
+      setError(e.message || "Failed to save product");
+      toast.error(e.message || "Failed to save product");
     } finally {
       setSaving(false);
     }

@@ -44,8 +44,9 @@ export const handleCreateProduct: RequestHandler = async (req, res) => {
       return;
     }
 
+    const adminToken = (req as any).adminToken;
     const product = { id: generateId("p"), ...parsed.data };
-    await createProduct(product);
+    await createProduct(product, adminToken);
     res.status(201).json({ product });
   } catch (err) {
     res.status(500).json({ error: "Failed to create product" });
@@ -62,7 +63,8 @@ export const handleUpdateProduct: RequestHandler = async (req, res) => {
 
   try {
     const id = req.params.id as string;
-    await updateProduct(id, parsed.data);
+    const adminToken = (req as any).adminToken;
+    await updateProduct(id, parsed.data, adminToken);
     const existing = await getProductById(id);
     res.json({ product: existing || { id, ...parsed.data } });
   } catch (err: any) {
@@ -80,7 +82,8 @@ export const handleDeleteProduct: RequestHandler = async (req, res) => {
       return;
     }
 
-    await deleteProduct(req.params.id as string);
+    const adminToken = (req as any).adminToken;
+    await deleteProduct(req.params.id as string, adminToken);
     res.json({ message: "Product deleted" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete product" });

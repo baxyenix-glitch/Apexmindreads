@@ -48,11 +48,15 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         setAdmin(u);
         try {
           localStorage.setItem("apexmind_cached_admin_user", JSON.stringify(u));
+          user.getIdToken().then((t) => {
+            if (t) localStorage.setItem("apexmind_admin_id_token", t);
+          }).catch(() => {});
         } catch {}
       } else {
         setAdmin(null);
         try {
           localStorage.removeItem("apexmind_cached_admin_user");
+          localStorage.removeItem("apexmind_admin_id_token");
         } catch {}
       }
       setIsLoading(false);
@@ -64,7 +68,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const adminLogin = async (email: string, password: string) => {
     try {
       const cleanEmail = email.trim();
-      await signInWithEmailAndPassword(adminAuthClient, cleanEmail, password);
+      const cred = await signInWithEmailAndPassword(adminAuthClient, cleanEmail, password);
+      try {
+        const token = await cred.user.getIdToken();
+        if (token) localStorage.setItem("apexmind_admin_id_token", token);
+      } catch {}
       return { ok: true };
     } catch (err: any) {
       console.warn("Admin login failed:", err.code, err.message);
@@ -85,6 +93,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const adminLogout = async () => {
+    try {
+      localStorage.removeItem("apexmind_cached_admin_user");
+      localStorage.removeItem("apexmind_admin_id_token");
+    } catch {}
     await signOut(adminAuthClient);
   };
 

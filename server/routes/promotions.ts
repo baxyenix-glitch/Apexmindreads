@@ -27,7 +27,8 @@ export const handleCreatePromotion: RequestHandler = async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    await createPromotion(promotion);
+    const adminToken = (req as any).adminToken;
+    await createPromotion(promotion, adminToken);
     res.status(201).json({ promotion });
   } catch (err) {
     res.status(500).json({ error: "Failed to create promotion" });
@@ -49,7 +50,8 @@ export const handleUpdatePromotion: RequestHandler = async (req, res) => {
       return;
     }
 
-    await updatePromotion(req.params.id as string, parsed.data);
+    const adminToken = (req as any).adminToken;
+    await updatePromotion(req.params.id as string, parsed.data, adminToken);
     res.json({ promotion: { ...existing, ...parsed.data } });
   } catch (err) {
     res.status(500).json({ error: "Failed to update promotion" });
@@ -65,7 +67,8 @@ export const handleDeletePromotion: RequestHandler = async (req, res) => {
       return;
     }
 
-    await deletePromotion(req.params.id as string);
+    const adminToken = (req as any).adminToken;
+    await deletePromotion(req.params.id as string, adminToken);
     res.json({ message: "Promotion deleted" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete promotion" });

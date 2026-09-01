@@ -45,7 +45,8 @@ export const handleUpdateOrderStatus: RequestHandler = async (req, res) => {
       return;
     }
 
-    await updateOrder(req.params.id as string, { status });
+    const adminToken = (req as any).adminToken;
+    await updateOrder(req.params.id as string, { status }, adminToken);
     res.json({ order: { ...order, status } });
   } catch (err: any) {
     console.error("Failed to update order:", err);

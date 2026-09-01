@@ -1,4 +1,4 @@
-import { adminDb } from "../lib/firebase-admin.js";
+import { rtdbPut, rtdbPatch, rtdbGet, rtdbDelete } from "../lib/firebase-rtdb.js";
 import type { Product, Order, Promotion, StoreSettings } from "../../shared/schema";
 import crypto from "node:crypto";
 
@@ -32,19 +32,14 @@ async function syncProductsFromRTDB(): Promise<void> {
   if (isSyncingProducts) return;
   isSyncingProducts = true;
   try {
-    const fetchPromise = adminDb.ref("products").get();
-    const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("RTDB products timeout")), 1500));
-    const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
-    if (snapshot && snapshot.exists()) {
-      const data = snapshot.val();
+    const data = await rtdbGet("products");
+    if (data && typeof data === "object") {
       inMemoryProducts.clear();
-      if (data && typeof data === "object") {
-        Object.values(data).forEach((item: any) => {
-          if (item && item.id) {
-            inMemoryProducts.set(item.id, item as Product);
-          }
-        });
-      }
+      Object.values(data).forEach((item: any) => {
+        if (item && item.id) {
+          inMemoryProducts.set(item.id, item as Product);
+        }
+      });
       lastProductSyncTime = Date.now();
     }
   } catch (err: any) {
@@ -75,17 +70,14 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 
   try {
-    const snap = await adminDb.ref(`products/${id}`).get();
-    if (snap.exists()) {
-      const item = snap.val() as Product;
-      inMemoryProducts.set(item.id, item);
-      return item;
+    const item = await rtdbGet(`products/${id}`);
+    if (item && item.id) {
+      inMemoryProducts.set(item.id, item as Product);
+      return item as Product;
     }
-    // Search by slug if not found by direct ID key
-    const allSnap = await adminDb.ref("products").get();
-    if (allSnap.exists()) {
-      const data = allSnap.val();
-      for (const p of Object.values(data) as Product[]) {
+    const allData = await rtdbGet("products");
+    if (allData && typeof allData === "object") {
+      for (const p of Object.values(allData) as Product[]) {
         if (p && (p.id === id || p.slug === id)) {
           inMemoryProducts.set(p.id, p);
           return p;
@@ -107,9 +99,8 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 
   try {
-    const allSnap = await adminDb.ref("products").get();
-    if (allSnap.exists()) {
-      const data = allSnap.val();
+    const data = await rtdbGet("products");
+    if (data && typeof data === "object") {
       for (const p of Object.values(data) as Product[]) {
         if (p && ((p.slug && p.slug.toLowerCase() === norm) || (p.id && p.id.toLowerCase() === norm))) {
           inMemoryProducts.set(p.id, p);
@@ -123,33 +114,33 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   return null;
 }
 
-export async function createProduct(product: Product): Promise<void> {
+export async function createProduct(product: Product, adminToken?: string): Promise<void> {
   inMemoryProducts.set(product.id, product);
   try {
     const clean = JSON.parse(JSON.stringify(product));
-    await adminDb.ref(`products/${product.id}`).set(clean);
+    await rtdbPut(`products/${product.id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB createProduct failed:", err);
   }
 }
 
-export async function updateProduct(id: string, updates: Partial<Product>): Promise<void> {
+export async function updateProduct(id: string, updates: Partial<Product>, adminToken?: string): Promise<void> {
   const existing = inMemoryProducts.get(id);
   if (existing) {
     inMemoryProducts.set(id, { ...existing, ...updates });
   }
   try {
     const clean = JSON.parse(JSON.stringify(updates));
-    await adminDb.ref(`products/${id}`).update(clean);
+    await rtdbPatch(`products/${id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB updateProduct failed:", err);
   }
 }
 
-export async function deleteProduct(id: string): Promise<void> {
+export async function deleteProduct(id: string, adminToken?: string): Promise<void> {
   inMemoryProducts.delete(id);
   try {
-    await adminDb.ref(`products/${id}`).remove();
+    await rtdbDelete(`products/${id}`, adminToken);
   } catch (err) {
     console.error("RTDB deleteProduct failed:", err);
   }
@@ -163,19 +154,14 @@ async function syncOrdersFromRTDB(): Promise<void> {
   if (isSyncingOrders) return;
   isSyncingOrders = true;
   try {
-    const fetchPromise = adminDb.ref("orders").get();
-    const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("RTDB orders timeout")), 1500));
-    const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
-    if (snapshot && snapshot.exists()) {
-      const data = snapshot.val();
+    const data = await rtdbGet("orders");
+    if (data && typeof data === "object") {
       inMemoryOrders.clear();
-      if (data && typeof data === "object") {
-        Object.values(data).forEach((item: any) => {
-          if (item && item.id) {
-            inMemoryOrders.set(item.id, item as Order);
-          }
-        });
-      }
+      Object.values(data).forEach((item: any) => {
+        if (item && item.id) {
+          inMemoryOrders.set(item.id, item as Order);
+        }
+      });
       lastOrderSyncTime = Date.now();
     }
   } catch (err: any) {
@@ -202,11 +188,10 @@ export async function getOrderById(id: string): Promise<Order | null> {
     return inMemoryOrders.get(id)!;
   }
   try {
-    const snap = await adminDb.ref(`orders/${id}`).get();
-    if (snap.exists()) {
-      const item = snap.val() as Order;
-      inMemoryOrders.set(item.id, item);
-      return item;
+    const item = await rtdbGet(`orders/${id}`);
+    if (item && item.id) {
+      inMemoryOrders.set(item.id, item as Order);
+      return item as Order;
     }
   } catch (err: any) {
     console.warn("RTDB order lookup notice:", err?.message || err);
@@ -214,24 +199,24 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return null;
 }
 
-export async function createOrder(order: Order): Promise<void> {
+export async function createOrder(order: Order, adminToken?: string): Promise<void> {
   inMemoryOrders.set(order.id, order);
   try {
     const clean = JSON.parse(JSON.stringify(order));
-    await adminDb.ref(`orders/${order.id}`).set(clean);
+    await rtdbPut(`orders/${order.id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB createOrder failed:", err);
   }
 }
 
-export async function updateOrder(id: string, updates: Partial<Order>): Promise<void> {
+export async function updateOrder(id: string, updates: Partial<Order>, adminToken?: string): Promise<void> {
   const existing = inMemoryOrders.get(id);
   if (existing) {
     inMemoryOrders.set(id, { ...existing, ...updates });
   }
   try {
     const clean = JSON.parse(JSON.stringify(updates));
-    await adminDb.ref(`orders/${id}`).update(clean);
+    await rtdbPatch(`orders/${id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB updateOrder failed:", err);
   }
@@ -245,9 +230,8 @@ export async function getUserOrders(email: string): Promise<Order[]> {
   if (matches.length > 0) return matches;
 
   try {
-    const snapshot = await adminDb.ref("orders").get();
-    if (snapshot.exists()) {
-      const data = snapshot.val();
+    const data = await rtdbGet("orders");
+    if (data && typeof data === "object") {
       const all = Object.values(data) as Order[];
       return all
         .filter((o) => o && o.customerEmail?.toLowerCase() === email.toLowerCase())
@@ -267,17 +251,14 @@ async function syncPromotionsFromRTDB(): Promise<void> {
   if (isSyncingPromotions) return;
   isSyncingPromotions = true;
   try {
-    const snapshot = await adminDb.ref("promotions").get();
-    if (snapshot.exists()) {
-      const data = snapshot.val();
+    const data = await rtdbGet("promotions");
+    if (data && typeof data === "object") {
       inMemoryPromotions.clear();
-      if (data && typeof data === "object") {
-        Object.values(data).forEach((item: any) => {
-          if (item && item.id) {
-            inMemoryPromotions.set(item.id, item as Promotion);
-          }
-        });
-      }
+      Object.values(data).forEach((item: any) => {
+        if (item && item.id) {
+          inMemoryPromotions.set(item.id, item as Promotion);
+        }
+      });
       lastPromoSyncTime = Date.now();
     }
   } catch (err: any) {
@@ -304,11 +285,10 @@ export async function getPromotionById(id: string): Promise<Promotion | null> {
     return inMemoryPromotions.get(id)!;
   }
   try {
-    const snap = await adminDb.ref(`promotions/${id}`).get();
-    if (snap.exists()) {
-      const item = snap.val() as Promotion;
-      inMemoryPromotions.set(item.id, item);
-      return item;
+    const item = await rtdbGet(`promotions/${id}`);
+    if (item && item.id) {
+      inMemoryPromotions.set(item.id, item as Promotion);
+      return item as Promotion;
     }
   } catch (err: any) {
     console.warn("RTDB promotion lookup notice:", err?.message || err);
@@ -316,33 +296,33 @@ export async function getPromotionById(id: string): Promise<Promotion | null> {
   return null;
 }
 
-export async function createPromotion(promo: Promotion): Promise<void> {
+export async function createPromotion(promo: Promotion, adminToken?: string): Promise<void> {
   inMemoryPromotions.set(promo.id, promo);
   try {
     const clean = JSON.parse(JSON.stringify(promo));
-    await adminDb.ref(`promotions/${promo.id}`).set(clean);
+    await rtdbPut(`promotions/${promo.id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB createPromotion failed:", err);
   }
 }
 
-export async function updatePromotion(id: string, updates: Partial<Promotion>): Promise<void> {
+export async function updatePromotion(id: string, updates: Partial<Promotion>, adminToken?: string): Promise<void> {
   const existing = inMemoryPromotions.get(id);
   if (existing) {
     inMemoryPromotions.set(id, { ...existing, ...updates });
   }
   try {
     const clean = JSON.parse(JSON.stringify(updates));
-    await adminDb.ref(`promotions/${id}`).update(clean);
+    await rtdbPatch(`promotions/${id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB updatePromotion failed:", err);
   }
 }
 
-export async function deletePromotion(id: string): Promise<void> {
+export async function deletePromotion(id: string, adminToken?: string): Promise<void> {
   inMemoryPromotions.delete(id);
   try {
-    await adminDb.ref(`promotions/${id}`).remove();
+    await rtdbDelete(`promotions/${id}`, adminToken);
   } catch (err) {
     console.error("RTDB deletePromotion failed:", err);
   }
@@ -363,9 +343,8 @@ export async function getSettings(): Promise<StoreSettings> {
     return cachedSettings;
   }
   try {
-    const snap = await adminDb.ref("settings/store").get();
-    if (snap.exists()) {
-      const data = snap.val() as Partial<StoreSettings>;
+    const data = await rtdbGet("settings/store");
+    if (data && typeof data === "object") {
       cachedSettings = {
         ...cachedSettings,
         ...data,
@@ -374,8 +353,7 @@ export async function getSettings(): Promise<StoreSettings> {
       lastSettingsSyncTime = Date.now();
       return cachedSettings;
     }
-    // Initialize default if absent
-    await adminDb.ref("settings/store").set(cachedSettings).catch(() => {});
+    await rtdbPut("settings/store", cachedSettings).catch(() => {});
     lastSettingsSyncTime = Date.now();
     return cachedSettings;
   } catch (e) {
@@ -384,7 +362,7 @@ export async function getSettings(): Promise<StoreSettings> {
   }
 }
 
-export async function updateSettings(updates: Partial<StoreSettings>): Promise<StoreSettings> {
+export async function updateSettings(updates: Partial<StoreSettings>, adminToken?: string): Promise<StoreSettings> {
   const clean = JSON.parse(JSON.stringify(updates));
   cachedSettings = {
     ...cachedSettings,
@@ -392,7 +370,7 @@ export async function updateSettings(updates: Partial<StoreSettings>): Promise<S
   };
   lastSettingsSyncTime = Date.now();
   try {
-    await adminDb.ref("settings/store").update(clean);
+    await rtdbPatch("settings/store", clean, adminToken);
   } catch (e) {
     console.warn("RTDB updateSettings notice:", e);
   }
