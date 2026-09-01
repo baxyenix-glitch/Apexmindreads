@@ -611,8 +611,8 @@ function OverviewSection({ currency }: { currency: Currency }) {
           </div>
 
           <div className="mt-6 flex h-40 sm:h-48 items-end gap-1.5 sm:gap-2.5 pt-4">
-            {analytics.revenueOverTime.slice(-14).map((d, i) => {
-              const maxRev = Math.max(...analytics.revenueOverTime.map((x) => x.revenue), 1);
+            {(analytics?.revenueOverTime || []).slice(-14).map((d, i) => {
+              const maxRev = Math.max(...(analytics?.revenueOverTime || []).map((x) => x.revenue), 1);
               const h = Math.max((d.revenue / maxRev) * 100, 6);
               return (
                 <div key={i} className="group relative flex h-full flex-1 flex-col justify-end items-center">
@@ -639,7 +639,7 @@ function OverviewSection({ currency }: { currency: Currency }) {
           </div>
 
           <div className="space-y-3">
-            {analytics.topProducts.slice(0, 4).map((tp, i) => {
+            {(analytics?.topProducts || []).slice(0, 4).map((tp, i) => {
               const prod = products.find((p) => p.id === tp.productId);
               return (
                 <div key={tp.productId} className="flex min-w-0 items-center gap-2.5 sm:gap-3 p-2 rounded-xl hover:bg-white/80 dark:hover:bg-white/5 transition overflow-hidden">
@@ -697,7 +697,7 @@ function OverviewSection({ currency }: { currency: Currency }) {
               <div className="flex items-center justify-between text-xs">
                 <div>
                   <p className="font-semibold text-[#26332f] dark:text-[#f4f4f5]">{order.customerName}</p>
-                  <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{order.items.map((i) => i.title).join(", ")}</p>
+                  <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{(order.items || []).map((i) => i?.title || "").filter(Boolean).join(", ")}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-[#26332f] dark:text-[#f4f4f5]">{formatCurrency(order.total, currency)}</p>
@@ -733,7 +733,7 @@ function OverviewSection({ currency }: { currency: Currency }) {
                     <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{order.customerEmail}</p>
                   </td>
                   <td className="max-w-[200px] truncate px-6 py-4 text-[#736b61] dark:text-[#d4d4d8]">
-                    {order.items.map((i) => i.title).join(", ")}
+                    {(order.items || []).map((i) => i?.title || "").filter(Boolean).join(", ")}
                   </td>
                   <td className="px-6 py-4 font-bold text-[#26332f] dark:text-[#f4f4f5]">{formatCurrency(order.total, currency)}</td>
                   <td className="px-6 py-4">
@@ -864,7 +864,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
                 </div>
                 <p className="text-[11px] text-[#8b8175] dark:text-[#a1a1aa]">{order.customerEmail}</p>
                 <div className="pt-1.5 border-t border-[#f5f3ee] dark:border-[#222222] text-[11px] text-[#736b61] dark:text-[#d4d4d8]">
-                  📚 {order.items.map((i) => i.title).join(", ")}
+                  📚 {(order.items || []).map((i) => i?.title || "").filter(Boolean).join(", ")}
                 </div>
               </div>
             </div>
@@ -896,7 +896,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
                     <p className="text-[10px] text-[#8b8175] dark:text-[#a1a1aa]">{order.customerEmail}</p>
                   </td>
                   <td className="max-w-[220px] truncate px-6 py-4 text-[#736b61] dark:text-[#d4d4d8]">
-                    {order.items.map((i) => i.title).join(", ")}
+                    {(order.items || []).map((i) => i?.title || "").filter(Boolean).join(", ")}
                   </td>
                   <td className="px-6 py-4 font-bold text-[#26332f] dark:text-[#f4f4f5]">{formatCurrency(order.total, currency)}</td>
                   <td className="px-6 py-4">

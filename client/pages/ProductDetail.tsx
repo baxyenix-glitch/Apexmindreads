@@ -126,7 +126,23 @@ export default function ProductDetail() {
           </div>
           <div>
             <p className="mb-5 text-[10px] font-bold uppercase tracking-[0.17em] text-[#8b8175]">What You'll Discover</p>
-            <ul className="space-y-4">{product.benefits.map((benefit) => <li key={benefit} className="flex items-start gap-3 border-b border-[#e5ddd2] pb-4 text-sm"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#b8c7b2] text-[#26332f]"><Check size={14} /></span>{benefit}</li>)}</ul>
+            <ul className="space-y-4">
+              {(product.benefits && product.benefits.length > 0
+                ? product.benefits
+                : [
+                    "Actionable step-by-step framework you can apply immediately",
+                    "Comprehensive strategies backed by real-world principles",
+                    "Downloadable digital workbook with lifetime updates and access"
+                  ]
+              ).map((benefit) => (
+                <li key={benefit} className="flex items-start gap-3 border-b border-[#e5ddd2] pb-4 text-sm">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#b8c7b2] text-[#26332f]">
+                    <Check size={14} />
+                  </span>
+                  {benefit}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
         

@@ -383,7 +383,7 @@ export default function Checkout() {
 
           <div className="my-8 space-y-4 rounded-2xl bg-[#f8f4ec] p-5 text-left">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b8175]">Your Downloads</p>
-            {completedOrder.items.map((item) => (
+            {(completedOrder.items || []).map((item) => (
               <div key={item.productId} className="flex flex-col gap-3 rounded-xl border border-[#e5ddd2] bg-[#fffaf2] p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-serif text-lg leading-tight text-[#26332f]">{item.title}</h3>

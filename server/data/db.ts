@@ -11,14 +11,34 @@ const inMemoryProducts = new Map<string, Product>();
 const inMemoryOrders = new Map<string, Order>();
 const inMemoryPromotions = new Map<string, Promotion>();
 
+function sanitizeProduct(p: any): Product {
+  if (!p) return p;
+  return {
+    ...p,
+    benefits: Array.isArray(p.benefits) 
+      ? p.benefits 
+      : (typeof p.benefits === "string" && p.benefits ? [p.benefits] : []),
+    cover: p.cover || {
+      kicker: "APEXMINDREADS",
+      title: p.title || "Guide",
+      subtitle: p.eyebrow || "",
+      author: "ApexMindReads Editorial",
+      tone: "#d86f45",
+      accent: "#f4c16e",
+      pattern: "grid",
+    },
+  };
+}
+
 // Helper to strictly deduplicate products by ID and slug
 function getUniqueProducts(): Product[] {
   const bySlug = new Map<string, Product>();
   for (const p of inMemoryProducts.values()) {
     if (!p) continue;
-    const key = (p.slug || p.id || "").toLowerCase();
+    const sanitized = sanitizeProduct(p);
+    const key = (sanitized.slug || sanitized.id || "").toLowerCase();
     if (!bySlug.has(key)) {
-      bySlug.set(key, p);
+      bySlug.set(key, sanitized);
     }
   }
   return Array.from(bySlug.values());
@@ -37,7 +57,7 @@ async function syncProductsFromRTDB(): Promise<void> {
       inMemoryProducts.clear();
       Object.values(data).forEach((item: any) => {
         if (item && item.id) {
-          inMemoryProducts.set(item.id, item as Product);
+          inMemoryProducts.set(item.id, sanitizeProduct(item));
         }
       });
       lastProductSyncTime = Date.now();
@@ -72,15 +92,17 @@ export async function getProductById(id: string): Promise<Product | null> {
   try {
     const item = await rtdbGet(`products/${id}`);
     if (item && item.id) {
-      inMemoryProducts.set(item.id, item as Product);
-      return item as Product;
+      const sanitized = sanitizeProduct(item);
+      inMemoryProducts.set(item.id, sanitized);
+      return sanitized;
     }
     const allData = await rtdbGet("products");
     if (allData && typeof allData === "object") {
       for (const p of Object.values(allData) as Product[]) {
         if (p && (p.id === id || p.slug === id)) {
-          inMemoryProducts.set(p.id, p);
-          return p;
+          const sanitized = sanitizeProduct(p);
+          inMemoryProducts.set(p.id, sanitized);
+          return sanitized;
         }
       }
     }
@@ -94,7 +116,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   const norm = slug.toLowerCase();
   for (const p of inMemoryProducts.values()) {
     if ((p.slug && p.slug.toLowerCase() === norm) || (p.id && p.id.toLowerCase() === norm)) {
-      return p;
+      return sanitizeProduct(p);
     }
   }
 
@@ -103,8 +125,9 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     if (data && typeof data === "object") {
       for (const p of Object.values(data) as Product[]) {
         if (p && ((p.slug && p.slug.toLowerCase() === norm) || (p.id && p.id.toLowerCase() === norm))) {
-          inMemoryProducts.set(p.id, p);
-          return p;
+          const sanitized = sanitizeProduct(p);
+          inMemoryProducts.set(p.id, sanitized);
+          return sanitized;
         }
       }
     }
@@ -115,9 +138,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function createProduct(product: Product, adminToken?: string): Promise<void> {
-  inMemoryProducts.set(product.id, product);
+  const sanitized = sanitizeProduct(product);
+  inMemoryProducts.set(sanitized.id, sanitized);
   try {
-    const clean = JSON.parse(JSON.stringify(product));
+    const clean = JSON.parse(JSON.stringify(sanitized));
     await rtdbPut(`products/${product.id}`, clean, adminToken);
   } catch (err) {
     console.error("RTDB createProduct failed:", err);

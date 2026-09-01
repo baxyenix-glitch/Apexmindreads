@@ -114,7 +114,7 @@ export default function MyOrders() {
                 </div>
 
                 <div className="mt-5 space-y-3 border-t border-[#eae7e0] pt-5">
-                  {order.items.map((item, i) => (
+                  {(order.items || []).map((item, i) => (
                     <div key={i} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eee7dc]">
