@@ -25,20 +25,35 @@ export async function adminAuthHeaders(): Promise<HeadersInit> {
   return getAdminAuthHeaders();
 }
 
+let cachedAdminUser: AdminUser | null = null;
+if (typeof window !== "undefined") {
+  try {
+    const raw = localStorage.getItem("apexmind_cached_admin_user");
+    if (raw) cachedAdminUser = JSON.parse(raw);
+  } catch {}
+}
+
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<AdminUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [admin, setAdmin] = useState<AdminUser | null>(cachedAdminUser);
+  const [isLoading, setIsLoading] = useState(!cachedAdminUser);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(adminAuthClient, (user: FirebaseUser | null) => {
       if (user && user.email) {
-        setAdmin({
+        const u: AdminUser = {
           id: user.uid,
           email: user.email,
           name: "Richkidbenny",
-        });
+        };
+        setAdmin(u);
+        try {
+          localStorage.setItem("apexmind_cached_admin_user", JSON.stringify(u));
+        } catch {}
       } else {
         setAdmin(null);
+        try {
+          localStorage.removeItem("apexmind_cached_admin_user");
+        } catch {}
       }
       setIsLoading(false);
     });

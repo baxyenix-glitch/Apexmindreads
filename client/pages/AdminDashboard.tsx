@@ -198,32 +198,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Notification Toggle and Quick Test Sound Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleNotifications}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition shadow-sm active:scale-95 ${
-                  notifEnabled
-                    ? "border-[#5e8c67]/40 bg-[#f0f7f2] dark:bg-[#0f2415] text-[#2d5a37] dark:text-[#4ade80] hover:bg-[#e2f0e6] dark:hover:bg-[#163520]"
-                    : "border-[#d86f45]/50 bg-[#fff5f0] dark:bg-[#2e170f] text-[#d86f45] hover:bg-[#ffece4] dark:hover:bg-[#3d1e14] animate-pulse"
-                }`}
-                title={notifEnabled ? "Order alerts are enabled on this device" : "Click to enable real-time order alerts on this device"}
-              >
-                {notifEnabled ? <BellRing size={13} className="text-[#5e8c67]" /> : <BellOff size={13} className="text-[#d86f45]" />}
-                <span className="hidden min-[480px]:inline">{notifEnabled ? "Alerts Active" : "Enable Alerts"}</span>
-                <span className="min-[480px]:hidden">{notifEnabled ? "On" : "Enable"}</span>
-              </button>
-
-              <button
-                onClick={testNotification}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d0c6] dark:border-[#262626] bg-white dark:bg-[#171717] px-3.5 py-1.5 text-xs font-bold text-[#26332f] dark:text-[#f4f4f5] transition hover:bg-[#faedc9] dark:hover:bg-[#262626] hover:border-[#d86f45] shadow-sm active:scale-95"
-                title="Test cash register sound and mobile notification"
-              >
-                <Volume2 size={13} className="text-[#d86f45]" />
-                <span className="hidden min-[480px]:inline">Test Sound</span>
-                <span className="min-[480px]:hidden">Test</span>
-              </button>
-            </div>
           </div>
         </header>
 
@@ -532,6 +506,17 @@ let cachedOverviewAnalytics: AnalyticsResponse | null = null;
 let cachedOverviewOrders: Order[] = [];
 let cachedOverviewProducts: Product[] = [];
 
+if (typeof window !== "undefined") {
+  try {
+    const a = localStorage.getItem("apexmind_cached_overview_analytics");
+    if (a) cachedOverviewAnalytics = JSON.parse(a);
+    const o = localStorage.getItem("apexmind_cached_overview_orders");
+    if (o) cachedOverviewOrders = JSON.parse(o);
+    const p = localStorage.getItem("apexmind_cached_overview_products");
+    if (p) cachedOverviewProducts = JSON.parse(p);
+  } catch {}
+}
+
 function OverviewSection({ currency }: { currency: Currency }) {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(cachedOverviewAnalytics);
   const [orders, setOrders] = useState<Order[]>(cachedOverviewOrders);
@@ -553,6 +538,13 @@ function OverviewSection({ currency }: { currency: Currency }) {
       cachedOverviewAnalytics = a;
       cachedOverviewOrders = o.orders.slice(0, 6);
       cachedOverviewProducts = p.products;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("apexmind_cached_overview_analytics", JSON.stringify(a));
+          localStorage.setItem("apexmind_cached_overview_orders", JSON.stringify(o.orders.slice(0, 6)));
+          localStorage.setItem("apexmind_cached_overview_products", JSON.stringify(p.products));
+        } catch {}
+      }
       setAnalytics(a);
       setOrders(o.orders.slice(0, 6));
       setProducts(p.products);
@@ -741,6 +733,12 @@ function OverviewSection({ currency }: { currency: Currency }) {
 }
 
 let cachedAdminOrdersList: Order[] = [];
+if (typeof window !== "undefined") {
+  try {
+    const o = localStorage.getItem("apexmind_cached_admin_orders");
+    if (o) cachedAdminOrdersList = JSON.parse(o);
+  } catch {}
+}
 
 function OrdersSection({ currency }: { currency: Currency }) {
   const [orders, setOrders] = useState<Order[]>(cachedAdminOrdersList);
@@ -754,6 +752,9 @@ function OrdersSection({ currency }: { currency: Currency }) {
     try {
       const data = await apiFetch<OrderListResponse>("/api/admin/orders");
       cachedAdminOrdersList = data.orders;
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem("apexmind_cached_admin_orders", JSON.stringify(data.orders)); } catch {}
+      }
       setOrders(data.orders);
     } catch (e: any) {
       if (cachedAdminOrdersList.length === 0) setError(e.message);
@@ -916,6 +917,12 @@ function OrdersSection({ currency }: { currency: Currency }) {
 }
 
 let cachedAdminProductsList: Product[] = [];
+if (typeof window !== "undefined") {
+  try {
+    const p = localStorage.getItem("apexmind_cached_admin_products");
+    if (p) cachedAdminProductsList = JSON.parse(p);
+  } catch {}
+}
 
 function ProductsSection({ currency }: { currency: Currency }) {
   const [products, setProducts] = useState<Product[]>(cachedAdminProductsList);
@@ -929,6 +936,9 @@ function ProductsSection({ currency }: { currency: Currency }) {
     try {
       const data = await apiFetch<ProductListResponse>("/api/products");
       cachedAdminProductsList = data.products;
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem("apexmind_cached_admin_products", JSON.stringify(data.products)); } catch {}
+      }
       setProducts(data.products);
     } catch (e: any) {
       if (cachedAdminProductsList.length === 0) setError(e.message);
@@ -1922,6 +1932,12 @@ function AnalyticsSection({ currency }: { currency: Currency }) {
 // PROMOTIONS SECTION
 // ═══════════════════════════════════════════════════════════
 let cachedPromotionsList: Promotion[] = [];
+if (typeof window !== "undefined") {
+  try {
+    const pr = localStorage.getItem("apexmind_cached_promotions");
+    if (pr) cachedPromotionsList = JSON.parse(pr);
+  } catch {}
+}
 
 function PromotionsSection() {
   const [promotions, setPromotions] = useState<Promotion[]>(cachedPromotionsList);
@@ -1935,6 +1951,9 @@ function PromotionsSection() {
     try {
       const data = await apiFetch<PromotionListResponse>("/api/admin/promotions");
       cachedPromotionsList = data.promotions;
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem("apexmind_cached_promotions", JSON.stringify(data.promotions)); } catch {}
+      }
       setPromotions(data.promotions);
     } catch (e: any) {
       if (cachedPromotionsList.length === 0) setError(e.message);

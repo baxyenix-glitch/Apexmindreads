@@ -35,32 +35,30 @@ export const handleListCustomers: RequestHandler = async (_req, res) => {
       }
     }
 
-    // Also include registered users who haven't ordered yet
+    // Also include registered users who haven't ordered yet (with 1.5s timeout protection)
     try {
-      let pageToken;
-      do {
-        const result = await adminAuth.listUsers(1000, pageToken);
-        for (const user of result.users) {
-          if (user.email) {
-            const key = user.email.toLowerCase();
-            if (!customerMap.has(key)) {
-              customerMap.set(key, {
-                id: key,
-                email: user.email,
-                name: user.displayName || user.email.split("@")[0],
-                country: "—",
-                orderCount: 0,
-                totalSpent: 0,
-                lastOrderDate: user.metadata.creationTime || new Date().toISOString(),
-                status: "New",
-              });
-            }
+      const listUsersPromise = adminAuth.listUsers(1000);
+      const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 1500));
+      const result = await Promise.race([listUsersPromise, timeoutPromise]);
+      for (const user of result.users) {
+        if (user.email) {
+          const key = user.email.toLowerCase();
+          if (!customerMap.has(key)) {
+            customerMap.set(key, {
+              id: key,
+              email: user.email,
+              name: user.displayName || user.email.split("@")[0],
+              country: "—",
+              orderCount: 0,
+              totalSpent: 0,
+              lastOrderDate: user.metadata.creationTime || new Date().toISOString(),
+              status: "New",
+            });
           }
         }
-        pageToken = result.pageToken;
-      } while (pageToken);
-    } catch (err) {
-      console.error("Failed to list users from Firebase Auth", err);
+      }
+    } catch {
+      // Non-blocking: continue with order-based customers immediately
     }
 
     const customers = [...customerMap.values()].sort((a, b) => b.totalSpent - a.totalSpent);
