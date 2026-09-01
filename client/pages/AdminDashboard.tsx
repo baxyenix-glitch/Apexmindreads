@@ -756,28 +756,23 @@ if (typeof window !== "undefined") {
 
 function OrdersSection({ currency }: { currency: Currency }) {
   const [orders, setOrders] = useState<Order[]>(cachedAdminOrdersList);
-  const [loading, setLoading] = useState(cachedAdminOrdersList.length === 0);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
 
-  const load = useCallback(async (isSilent = false) => {
-    if (!isSilent && cachedAdminOrdersList.length === 0) setLoading(true);
+  const load = useCallback(async () => {
     try {
-      const data = await apiFetch<OrderListResponse>("/api/admin/orders");
-      cachedAdminOrdersList = data.orders;
-      if (typeof window !== "undefined") {
-        try { localStorage.setItem("apexmind_cached_admin_orders", JSON.stringify(data.orders)); } catch {}
+      const data = await apiFetch<OrderListResponse>("/api/admin/orders").catch(() => null);
+      if (data && data.orders) {
+        cachedAdminOrdersList = data.orders;
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_admin_orders", JSON.stringify(data.orders)); } catch {}
+        }
+        setOrders(data.orders);
       }
-      setOrders(data.orders);
-    } catch (e: any) {
-      if (cachedAdminOrdersList.length === 0) setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
   }, []);
 
-  useEffect(() => { load(cachedAdminOrdersList.length > 0); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const updateStatus = async (orderId: string, status: string) => {
     try {
@@ -789,9 +784,6 @@ function OrdersSection({ currency }: { currency: Currency }) {
       });
     } catch (e: any) { alert(e.message); }
   };
-
-  if (loading && orders.length === 0) return <LoadingBlock />;
-  if (error && orders.length === 0) return <ErrorBlock message={error} onRetry={() => load(false)} />;
 
   const filtered = orders.filter((o) => {
     const matchesSearch = !search || `${o.id} ${o.customerName} ${o.customerEmail}`.toLowerCase().includes(search.toLowerCase());
@@ -940,28 +932,23 @@ if (typeof window !== "undefined") {
 
 function ProductsSection({ currency }: { currency: Currency }) {
   const [products, setProducts] = useState<Product[]>(cachedAdminProductsList);
-  const [loading, setLoading] = useState(cachedAdminProductsList.length === 0);
-  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
-  const load = useCallback(async (isSilent = false) => {
-    if (!isSilent && cachedAdminProductsList.length === 0) setLoading(true);
+  const load = useCallback(async () => {
     try {
-      const data = await apiFetch<ProductListResponse>("/api/products");
-      cachedAdminProductsList = data.products;
-      if (typeof window !== "undefined") {
-        try { localStorage.setItem("apexmind_cached_admin_products", JSON.stringify(data.products)); } catch {}
+      const data = await apiFetch<ProductListResponse>("/api/products").catch(() => null);
+      if (data && data.products) {
+        cachedAdminProductsList = data.products;
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_admin_products", JSON.stringify(data.products)); } catch {}
+        }
+        setProducts(data.products);
       }
-      setProducts(data.products);
-    } catch (e: any) {
-      if (cachedAdminProductsList.length === 0) setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
   }, []);
 
-  useEffect(() => { load(cachedAdminProductsList.length > 0); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
@@ -974,9 +961,6 @@ function ProductsSection({ currency }: { currency: Currency }) {
       });
     } catch (e: any) { alert(e.message); }
   };
-
-  if (loading && products.length === 0) return <LoadingBlock />;
-  if (error && products.length === 0) return <ErrorBlock message={error} onRetry={() => load(false)} />;
 
   if (showForm || editProduct) {
     return (
@@ -1784,31 +1768,38 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 // ═══════════════════════════════════════════════════════════
 // CUSTOMERS SECTION
 // ═══════════════════════════════════════════════════════════
+let cachedAdminCustomersList: CustomerView[] = [];
+if (typeof window !== "undefined") {
+  try {
+    const c = localStorage.getItem("apexmind_cached_admin_customers");
+    if (c) cachedAdminCustomersList = JSON.parse(c);
+  } catch {}
+}
+
 function CustomersSection({ currency }: { currency: Currency }) {
-  const [customers, setCustomers] = useState<CustomerView[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [customers, setCustomers] = useState<CustomerView[]>(cachedAdminCustomersList);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const data = await apiFetch<CustomerListResponse>("/api/admin/customers");
-      setCustomers(data.customers);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+      const data = await apiFetch<CustomerListResponse>("/api/admin/customers").catch(() => null);
+      if (data && data.customers) {
+        cachedAdminCustomersList = data.customers;
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_admin_customers", JSON.stringify(data.customers)); } catch {}
+        }
+        setCustomers(data.customers);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = customers.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase()) ||
+    (c.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.email || "").toLowerCase().includes(search.toLowerCase()) ||
     (c.country || "").toLowerCase().includes(search.toLowerCase())
   );
-
-  if (loading) return <LoadingBlock />;
-  if (error) return <ErrorBlock message={error} onRetry={load} />;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -1871,23 +1862,22 @@ function CustomersSection({ currency }: { currency: Currency }) {
 // ANALYTICS SECTION
 // ═══════════════════════════════════════════════════════════
 function AnalyticsSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>(cachedOverviewAnalytics || defaultOverviewAnalytics);
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const data = await apiFetch<AnalyticsResponse>("/api/admin/analytics");
-      setAnalytics(data);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+      const data = await apiFetch<AnalyticsResponse>("/api/admin/analytics").catch(() => null);
+      if (data) {
+        cachedOverviewAnalytics = data;
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_overview_analytics", JSON.stringify(data)); } catch {}
+        }
+        setAnalytics(data);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  if (loading) return <LoadingBlock />;
-  if (error || !analytics) return <ErrorBlock message={error || "Failed to load analytics"} onRetry={load} />;
 
   const countryEntries = Object.entries(analytics.revenueByCountry).sort((a, b) => b[1] - a[1]);
   const totalCountryRev = countryEntries.reduce((s, [, v]) => s + v, 0) || 1;
@@ -1955,28 +1945,23 @@ if (typeof window !== "undefined") {
 
 function PromotionsSection() {
   const [promotions, setPromotions] = useState<Promotion[]>(cachedPromotionsList);
-  const [loading, setLoading] = useState(cachedPromotionsList.length === 0);
-  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editPromo, setEditPromo] = useState<Promotion | null>(null);
 
-  const load = useCallback(async (isSilent = false) => {
-    if (!isSilent && cachedPromotionsList.length === 0) setLoading(true);
+  const load = useCallback(async () => {
     try {
-      const data = await apiFetch<PromotionListResponse>("/api/admin/promotions");
-      cachedPromotionsList = data.promotions;
-      if (typeof window !== "undefined") {
-        try { localStorage.setItem("apexmind_cached_promotions", JSON.stringify(data.promotions)); } catch {}
+      const data = await apiFetch<PromotionListResponse>("/api/admin/promotions").catch(() => null);
+      if (data && data.promotions) {
+        cachedPromotionsList = data.promotions;
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_promotions", JSON.stringify(data.promotions)); } catch {}
+        }
+        setPromotions(data.promotions);
       }
-      setPromotions(data.promotions);
-    } catch (e: any) {
-      if (cachedPromotionsList.length === 0) setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
   }, []);
 
-  useEffect(() => { load(cachedPromotionsList.length > 0); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const deletePromo = async (id: string) => {
     if (!confirm("Delete this promotion campaign?")) return;
@@ -1989,9 +1974,6 @@ function PromotionsSection() {
       });
     } catch (e: any) { alert(e.message); }
   };
-
-  if (loading && promotions.length === 0) return <LoadingBlock />;
-  if (error && promotions.length === 0) return <ErrorBlock message={error} onRetry={() => load(false)} />;
 
   if (showForm || editPromo) {
     return (
@@ -2218,8 +2200,6 @@ function SettingsSection({ notifEnabled, toggleNotifications, testNotification }
       setSaving(false); 
     }
   };
-
-  if (loading) return <LoadingBlock />;
 
   const updateCredentials = async () => {
     if (!adminEmail && !adminPassword) return;
