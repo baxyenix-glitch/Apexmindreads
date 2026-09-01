@@ -517,48 +517,62 @@ if (typeof window !== "undefined") {
   } catch {}
 }
 
+const defaultOverviewAnalytics: AnalyticsResponse = {
+  totalRevenue: 0,
+  paidOrders: 0,
+  totalCustomers: 0,
+  averageOrder: 0,
+  revenueByCountry: {},
+  repeatCustomerRate: 0,
+  topCategory: "Personal Development",
+  revenueOverTime: [],
+  topProducts: [],
+};
+
 function OverviewSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(cachedOverviewAnalytics);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>(cachedOverviewAnalytics || defaultOverviewAnalytics);
   const [orders, setOrders] = useState<Order[]>(cachedOverviewOrders);
   const [products, setProducts] = useState<Product[]>(cachedOverviewProducts);
-  const [loading, setLoading] = useState(!cachedOverviewAnalytics);
-  const [error, setError] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const load = useCallback(async (isSilent = false) => {
-    if (!isSilent && !cachedOverviewAnalytics) {
-      setLoading(true);
-      setError("");
-    }
+  const load = useCallback(async () => {
+    setIsUpdating(true);
     try {
       const [a, o, p] = await Promise.all([
-        apiFetch<AnalyticsResponse>("/api/admin/analytics"),
-        apiFetch<OrderListResponse>("/api/admin/orders"),
-        apiFetch<ProductListResponse>("/api/products"),
+        apiFetch<AnalyticsResponse>("/api/admin/analytics").catch(() => null),
+        apiFetch<OrderListResponse>("/api/admin/orders").catch(() => null),
+        apiFetch<ProductListResponse>("/api/products").catch(() => null),
       ]);
-      cachedOverviewAnalytics = a;
-      cachedOverviewOrders = o.orders.slice(0, 6);
-      cachedOverviewProducts = p.products;
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem("apexmind_cached_overview_analytics", JSON.stringify(a));
-          localStorage.setItem("apexmind_cached_overview_orders", JSON.stringify(o.orders.slice(0, 6)));
-          localStorage.setItem("apexmind_cached_overview_products", JSON.stringify(p.products));
-        } catch {}
+      if (a) {
+        cachedOverviewAnalytics = a;
+        setAnalytics(a);
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_overview_analytics", JSON.stringify(a)); } catch {}
+        }
       }
-      setAnalytics(a);
-      setOrders(o.orders.slice(0, 6));
-      setProducts(p.products);
+      if (o && o.orders) {
+        const topOrders = o.orders.slice(0, 6);
+        cachedOverviewOrders = topOrders;
+        setOrders(topOrders);
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_overview_orders", JSON.stringify(topOrders)); } catch {}
+        }
+      }
+      if (p && p.products) {
+        cachedOverviewProducts = p.products;
+        setProducts(p.products);
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem("apexmind_cached_overview_products", JSON.stringify(p.products)); } catch {}
+        }
+      }
     } catch (e: any) {
-      if (!cachedOverviewAnalytics) setError(e.message);
+      console.warn("Background overview refresh notice:", e);
     } finally {
-      setLoading(false);
+      setIsUpdating(false);
     }
   }, []);
 
-  useEffect(() => { load(!!cachedOverviewAnalytics); }, [load]);
-
-  if (loading && !analytics) return <LoadingBlock />;
-  if (error && !analytics) return <ErrorBlock message={error || "Failed to load dashboard"} onRetry={() => load(false)} />;
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div className="space-y-5 sm:space-y-6">

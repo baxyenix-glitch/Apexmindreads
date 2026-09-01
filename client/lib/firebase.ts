@@ -38,7 +38,16 @@ export async function authHeaders(): Promise<HeadersInit> {
 }
 
 export async function getAdminAuthToken(forceRefresh = false): Promise<string | null> {
-  const user = adminAuthClient.currentUser;
+  let user = adminAuthClient.currentUser;
+  if (!user) {
+    user = await new Promise((resolve) => {
+      const unsub = adminAuthClient.onAuthStateChanged((u) => {
+        unsub();
+        resolve(u);
+      });
+      setTimeout(() => resolve(null), 1000);
+    });
+  }
   if (!user) return null;
   return await user.getIdToken(forceRefresh);
 }

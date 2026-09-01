@@ -32,8 +32,10 @@ async function syncProductsFromRTDB(): Promise<void> {
   if (isSyncingProducts) return;
   isSyncingProducts = true;
   try {
-    const snapshot = await adminDb.ref("products").get();
-    if (snapshot.exists()) {
+    const fetchPromise = adminDb.ref("products").get();
+    const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("RTDB products timeout")), 1500));
+    const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+    if (snapshot && snapshot.exists()) {
       const data = snapshot.val();
       inMemoryProducts.clear();
       if (data && typeof data === "object") {
@@ -161,8 +163,10 @@ async function syncOrdersFromRTDB(): Promise<void> {
   if (isSyncingOrders) return;
   isSyncingOrders = true;
   try {
-    const snapshot = await adminDb.ref("orders").get();
-    if (snapshot.exists()) {
+    const fetchPromise = adminDb.ref("orders").get();
+    const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("RTDB orders timeout")), 1500));
+    const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
+    if (snapshot && snapshot.exists()) {
       const data = snapshot.val();
       inMemoryOrders.clear();
       if (data && typeof data === "object") {
