@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import multer from "multer";
-import { adminDb } from "../lib/firebase-admin.js";
+import { rtdbPut, rtdbGet } from "../lib/firebase-rtdb.js";
 
 // Storage for cover images
 const imageStorage = multer.memoryStorage();
@@ -52,13 +52,14 @@ export const handleUploadPdfInit: RequestHandler = async (req, res) => {
       return;
     }
     const fileId = `ebook_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    await adminDb.ref(`ebook_files/${fileId}`).set({
+    const adminToken = (req as any).adminToken;
+    await rtdbPut(`ebook_files/${fileId}`, {
       fileName,
       fileSize: Number(fileSize),
       totalChunks: Number(totalChunks),
       status: "uploading",
       createdAt: new Date().toISOString(),
-    });
+    }, adminToken);
     res.json({ fileId });
   } catch (err: any) {
     console.error("PDF init error:", err);
@@ -77,10 +78,11 @@ export const handleUploadPdfChunk: RequestHandler = async (req, res) => {
       res.status(400).json({ error: "Missing fileId, chunkIndex, or chunk data" });
       return;
     }
-    await adminDb.ref(`ebook_files/${fileId}/chunks/${String(chunkIndex).padStart(4, "0")}`).set({
+    const adminToken = (req as any).adminToken;
+    await rtdbPut(`ebook_files/${fileId}/chunks/${String(chunkIndex).padStart(4, "0")}`, {
       index: Number(chunkIndex),
       data: String(data),
-    });
+    }, adminToken);
     res.json({ success: true, chunkIndex });
   } catch (err: any) {
     console.error("PDF chunk error:", err);
@@ -99,13 +101,13 @@ export const handleUploadPdfComplete: RequestHandler = async (req, res) => {
       res.status(400).json({ error: "Missing fileId" });
       return;
     }
-    const snap = await adminDb.ref(`ebook_files/${fileId}`).get();
-    if (!snap.exists()) {
+    const adminToken = (req as any).adminToken;
+    const meta = await rtdbGet(`ebook_files/${fileId}`, adminToken);
+    if (!meta) {
       res.status(404).json({ error: "File record not found" });
       return;
     }
-    const meta = snap.val();
-    await adminDb.ref(`ebook_files/${fileId}`).update({ status: "ready" });
+    await rtdbPut(`ebook_files/${fileId}/status`, "ready", adminToken);
 
     const url = `/api/ebooks/${fileId}.pdf`;
     res.json({
@@ -140,14 +142,16 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
     const CHUNK_SIZE = 500 * 1024;
     const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
 
+    const adminToken = (req as any).adminToken;
+
     // Save metadata
-    await adminDb.ref(`ebook_files/${fileId}`).set({
+    await rtdbPut(`ebook_files/${fileId}`, {
       fileName,
       fileSize,
       totalChunks,
       status: "ready",
       createdAt: new Date().toISOString(),
-    });
+    }, adminToken);
 
     // Write all chunks
     for (let i = 0; i < totalChunks; i++) {
@@ -156,10 +160,10 @@ export const handleUploadPdf: RequestHandler = async (req, res) => {
       const chunkSlice = fileBuffer.subarray(start, end);
       const chunkBase64 = chunkSlice.toString("base64");
 
-      await adminDb.ref(`ebook_files/${fileId}/chunks/${String(i).padStart(4, "0")}`).set({
+      await rtdbPut(`ebook_files/${fileId}/chunks/${String(i).padStart(4, "0")}`, {
         index: i,
         data: chunkBase64,
-      });
+      }, adminToken);
     }
 
     const url = `/api/ebooks/${fileId}.pdf`;
@@ -184,13 +188,11 @@ export const handleGetEbookFile: RequestHandler = async (req, res) => {
   const fileId = rawId.replace(/\.pdf$/i, "");
   
   try {
-    const snap = await adminDb.ref(`ebook_files/${fileId}`).get();
-    if (!snap.exists()) {
+    const meta = await rtdbGet(`ebook_files/${fileId}`);
+    if (!meta) {
       res.status(404).send("PDF file not found");
       return;
     }
-
-    const meta = snap.val();
     const chunksObj = meta.chunks || {};
     const chunkValues = Object.values(chunksObj) as { index: number; data: string }[];
     

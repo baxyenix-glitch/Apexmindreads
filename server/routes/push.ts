@@ -20,13 +20,14 @@ export const handlePushSubscribe: RequestHandler = async (req, res) => {
   }
 
   try {
+    const adminToken = (req as any).adminToken;
     await savePushSubscription({
       endpoint: subscription.endpoint,
       keys: subscription.keys,
       userAgent: req.headers["user-agent"],
       createdAt: new Date().toISOString(),
       lastUsedAt: new Date().toISOString(),
-    });
+    }, adminToken);
     res.json({ ok: true, message: "Push subscription registered successfully" });
   } catch (err: any) {
     console.error("Failed to register push subscription:", err);

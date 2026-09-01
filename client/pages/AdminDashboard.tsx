@@ -1201,11 +1201,11 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 
     try {
       const headers = await adminAuthHeaders();
-      const CHUNK_SIZE = 600 * 1024; // 600KB chunk size (smooth & reliable across all cloud gateways)
+      const CHUNK_SIZE = 350 * 1024; // 350KB chunks for ultra-fast, smooth progress
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
       // 1. Initialize upload session
-      const initRes = await fetch("/api/admin/upload-pdf-init", {
+      let initRes = await fetch("/api/admin/upload-pdf-init", {
         method: "POST",
         headers: {
           ...headers,
@@ -1218,6 +1218,22 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
         }),
       });
 
+      if (initRes.status === 401) {
+        const freshHeaders = await adminAuthHeaders();
+        initRes = await fetch("/api/admin/upload-pdf-init", {
+          method: "POST",
+          headers: {
+            ...freshHeaders,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            totalChunks,
+          }),
+        });
+      }
+
       if (!initRes.ok) {
         const errData = await initRes.json().catch(() => ({ error: "Failed to initialize upload" }));
         throw new Error(errData.error || "Failed to initialize upload");
@@ -1225,7 +1241,7 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 
       const { fileId } = await initRes.json();
 
-      // 2. Upload chunks sequentially
+      // 2. Upload chunks sequentially with auto-retry
       for (let i = 0; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, file.size);
@@ -1243,21 +1259,39 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
           reader.readAsDataURL(slice);
         });
 
-        const chunkRes = await fetch("/api/admin/upload-pdf-chunk", {
-          method: "POST",
-          headers: {
-            ...headers,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fileId,
-            chunkIndex: i,
-            data: chunkBase64,
-          }),
-        });
+        let uploaded = false;
+        let lastError = "";
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const currentHeaders = await adminAuthHeaders();
+            const chunkRes = await fetch("/api/admin/upload-pdf-chunk", {
+              method: "POST",
+              headers: {
+                ...currentHeaders,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                fileId,
+                chunkIndex: i,
+                data: chunkBase64,
+              }),
+            });
 
-        if (!chunkRes.ok) {
-          throw new Error(`Failed to upload chunk ${i + 1} of ${totalChunks}`);
+            if (chunkRes.ok) {
+              uploaded = true;
+              break;
+            } else {
+              const err = await chunkRes.json().catch(() => ({ error: `HTTP ${chunkRes.status}` }));
+              lastError = err.error || `HTTP ${chunkRes.status}`;
+            }
+          } catch (e: any) {
+            lastError = e.message || "Network error";
+          }
+          await new Promise((r) => setTimeout(r, 400));
+        }
+
+        if (!uploaded) {
+          throw new Error(`Failed to upload chunk ${i + 1} of ${totalChunks}: ${lastError}`);
         }
 
         const pct = Math.round(((i + 1) / totalChunks) * 100);
@@ -1265,10 +1299,11 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
       }
 
       // 3. Finalize upload
+      const finalHeaders = await adminAuthHeaders();
       const completeRes = await fetch("/api/admin/upload-pdf-complete", {
         method: "POST",
         headers: {
-          ...headers,
+          ...finalHeaders,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ fileId }),

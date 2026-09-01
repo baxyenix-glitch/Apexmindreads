@@ -46,32 +46,30 @@ if (!serviceAccount) {
   const serviceAccountPath = path.join(process.cwd(), "server/data/firebase-admin-key.json");
   if (fs.existsSync(serviceAccountPath)) {
     try {
-      serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+      const parsed = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+      if (parsed && (!parsed.project_id || parsed.project_id === PROJECT_ID)) {
+        serviceAccount = parsed;
+      }
     } catch (e) {
       console.error("Failed to read local service account file:", e);
     }
   }
 }
 
-if (!getApps().length) {
-  if (serviceAccount) {
-    if (typeof serviceAccount.private_key === "string") {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-    }
-    initializeApp({
-      credential: cert(serviceAccount),
-      databaseURL: RTDB_URL,
-      projectId: serviceAccount.project_id || PROJECT_ID,
-    });
-  } else {
-    initializeApp({
-      projectId: PROJECT_ID,
-      databaseURL: RTDB_URL,
-    });
-  }
-}
+const defaultApp = getApps().length
+  ? getApps()[0]
+  : (serviceAccount
+      ? initializeApp({
+          credential: cert(serviceAccount),
+          databaseURL: RTDB_URL,
+          projectId: serviceAccount.project_id || PROJECT_ID,
+        })
+      : initializeApp({
+          projectId: PROJECT_ID,
+          databaseURL: RTDB_URL,
+        }));
 
-export const adminAuth = getAuth();
-export const adminDb = getDatabase();
-export const adminFirestore = getFirestore();
+export const adminAuth = getAuth(defaultApp);
+export const adminDb = getDatabase(defaultApp);
+export const adminFirestore = getFirestore(defaultApp);
 

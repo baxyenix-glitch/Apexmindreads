@@ -38,18 +38,46 @@ export async function authHeaders(): Promise<HeadersInit> {
 }
 
 export async function getAdminAuthToken(forceRefresh = false): Promise<string | null> {
-  let user = adminAuthClient.currentUser;
-  if (!user) {
-    user = await new Promise((resolve) => {
-      const unsub = adminAuthClient.onAuthStateChanged((u) => {
-        unsub();
-        resolve(u);
-      });
-      setTimeout(() => resolve(null), 1000);
-    });
+  let user = adminAuthClient.currentUser || auth.currentUser;
+  if (user) {
+    try {
+      const token = await user.getIdToken(forceRefresh);
+      if (token && typeof window !== "undefined") {
+        try { localStorage.setItem("apexmind_admin_id_token", token); } catch {}
+      }
+      return token;
+    } catch {}
   }
-  if (!user) return null;
-  return await user.getIdToken(forceRefresh);
+
+  // Check localStorage cached token first
+  if (typeof window !== "undefined") {
+    const cachedToken = localStorage.getItem("apexmind_admin_id_token");
+    if (cachedToken) {
+      adminAuthClient.onAuthStateChanged((u) => {
+        if (u) u.getIdToken().then((t) => localStorage.setItem("apexmind_admin_id_token", t)).catch(() => {});
+      });
+      return cachedToken;
+    }
+  }
+
+  // If no cached token, wait up to 1200ms for onAuthStateChanged
+  user = await new Promise((resolve) => {
+    const unsub = adminAuthClient.onAuthStateChanged((u) => {
+      unsub();
+      resolve(u);
+    });
+    setTimeout(() => resolve(null), 1200);
+  });
+
+  if (user) {
+    const token = await user.getIdToken(forceRefresh);
+    if (token && typeof window !== "undefined") {
+      try { localStorage.setItem("apexmind_admin_id_token", token); } catch {}
+    }
+    return token;
+  }
+
+  return typeof window !== "undefined" ? localStorage.getItem("apexmind_admin_id_token") : null;
 }
 
 export async function getAdminAuthHeaders(forceRefresh = false): Promise<HeadersInit> {

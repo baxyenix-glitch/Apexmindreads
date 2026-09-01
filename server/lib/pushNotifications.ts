@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { adminDb } from "./firebase-admin.js";
+import { rtdbPut, rtdbGet, rtdbDelete } from "./firebase-rtdb.js";
 
 // VAPID credentials for Web Push
 export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BHYEfyjs7ALmlPUaxog7bQMzLphLeLetV3x3dtAoOe6HjR55HcGfVwJmhfnWwB7baKQzEXp6YFDvY9PgEkk6Iq8";
@@ -25,16 +25,16 @@ export interface PushSubscriptionData {
 }
 
 /**
- * Save a push subscription to Realtime Database
+ * Save a push subscription to Realtime Database via REST API
  */
-export async function savePushSubscription(sub: PushSubscriptionData): Promise<void> {
+export async function savePushSubscription(sub: PushSubscriptionData, adminToken?: string): Promise<void> {
   if (!sub || !sub.endpoint) return;
   try {
     const docId = Buffer.from(sub.endpoint).toString("base64url").slice(0, 100);
-    await adminDb.ref(`admin_push_subscriptions/${docId}`).set({
+    await rtdbPut(`admin_push_subscriptions/${docId}`, {
       ...sub,
       updatedAt: new Date().toISOString(),
-    });
+    }, adminToken);
   } catch (err) {
     console.error("Failed to save push subscription:", err);
   }
@@ -43,24 +43,23 @@ export async function savePushSubscription(sub: PushSubscriptionData): Promise<v
 /**
  * Remove an expired or unsubscribed push subscription
  */
-export async function removePushSubscription(endpoint: string): Promise<void> {
+export async function removePushSubscription(endpoint: string, adminToken?: string): Promise<void> {
   if (!endpoint) return;
   try {
     const docId = Buffer.from(endpoint).toString("base64url").slice(0, 100);
-    await adminDb.ref(`admin_push_subscriptions/${docId}`).remove();
+    await rtdbDelete(`admin_push_subscriptions/${docId}`, adminToken);
   } catch (err) {
     console.error("Failed to remove push subscription:", err);
   }
 }
 
 /**
- * Fetch all active admin push subscriptions from Realtime Database
+ * Fetch all active admin push subscriptions from Realtime Database via REST API
  */
 export async function getPushSubscriptions(): Promise<PushSubscriptionData[]> {
   try {
-    const snapshot = await adminDb.ref("admin_push_subscriptions").get();
-    if (snapshot.exists()) {
-      const data = snapshot.val();
+    const data = await rtdbGet("admin_push_subscriptions");
+    if (data && typeof data === "object") {
       return Object.values(data) as PushSubscriptionData[];
     }
     return [];

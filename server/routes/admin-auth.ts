@@ -29,6 +29,7 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
         email: decodedToken.email,
         name: decodedToken.name || "Admin",
       };
+      (req as any).adminToken = token;
       return next();
     }
   } catch (err: any) {
@@ -58,6 +59,7 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
         email: fallbackPayload.email,
         name: fallbackPayload.name || fallbackPayload.email.split("@")[0] || "Admin",
       };
+      (req as any).adminToken = token;
       return next();
     }
   }

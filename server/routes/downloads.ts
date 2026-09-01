@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { getOrderById, getProductById } from "../data/db.js";
-import { adminDb } from "../lib/firebase-admin.js";
+import { rtdbGet } from "../lib/firebase-rtdb.js";
 import fs from "fs";
 import path from "path";
 
@@ -54,9 +54,8 @@ export const handleDownloadGuide: RequestHandler = async (req, res) => {
     }
 
     if (fileId) {
-      const snap = await adminDb.ref(`ebook_files/${fileId}`).get();
-      if (snap.exists()) {
-        const meta = snap.val();
+      const meta = await rtdbGet(`ebook_files/${fileId}`);
+      if (meta) {
         const chunksObj = meta.chunks || {};
         const chunkValues = Object.values(chunksObj) as { index: number; data: string }[];
         if (chunkValues.length > 0) {
