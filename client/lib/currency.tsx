@@ -341,7 +341,28 @@ export function getBrowserLocaleFallback(): { country: string; currency: Currenc
 
 // Multi-provider accurate IP Geolocation detection
 async function detectCountryAndCurrency(): Promise<{ country: string; currency: Currency }> {
-  // 1. Try get.geojs.io (Free, CORS enabled, fast, global CDN)
+  // 1. First Priority: First-party server edge endpoint (Vercel / Cloudflare edge headers & real client IP)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch("/api/geo", { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const countryCode = (data.country || "").toUpperCase();
+      const currCode = (data.currency || "").toUpperCase() as Currency;
+      if (countryCode && currCode && currencyCodes.includes(currCode)) {
+        return { country: countryCode, currency: currCode };
+      }
+      if (countryCode && countryToCurrencyMap[countryCode]) {
+        return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
+      }
+    }
+  } catch {
+    // Try external fallback providers
+  }
+
+  // 2. Try get.geojs.io (Free, CORS enabled, fast, global CDN)
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -358,7 +379,7 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
     // Try next
   }
 
-  // 2. Try api.country.is (Zero auth, CORS enabled, lightweight)
+  // 3. Try api.country.is (Zero auth, CORS enabled, lightweight)
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -375,7 +396,7 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
     // Try next
   }
 
-  // 3. Try ipwho.is
+  // 4. Try ipwho.is
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -398,7 +419,7 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
     // Fallback to browser locale
   }
 
-  // 4. Fallback to Browser locale/timezone
+  // 5. Fallback to Browser locale/timezone
   return getBrowserLocaleFallback();
 }
 
@@ -414,29 +435,24 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [detectedCountry, setDetectedCountry] = useState<string>(() => {
     if (typeof window === "undefined") return "US";
-    return window.localStorage.getItem("apexmindreads-country") || getBrowserLocaleFallback().country;
+    return window.sessionStorage.getItem("apexmindreads-country") || "US";
   });
 
   const [currency, setCurrencyState] = useState<Currency>(() => {
     if (typeof window === "undefined") return "USD";
-    const isUserManual = window.localStorage.getItem("apexmindreads-currency-manual") === "true";
-    const stored = window.localStorage.getItem("apexmindreads-currency") as Currency | null;
-    
-    // Only use stored currency if user explicitly picked it in the dropdown
-    if (isUserManual && stored && currencyOptions.some((option) => option.code === stored)) {
-      return stored;
+    const sessionCurrency = window.sessionStorage.getItem("apexmindreads-currency") as Currency | null;
+    if (sessionCurrency && currencyCodes.includes(sessionCurrency)) {
+      return sessionCurrency;
     }
-    
-    // Instant initial estimate from browser environment (timezone & language)
-    return getBrowserLocaleFallback().currency;
+    return "USD";
   });
 
   const setCurrency = (nextCurrency: Currency, isUserSelection = true) => {
     setCurrencyState(nextCurrency);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("apexmindreads-currency", nextCurrency);
+      window.sessionStorage.setItem("apexmindreads-currency", nextCurrency);
       if (isUserSelection) {
-        window.localStorage.setItem("apexmindreads-currency-manual", "true");
+        window.sessionStorage.setItem("apexmindreads-currency-manual", "true");
       }
     }
   };
@@ -444,21 +460,20 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const isUserManual = window.localStorage.getItem("apexmindreads-currency-manual") === "true";
-    
+    // Detect actual location via first-party edge API
     detectCountryAndCurrency()
       .then(({ country: autoCountry, currency: autoCurrency }) => {
         setDetectedCountry(autoCountry);
-        window.localStorage.setItem("apexmindreads-country", autoCountry);
+        window.sessionStorage.setItem("apexmindreads-country", autoCountry);
 
-        if (!isUserManual) {
+        // Only keep manual currency if user explicitly clicked a currency in this specific tab session
+        const isSessionManual = window.sessionStorage.getItem("apexmindreads-currency-manual") === "true";
+        if (!isSessionManual) {
           setCurrencyState(autoCurrency);
-          window.localStorage.setItem("apexmindreads-currency", autoCurrency);
+          window.sessionStorage.setItem("apexmindreads-currency", autoCurrency);
         }
       })
-      .catch(() => {
-        // Fallback already in place
-      });
+      .catch(() => {});
   }, []);
 
   return (

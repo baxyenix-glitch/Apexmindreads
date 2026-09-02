@@ -92,7 +92,7 @@ export default function Checkout() {
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [country, setCountry] = useState(() => detectedCountry || "NG");
+  const [country, setCountry] = useState(() => detectedCountry || "US");
   const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("apexmind_payment_gateway");
@@ -102,12 +102,8 @@ export default function Checkout() {
   });
   const [flwPubKey, setFlwPubKey] = useState(FLUTTERWAVE_PUBLIC_KEY);
 
-  // Match currency to country dynamically for ALL global countries (e.g. Brazil -> BRL, Australia -> AUD, etc.)
+  // Dynamically resolve currency for ALL global countries (e.g. Brazil -> BRL, Australia -> AUD, US -> USD, etc.)
   const effectiveCurrency = useMemo(() => {
-    const isManual = typeof window !== "undefined" && window.localStorage.getItem("apexmindreads-currency-manual") === "true";
-    if (isManual && currency) {
-      return currency;
-    }
     if (country && countryToCurrencyMap[country.toUpperCase()]) {
       return countryToCurrencyMap[country.toUpperCase()];
     }
@@ -139,15 +135,13 @@ export default function Checkout() {
       .catch(() => {});
   }, []);
 
+  // When location is detected via edge /api/geo, automatically sync country & currency
   useEffect(() => {
     if (detectedCountry) {
       setCountry(detectedCountry);
-      const isManual = typeof window !== "undefined" && window.localStorage.getItem("apexmindreads-currency-manual") === "true";
-      if (!isManual) {
-        const matched = countryToCurrencyMap[detectedCountry.toUpperCase()];
-        if (matched) {
-          setCurrency(matched, false);
-        }
+      const matched = countryToCurrencyMap[detectedCountry.toUpperCase()];
+      if (matched) {
+        setCurrency(matched, false);
       }
     }
   }, [detectedCountry, setCurrency]);

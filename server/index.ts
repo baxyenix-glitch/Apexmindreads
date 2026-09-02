@@ -23,6 +23,7 @@ import { handleUpdateCredentials } from "./routes/admin.js";
 import { handleInitializePaystack, handleVerifyPaystack } from "./routes/paystack.js";
 import { handleInitializeFlutterwave, handleVerifyFlutterwave } from "./routes/flutterwave.js";
 import { handleDownloadGuide } from "./routes/downloads.js";
+import { handleGetGeoLocation } from "./routes/geo.js";
 import { 
   handleGetVapidPublicKey, 
   handlePushSubscribe, 
@@ -55,6 +56,7 @@ export function createServer() {
   router.get("/products/:slug", handleGetProduct);
   router.get("/store/config", handleGetPublicStoreConfig);
   router.get("/public-settings", handleGetPublicStoreConfig);
+  router.get("/geo", handleGetGeoLocation);
 
   // ─── Public order & payment routes ─────────────────────
   router.post("/orders", handleCreateOrder);
