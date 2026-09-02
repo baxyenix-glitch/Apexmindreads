@@ -8,7 +8,7 @@ const FLUTTERWAVE_PUBLIC = process.env.FLUTTERWAVE_PUBLIC_KEY || process.env.VIT
 // Direct currencies supported on standard Flutterwave merchant accounts
 const NATIVE_FLUTTERWAVE_CURRENCIES = ["NGN", "USD", "EUR", "GBP", "GHS", "KES", "ZAR", "CAD", "TZS", "UGX", "RWF", "ZMW"];
 
-// 1 Foreign Unit = X NGN baseline rate
+// Global conversion rates: 1 Foreign Unit = X NGN baseline rate
 const NGN_RATES: Record<string, number> = {
   NGN: 1,
   USD: 1550,
@@ -16,20 +16,50 @@ const NGN_RATES: Record<string, number> = {
   EUR: 1690,
   CAD: 1120,
   AUD: 1000,
+  BRL: 270,
+  INR: 18.5,
   GHS: 105,
   KES: 12,
   ZAR: 85,
-  INR: 18.5,
   AED: 422,
   SAR: 413,
   EGP: 32,
   JPY: 10.3,
   CNY: 215,
-  BRL: 270,
   MXN: 76,
   NZD: 920,
   SGD: 1150,
   CHF: 1750,
+  SEK: 145,
+  NOK: 142,
+  DKK: 225,
+  PLN: 390,
+  TRY: 44,
+  XOF: 2.55,
+  XAF: 2.55,
+  HKD: 198,
+  KRW: 1.08,
+  MYR: 350,
+  PHP: 27,
+  THB: 44,
+  IDR: 0.095,
+  PKR: 5.5,
+  BDT: 13,
+  QAR: 425,
+  KWD: 5050,
+  OMR: 4020,
+  BHD: 4110,
+  RWF: 1.15,
+  UGX: 0.42,
+  TZS: 0.60,
+  ZMW: 58,
+  ILS: 420,
+  CZK: 66,
+  HUF: 4.2,
+  RON: 335,
+  CLP: 1.6,
+  COP: 0.38,
+  PEN: 410,
 };
 
 /**
@@ -59,29 +89,19 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
     const requestedCurrency = String(currency).toUpperCase();
     const baseNgnAmount = Math.max(1, Number(amount) || 0);
 
-    let targetCurrency = "NGN";
+    // Support ALL global currencies directly: BRL, USD, EUR, GBP, AUD, CAD, INR, etc.
+    let targetCurrency = requestedCurrency;
     let targetAmount = baseNgnAmount;
 
-    // Check if currency is directly supported by Flutterwave
-    if (NATIVE_FLUTTERWAVE_CURRENCIES.includes(requestedCurrency)) {
-      targetCurrency = requestedCurrency;
-      if (requestedCurrency === "NGN") {
-        targetAmount = Math.max(100, Math.round(baseNgnAmount));
-      } else {
-        const rate = NGN_RATES[requestedCurrency] || 1550;
-        targetAmount = Number((baseNgnAmount / rate).toFixed(2));
-      }
+    if (targetCurrency === "NGN") {
+      targetAmount = Math.max(100, Math.round(baseNgnAmount));
     } else {
-      // For all international currencies not directly supported (e.g. AUD, CHF, JPY), charge in USD
-      targetCurrency = "USD";
-      const rate = NGN_RATES["USD"] || 1550;
+      const rate = NGN_RATES[targetCurrency] || NGN_RATES["USD"] || 1550;
       targetAmount = Number((baseNgnAmount / rate).toFixed(2));
-    }
-
-    // Minimum transaction amount enforcement:
-    // Flutterwave requires at least 1.00 unit for all non-NGN foreign currencies (USD, GBP, EUR, CAD, etc.)
-    if (targetCurrency !== "NGN" && targetAmount < 1.00) {
-      targetAmount = 1.00;
+      // Flutterwave requires at least 1.00 unit for non-NGN currencies
+      if (targetAmount < 1.00) {
+        targetAmount = 1.00;
+      }
     }
 
     const txRef = `AMR-${orderId}-${Date.now()}`;
@@ -132,6 +152,51 @@ export const handleInitializeFlutterwave: RequestHandler = async (req, res) => {
     const data = await flwRes.json();
 
     if (!flwRes.ok || data.status !== "success") {
+      // If a specific exotic currency is rejected by the merchant's Flutterwave account tier,
+      // seamlessly retry with USD fallback so international customers can still pay without interruption:
+      if (targetCurrency !== "USD" && targetCurrency !== "NGN") {
+        console.warn(`Flutterwave rejected ${targetCurrency} (${data.message}), retrying with USD fallback...`);
+        const usdRate = NGN_RATES["USD"] || 1550;
+        const usdAmount = Math.max(1.00, Number((baseNgnAmount / usdRate).toFixed(2)));
+        const fallbackPayload = {
+          ...flwPayload,
+          currency: "USD",
+          amount: usdAmount,
+          meta: {
+            ...flwPayload.meta,
+            chargedCurrency: "USD",
+            chargedAmount: usdAmount,
+          },
+        };
+        try {
+          const fallbackRes = await fetch("https://api.flutterwave.com/v3/payments", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FLUTTERWAVE_SECRET}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(fallbackPayload),
+          });
+          const fallbackData = await fallbackRes.json();
+          if (fallbackRes.ok && fallbackData.status === "success") {
+            res.json({
+              link: fallbackData.data?.link,
+              tx_ref: txRef,
+              amount: usdAmount,
+              currency: "USD",
+              publicKey: FLUTTERWAVE_PUBLIC,
+              customer: {
+                email,
+                name: clientName,
+              },
+            });
+            return;
+          }
+        } catch (fallbackErr) {
+          console.error("USD fallback failed:", fallbackErr);
+        }
+      }
+
       console.error("Flutterwave API Error:", data);
       const detailedError = (Array.isArray(data.errors) && data.errors.length > 0)
         ? data.errors.map((e: any) => e.message).join(", ")

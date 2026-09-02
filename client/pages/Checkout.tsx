@@ -29,21 +29,38 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live
 const FLUTTERWAVE_PUBLIC_KEY = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK-d8262581bc1777745d463d8dbbbccc5d-X";
 
 const GLOBAL_COUNTRIES = [
-  { code: "NG", name: "Nigeria (NG)" },
   { code: "US", name: "United States (US)" },
   { code: "GB", name: "United Kingdom (UK)" },
   { code: "CA", name: "Canada (CA)" },
+  { code: "AU", name: "Australia (AU)" },
+  { code: "BR", name: "Brazil (BR)" },
+  { code: "NG", name: "Nigeria (NG)" },
   { code: "GH", name: "Ghana (GH)" },
   { code: "KE", name: "Kenya (KE)" },
   { code: "ZA", name: "South Africa (ZA)" },
-  { code: "AU", name: "Australia (AU)" },
   { code: "DE", name: "Germany (DE)" },
   { code: "FR", name: "France (FR)" },
-  { code: "IE", name: "Ireland (IE)" },
+  { code: "IT", name: "Italy (IT)" },
+  { code: "ES", name: "Spain (ES)" },
   { code: "NL", name: "Netherlands (NL)" },
+  { code: "CH", name: "Switzerland (CH)" },
+  { code: "SE", name: "Sweden (SE)" },
+  { code: "NO", name: "Norway (NO)" },
+  { code: "DK", name: "Denmark (DK)" },
+  { code: "IE", name: "Ireland (IE)" },
+  { code: "NZ", name: "New Zealand (NZ)" },
+  { code: "IN", name: "India (IN)" },
+  { code: "JP", name: "Japan (JP)" },
+  { code: "CN", name: "China (CN)" },
+  { code: "SG", name: "Singapore (SG)" },
+  { code: "MY", name: "Malaysia (MY)" },
+  { code: "PH", name: "Philippines (PH)" },
+  { code: "ID", name: "Indonesia (ID)" },
+  { code: "MX", name: "Mexico (MX)" },
   { code: "AE", name: "United Arab Emirates (UAE)" },
   { code: "SA", name: "Saudi Arabia (SA)" },
-  { code: "IN", name: "India (IN)" },
+  { code: "QA", name: "Qatar (QA)" },
+  { code: "KW", name: "Kuwait (KW)" },
   { code: "EG", name: "Egypt (EG)" },
   { code: "RW", name: "Rwanda (RW)" },
   { code: "UG", name: "Uganda (UG)" },
@@ -69,7 +86,7 @@ export default function Checkout() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [downloadLinks, setDownloadLinks] = useState<{ productId: string; title: string; downloadUrl: string }[]>([]);
   const [error, setError] = useState("");
-  const { currency, detectedCountry, setCurrency } = useCurrency();
+  const { currency, detectedCountry, setCurrency, options } = useCurrency();
   const { user } = useAuth();
   const subtotal = useMemo(() => cart.reduce((total, item) => total + (item.price || 0), 0), [cart]);
 
@@ -85,15 +102,16 @@ export default function Checkout() {
   });
   const [flwPubKey, setFlwPubKey] = useState(FLUTTERWAVE_PUBLIC_KEY);
 
-  // Guarantee currency matches country (e.g. US customers get USD, UK gets GBP, etc.)
+  // Match currency to country dynamically for ALL global countries (e.g. Brazil -> BRL, Australia -> AUD, etc.)
   const effectiveCurrency = useMemo(() => {
-    if (country === "US") return "USD";
-    if (country === "GB") return "GBP";
-    if (country === "CA") return "CAD";
-    if (currency === "NGN" && country !== "NG") {
-      return countryToCurrencyMap[country.toUpperCase()] || "USD";
+    const isManual = typeof window !== "undefined" && window.localStorage.getItem("apexmindreads-currency-manual") === "true";
+    if (isManual && currency) {
+      return currency;
     }
-    return currency;
+    if (country && countryToCurrencyMap[country.toUpperCase()]) {
+      return countryToCurrencyMap[country.toUpperCase()];
+    }
+    return currency || "USD";
   }, [currency, country]);
 
   const handleCountryChange = (newCountry: string) => {
@@ -511,7 +529,7 @@ export default function Checkout() {
                   className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
                 />
               </label>
-              <label>
+              <label className="sm:col-span-2">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
                   Full name
                 </span>
@@ -523,15 +541,15 @@ export default function Checkout() {
                   className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
                 />
               </label>
+
               <label>
-                <span className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
-                  <span>Country</span>
-                  <span className="text-[11px] font-semibold text-[#d86f45]">Currency: {effectiveCurrency}</span>
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
+                  Country
                 </span>
                 <select
                   value={country}
                   onChange={(e) => handleCountryChange(e.target.value)}
-                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm outline-none focus:border-[#d86f45]"
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm font-medium outline-none transition focus:border-[#d86f45]"
                 >
                   {GLOBAL_COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -540,45 +558,98 @@ export default function Checkout() {
                   ))}
                 </select>
               </label>
+
+              <label>
+                <span className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.12em] text-[#736b61]">
+                  <span>Billing Currency</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#d86f45]">
+                    <Globe size={10} /> Auto-synced
+                  </span>
+                </span>
+                <select
+                  value={effectiveCurrency}
+                  onChange={(e) => setCurrency(e.target.value as any, true)}
+                  className="h-12 w-full rounded-xl border border-[#d8d0c6] bg-[#f8f4ec] px-4 text-sm font-semibold outline-none transition focus:border-[#d86f45]"
+                >
+                  {options.map((opt) => (
+                    <option key={opt.code} value={opt.code}>
+                      {opt.code} ({opt.symbol}) - {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
-            <div className="my-8 flex flex-col gap-4 border-y border-[#e5ddd2] py-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white">
-                  2
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-serif text-2xl">Payment method</h2>
-                    <span className="rounded-full bg-[#eef1eb] px-2.5 py-0.5 text-[10px] font-bold text-[#5e8c67]">
-                      {paymentGateway === "flutterwave" ? "Flutterwave Secure" : "Paystack Secure"}
-                    </span>
+            {/* Section 2: Payment method showcase card */}
+            <div className="my-8 rounded-2xl border border-[#e5ddd2] bg-gradient-to-b from-[#fffefc] to-[#fbf7f0] p-4 sm:p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white shadow-sm">
+                    2
+                  </span>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-serif text-2xl font-medium text-[#26332f]">Payment method</h2>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6ec] border border-[#d2e6cb] px-2.5 py-0.5 text-[10px] font-bold text-[#3e7849]">
+                        <Check size={11} className="stroke-[3]" /> {paymentGateway === "flutterwave" ? "Flutterwave Verified" : "Paystack Verified"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-[#8b8175]">
+                      {paymentGateway === "flutterwave"
+                        ? "Global multi-currency gateway: International Debit/Credit Cards, Mobile Money & Bank transfers."
+                        : "International cards (Visa, Mastercard, Amex), Apple Pay & secure direct bank processing."}
+                    </p>
                   </div>
-                  <p className="text-xs text-[#8b8175]">
-                    {paymentGateway === "flutterwave" 
-                      ? "Global Cards (Visa, Mastercard, Amex), Mobile Money, Bank & USSD" 
-                      : "International Cards (Visa, Mastercard, Amex), Apple Pay & Bank"}
-                  </p>
                 </div>
               </div>
-              <div className="flex items-center self-start sm:self-auto">
-                {paymentGateway === "flutterwave" ? (
-                  <div className="flex h-11 items-center rounded-xl border border-[#e5ddd2] bg-white px-3.5 py-1.5 shadow-sm">
+
+              {/* Verified Provider Showcase Card - Optimized for Mobile & Desktop */}
+              <div className="mt-4 rounded-xl border border-[#ded5c7] bg-white p-3.5 sm:p-4 shadow-sm">
+                <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Left: Security badge & Currency disclosure */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#faf6ef] border border-[#e8dfd3] text-[#d86f45]">
+                      <ShieldCheck size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#26332f]">
+                          {paymentGateway === "flutterwave" ? "Flutterwave Global Checkout" : "Paystack Secure Checkout"}
+                        </span>
+                        <span className="rounded bg-[#f5ede0] px-1.5 py-0.5 text-[9px] font-semibold text-[#8a4e32]">
+                          SSL Encrypted
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#736b61]">
+                        Charged in <span className="font-bold text-[#26332f]">{effectiveCurrency}</span> ({formatCurrency(subtotal, effectiveCurrency)})
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Payment Logo with great fitting for both Mobile and Desktop */}
+                  <div className="flex items-center justify-center rounded-xl border border-[#e8dfd3] bg-[#fbf9f5] px-4 py-2 sm:self-auto self-stretch">
                     <img 
-                      src="/flutterwave-logo.png" 
-                      alt="Flutterwave" 
-                      className="h-6 w-auto max-w-[140px] object-contain" 
+                      src={paymentGateway === "flutterwave" ? "/flutterwave-logo.png" : "/paystack-logo.png"} 
+                      alt={paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"} 
+                      className="h-7 sm:h-8 w-auto max-w-[150px] sm:max-w-[170px] object-contain drop-shadow-xs" 
                     />
                   </div>
-                ) : (
-                  <div className="flex h-11 items-center rounded-xl border border-[#e5ddd2] bg-white px-3.5 py-1.5 shadow-sm">
-                    <img 
-                      src="/paystack-logo.png" 
-                      alt="Paystack" 
-                      className="h-6 w-auto max-w-[140px] object-contain" 
-                    />
+                </div>
+
+                {/* Accepted Card Brands Bar */}
+                <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#f2ece2] pt-3 text-[11px] text-[#736b61]">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9d9385] mr-0.5">Accepted:</span>
+                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">VISA</span>
+                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Mastercard</span>
+                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Amex</span>
+                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Apple Pay</span>
+                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Google Pay</span>
                   </div>
-                )}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#497552]">
+                    <LockKeyhole size={11} /> 256-Bit Bank Grade Security
+                  </span>
+                </div>
               </div>
             </div>
 
