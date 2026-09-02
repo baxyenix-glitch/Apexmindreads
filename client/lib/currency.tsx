@@ -344,8 +344,12 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
   // 1. First Priority: First-party server edge endpoint (Vercel / Cloudflare edge headers & real client IP)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-    const res = await fetch("/api/geo", { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`/api/geo?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { Pragma: "no-cache" },
+      signal: controller.signal,
+    });
     clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
@@ -362,27 +366,10 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
     // Try external fallback providers
   }
 
-  // 2. Try get.geojs.io (Free, CORS enabled, fast, global CDN)
+  // 2. Try api.country.is (Zero auth, CORS enabled, lightweight)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch("https://get.geojs.io/v1/ip/geo.json", { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (res.ok) {
-      const data = await res.json();
-      const countryCode = (data.country_code || data.country || "").toUpperCase();
-      if (countryCode && countryToCurrencyMap[countryCode]) {
-        return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
-      }
-    }
-  } catch {
-    // Try next
-  }
-
-  // 3. Try api.country.is (Zero auth, CORS enabled, lightweight)
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const res = await fetch("https://api.country.is", { signal: controller.signal });
     clearTimeout(timeoutId);
     if (res.ok) {
@@ -396,10 +383,27 @@ async function detectCountryAndCurrency(): Promise<{ country: string; currency: 
     // Try next
   }
 
+  // 3. Try get.geojs.io (Free, CORS enabled, fast, global CDN)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch("https://get.geojs.io/v1/ip/geo.json", { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const countryCode = (data.country_code || data.country || "").toUpperCase();
+      if (countryCode && countryToCurrencyMap[countryCode]) {
+        return { country: countryCode, currency: countryToCurrencyMap[countryCode] };
+      }
+    }
+  } catch {
+    // Try next
+  }
+
   // 4. Try ipwho.is
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const res = await fetch("https://ipwho.is/", { signal: controller.signal });
     clearTimeout(timeoutId);
     if (res.ok) {
@@ -460,18 +464,30 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Detect actual location via first-party edge API
+    // Purge any stale persistent localStorage from earlier builds
+    try {
+      window.localStorage.removeItem("apexmindreads-currency-manual");
+      window.localStorage.removeItem("apexmindreads-currency");
+      window.localStorage.removeItem("apexmindreads-country");
+    } catch {}
+
+    // Detect actual location via edge /api/geo
     detectCountryAndCurrency()
       .then(({ country: autoCountry, currency: autoCurrency }) => {
+        const prevCountry = window.sessionStorage.getItem("apexmindreads-prev-country");
+        const isSessionManual = window.sessionStorage.getItem("apexmindreads-currency-manual") === "true";
+
         setDetectedCountry(autoCountry);
         window.sessionStorage.setItem("apexmindreads-country", autoCountry);
 
-        // Only keep manual currency if user explicitly clicked a currency in this specific tab session
-        const isSessionManual = window.sessionStorage.getItem("apexmindreads-currency-manual") === "true";
-        if (!isSessionManual) {
+        // If the country changed (e.g. user enabled/disabled VPN or moved), always adopt the detected location
+        if (!isSessionManual || prevCountry !== autoCountry) {
           setCurrencyState(autoCurrency);
           window.sessionStorage.setItem("apexmindreads-currency", autoCurrency);
+          window.sessionStorage.removeItem("apexmindreads-currency-manual");
         }
+
+        window.sessionStorage.setItem("apexmindreads-prev-country", autoCountry);
       })
       .catch(() => {});
   }, []);

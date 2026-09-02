@@ -59,13 +59,19 @@ export const countryToCurrencyMap: Record<string, string> = {
  * Returns real client country & currency based on edge headers (Vercel/Cloudflare) or IP.
  */
 export const handleGetGeoLocation: RequestHandler = async (req, res) => {
+  // Prevent any browser or edge caching of location responses
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   try {
-    // 1. Check edge platform headers (Vercel, Cloudflare, Fastly)
+    // 1. Check edge platform headers (Vercel, Cloudflare, Fastly) - 0ms lookup
     const vercelCountry = (req.headers["x-vercel-ip-country"] as string)?.trim().toUpperCase();
     const cloudflareCountry = (req.headers["cf-ipcountry"] as string)?.trim().toUpperCase();
     const generalCountry = (req.headers["x-country-code"] as string)?.trim().toUpperCase();
 
     let detectedCountry = vercelCountry || cloudflareCountry || generalCountry || "";
+    let source = "edge-header";
 
     // 2. If no edge header, detect via server-side IP lookup
     if (!detectedCountry || detectedCountry === "XX" || detectedCountry.length !== 2) {
@@ -77,22 +83,42 @@ export const handleGetGeoLocation: RequestHandler = async (req, res) => {
       const isLocal = !rawIp || rawIp.startsWith("127.") || rawIp === "::1" || rawIp.startsWith("192.168.") || rawIp.startsWith("10.") || rawIp.startsWith("172.16.");
 
       if (!isLocal) {
+        // Try api.country.is
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 2500);
-          const ipRes = await fetch(`https://get.geojs.io/v1/ip/geo/${encodeURIComponent(rawIp)}.json`, {
+          const timeout = setTimeout(() => controller.abort(), 2000);
+          const ipRes = await fetch(`https://api.country.is/${encodeURIComponent(rawIp)}`, {
             signal: controller.signal,
           });
           clearTimeout(timeout);
           if (ipRes.ok) {
             const ipData = await ipRes.json();
-            const code = (ipData.country_code || ipData.country || "").toUpperCase();
+            const code = (ipData.country || "").toUpperCase();
             if (code && code.length === 2) {
               detectedCountry = code;
+              source = "api.country.is";
             }
           }
         } catch {
-          // Continue to fallback
+          // Try geojs.io fallback
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 2000);
+            const ipRes = await fetch(`https://get.geojs.io/v1/ip/geo/${encodeURIComponent(rawIp)}.json`, {
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (ipRes.ok) {
+              const ipData = await ipRes.json();
+              const code = (ipData.country_code || ipData.country || "").toUpperCase();
+              if (code && code.length === 2) {
+                detectedCountry = code;
+                source = "geojs.io";
+              }
+            }
+          } catch {
+            // Fallback below
+          }
         }
       }
     }
@@ -100,6 +126,7 @@ export const handleGetGeoLocation: RequestHandler = async (req, res) => {
     // 3. Fallback to US if still unknown
     if (!detectedCountry || detectedCountry.length !== 2) {
       detectedCountry = "US";
+      source = "fallback";
     }
 
     const currency = countryToCurrencyMap[detectedCountry] || "USD";
@@ -109,11 +136,13 @@ export const handleGetGeoLocation: RequestHandler = async (req, res) => {
       currency,
       city: (req.headers["x-vercel-ip-city"] as string) || "",
       region: (req.headers["x-vercel-ip-country-region"] as string) || "",
+      source,
     });
   } catch (error) {
     res.json({
       country: "US",
       currency: "USD",
+      source: "error-fallback",
     });
   }
 };
