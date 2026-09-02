@@ -604,50 +604,23 @@ export default function Checkout() {
               </div>
 
               {/* Verified Provider Showcase Card - Optimized for Mobile & Desktop */}
-              <div className="mt-4 rounded-xl border border-[#ded5c7] bg-white p-3.5 sm:p-4 shadow-sm">
-                <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
-                  {/* Left: Security badge & Currency disclosure */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#faf6ef] border border-[#e8dfd3] text-[#d86f45]">
-                      <ShieldCheck size={22} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold uppercase tracking-[0.08em] text-[#26332f]">
-                          {paymentGateway === "flutterwave" ? "Flutterwave Global Checkout" : "Paystack Secure Checkout"}
-                        </span>
-                        <span className="rounded bg-[#f5ede0] px-1.5 py-0.5 text-[9px] font-semibold text-[#8a4e32]">
-                          SSL Encrypted
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#736b61]">
-                        Charged in <span className="font-bold text-[#26332f]">{effectiveCurrency}</span> ({formatCurrency(subtotal, effectiveCurrency)})
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Payment Logo with great fitting for both Mobile and Desktop */}
-                  <div className="flex items-center justify-center rounded-xl border border-[#e8dfd3] bg-[#fbf9f5] px-4 py-2 sm:self-auto self-stretch">
-                    <img 
-                      src={paymentGateway === "flutterwave" ? "/flutterwave-logo.png" : "/paystack-logo.png"} 
-                      alt={paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"} 
-                      className="h-7 sm:h-8 w-auto max-w-[150px] sm:max-w-[170px] object-contain drop-shadow-xs" 
-                    />
-                  </div>
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-[#ded5c7] bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-center rounded-xl border border-[#e8dfd3] bg-[#fbf9f5] px-6 py-3 w-full sm:w-auto min-w-[200px]">
+                  <img 
+                    src={paymentGateway === "flutterwave" ? "/flutterwave-logo.png" : "/paystack-logo.png"} 
+                    alt={paymentGateway === "flutterwave" ? "Flutterwave" : "Paystack"} 
+                    className="h-8 sm:h-9 w-auto max-w-[180px] sm:max-w-[200px] object-contain drop-shadow-xs" 
+                  />
                 </div>
 
-                {/* Accepted Card Brands Bar */}
-                <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#f2ece2] pt-3 text-[11px] text-[#736b61]">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9d9385] mr-0.5">Accepted:</span>
-                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">VISA</span>
-                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Mastercard</span>
-                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Amex</span>
-                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Apple Pay</span>
-                    <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Google Pay</span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#497552]">
-                    <LockKeyhole size={11} /> 256-Bit Bank Grade Security
+                <div className="flex flex-wrap items-center justify-center sm:justify-end gap-1.5 text-[11px] text-[#736b61]">
+                  <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">VISA</span>
+                  <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Mastercard</span>
+                  <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Amex</span>
+                  <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Apple Pay</span>
+                  <span className="rounded-md border border-[#e3dcd1] bg-[#f8f5ee] px-2 py-0.5 text-[10px] font-bold text-[#352f28]">Google Pay</span>
+                  <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-medium text-[#497552]">
+                    <LockKeyhole size={11} /> 256-Bit SSL
                   </span>
                 </div>
               </div>
