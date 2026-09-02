@@ -85,9 +85,18 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
     }
   }
 
-  let res = await fetch(url, { 
+  const cleanUrl = url.includes("?") ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+
+  let res = await fetch(cleanUrl, { 
     ...opts, 
-    headers: { ...headers, "Content-Type": "application/json", ...opts?.headers } 
+    cache: "no-store",
+    headers: { 
+      ...headers, 
+      "Content-Type": "application/json", 
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache",
+      ...opts?.headers 
+    } 
   });
 
   if (res.status === 401) {
@@ -97,9 +106,16 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
         const freshToken = await user.getIdToken(true);
         if (freshToken) {
           try { localStorage.setItem("apexmind_admin_id_token", freshToken); } catch {}
-          res = await fetch(url, {
+          res = await fetch(cleanUrl, {
             ...opts,
-            headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json", ...opts?.headers }
+            cache: "no-store",
+            headers: { 
+              Authorization: `Bearer ${freshToken}`, 
+              "Content-Type": "application/json", 
+              "Cache-Control": "no-store",
+              "Pragma": "no-cache",
+              ...opts?.headers 
+            }
           });
         }
       }
@@ -512,18 +528,18 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry?: () => voi
   );
 }
 
-let cachedOverviewAnalytics: AnalyticsResponse | null = null;
-let cachedOverviewOrders: Order[] = [];
-let cachedOverviewProducts: Product[] = [];
-
+// Purge any stale admin localStorage caches from previous builds
 if (typeof window !== "undefined") {
   try {
-    const a = localStorage.getItem("apexmind_cached_overview_analytics");
-    if (a) cachedOverviewAnalytics = JSON.parse(a);
-    const o = localStorage.getItem("apexmind_cached_overview_orders");
-    if (o) cachedOverviewOrders = JSON.parse(o);
-    const p = localStorage.getItem("apexmind_cached_overview_products");
-    if (p) cachedOverviewProducts = JSON.parse(p);
+    localStorage.removeItem("apexmind_cached_overview_analytics");
+    localStorage.removeItem("apexmind_cached_overview_orders");
+    localStorage.removeItem("apexmind_cached_overview_products");
+    localStorage.removeItem("apexmind_cached_admin_orders");
+    localStorage.removeItem("apexmind_cached_admin_products");
+    localStorage.removeItem("apexmind_cached_admin_customers");
+    localStorage.removeItem("apexmind_cached_promotions");
+    localStorage.removeItem("apexmind_cached_settings");
+    localStorage.removeItem("apexmind_products_cache");
   } catch {}
 }
 
@@ -534,15 +550,15 @@ const defaultOverviewAnalytics: AnalyticsResponse = {
   averageOrder: 0,
   revenueByCountry: {},
   repeatCustomerRate: 0,
-  topCategory: "Personal Development",
+  topCategory: "None",
   revenueOverTime: [],
   topProducts: [],
 };
 
 function OverviewSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse>(cachedOverviewAnalytics || defaultOverviewAnalytics);
-  const [orders, setOrders] = useState<Order[]>(cachedOverviewOrders);
-  const [products, setProducts] = useState<Product[]>(cachedOverviewProducts);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>(defaultOverviewAnalytics);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const load = useCallback(async () => {
@@ -554,26 +570,15 @@ function OverviewSection({ currency }: { currency: Currency }) {
         apiFetch<ProductListResponse>("/api/products").catch(() => null),
       ]);
       if (a) {
-        cachedOverviewAnalytics = a;
         setAnalytics(a);
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_overview_analytics", JSON.stringify(a)); } catch {}
-        }
       }
-      if (o && o.orders) {
-        const topOrders = o.orders.slice(0, 6);
-        cachedOverviewOrders = topOrders;
+      if (o) {
+        const topOrders = Array.isArray(o.orders) ? o.orders.slice(0, 6) : [];
         setOrders(topOrders);
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_overview_orders", JSON.stringify(topOrders)); } catch {}
-        }
       }
-      if (p && p.products) {
-        cachedOverviewProducts = p.products;
-        setProducts(p.products);
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_overview_products", JSON.stringify(p.products)); } catch {}
-        }
+      if (p) {
+        const list = Array.isArray(p.products) ? p.products : [];
+        setProducts(list);
       }
     } catch (e: any) {
       console.warn("Background overview refresh notice:", e);
@@ -756,28 +761,16 @@ function OverviewSection({ currency }: { currency: Currency }) {
   );
 }
 
-let cachedAdminOrdersList: Order[] = [];
-if (typeof window !== "undefined") {
-  try {
-    const o = localStorage.getItem("apexmind_cached_admin_orders");
-    if (o) cachedAdminOrdersList = JSON.parse(o);
-  } catch {}
-}
-
 function OrdersSection({ currency }: { currency: Currency }) {
-  const [orders, setOrders] = useState<Order[]>(cachedAdminOrdersList);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<OrderListResponse>("/api/admin/orders").catch(() => null);
-      if (data && data.orders) {
-        cachedAdminOrdersList = data.orders;
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_admin_orders", JSON.stringify(data.orders)); } catch {}
-        }
-        setOrders(data.orders);
+      if (data) {
+        setOrders(Array.isArray(data.orders) ? data.orders : []);
       }
     } catch {}
   }, []);
@@ -788,9 +781,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
     try {
       await apiFetch(`/api/admin/orders/${orderId}`, { method: "PATCH", body: JSON.stringify({ status }) });
       setOrders((prev) => {
-        const next = prev.map((o) => o.id === orderId ? { ...o, status: status as Order["status"] } : o);
-        cachedAdminOrdersList = next;
-        return next;
+        return prev.map((o) => o.id === orderId ? { ...o, status: status as Order["status"] } : o);
       });
     } catch (e: any) { alert(e.message); }
   };
@@ -932,28 +923,16 @@ function OrdersSection({ currency }: { currency: Currency }) {
   );
 }
 
-let cachedAdminProductsList: Product[] = [];
-if (typeof window !== "undefined") {
-  try {
-    const p = localStorage.getItem("apexmind_cached_admin_products");
-    if (p) cachedAdminProductsList = JSON.parse(p);
-  } catch {}
-}
-
 function ProductsSection({ currency }: { currency: Currency }) {
-  const [products, setProducts] = useState<Product[]>(cachedAdminProductsList);
+  const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<ProductListResponse>("/api/products").catch(() => null);
-      if (data && data.products) {
-        cachedAdminProductsList = data.products;
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_admin_products", JSON.stringify(data.products)); } catch {}
-        }
-        setProducts(data.products);
+      if (data) {
+        setProducts(Array.isArray(data.products) ? data.products : []);
       }
     } catch {}
   }, []);
@@ -965,9 +944,7 @@ function ProductsSection({ currency }: { currency: Currency }) {
     try {
       await apiFetch(`/api/admin/products/${id}`, { method: "DELETE" });
       setProducts((prev) => {
-        const next = prev.filter((p) => p.id !== id);
-        cachedAdminProductsList = next;
-        return next;
+        return prev.filter((p) => p.id !== id);
       });
     } catch (e: any) { alert(e.message); }
   };
@@ -1816,27 +1793,15 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 // ═══════════════════════════════════════════════════════════
 // CUSTOMERS SECTION
 // ═══════════════════════════════════════════════════════════
-let cachedAdminCustomersList: CustomerView[] = [];
-if (typeof window !== "undefined") {
-  try {
-    const c = localStorage.getItem("apexmind_cached_admin_customers");
-    if (c) cachedAdminCustomersList = JSON.parse(c);
-  } catch {}
-}
-
 function CustomersSection({ currency }: { currency: Currency }) {
-  const [customers, setCustomers] = useState<CustomerView[]>(cachedAdminCustomersList);
+  const [customers, setCustomers] = useState<CustomerView[]>([]);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<CustomerListResponse>("/api/admin/customers").catch(() => null);
-      if (data && data.customers) {
-        cachedAdminCustomersList = data.customers;
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_admin_customers", JSON.stringify(data.customers)); } catch {}
-        }
-        setCustomers(data.customers);
+      if (data) {
+        setCustomers(Array.isArray(data.customers) ? data.customers : []);
       }
     } catch {}
   }, []);
@@ -1910,16 +1875,12 @@ function CustomersSection({ currency }: { currency: Currency }) {
 // ANALYTICS SECTION
 // ═══════════════════════════════════════════════════════════
 function AnalyticsSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse>(cachedOverviewAnalytics || defaultOverviewAnalytics);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>(defaultOverviewAnalytics);
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<AnalyticsResponse>("/api/admin/analytics").catch(() => null);
       if (data) {
-        cachedOverviewAnalytics = data;
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_overview_analytics", JSON.stringify(data)); } catch {}
-        }
         setAnalytics(data);
       }
     } catch {}
@@ -1983,28 +1944,16 @@ function AnalyticsSection({ currency }: { currency: Currency }) {
 // ═══════════════════════════════════════════════════════════
 // PROMOTIONS SECTION
 // ═══════════════════════════════════════════════════════════
-let cachedPromotionsList: Promotion[] = [];
-if (typeof window !== "undefined") {
-  try {
-    const pr = localStorage.getItem("apexmind_cached_promotions");
-    if (pr) cachedPromotionsList = JSON.parse(pr);
-  } catch {}
-}
-
 function PromotionsSection() {
-  const [promotions, setPromotions] = useState<Promotion[]>(cachedPromotionsList);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editPromo, setEditPromo] = useState<Promotion | null>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<PromotionListResponse>("/api/admin/promotions").catch(() => null);
-      if (data && data.promotions) {
-        cachedPromotionsList = data.promotions;
-        if (typeof window !== "undefined") {
-          try { localStorage.setItem("apexmind_cached_promotions", JSON.stringify(data.promotions)); } catch {}
-        }
-        setPromotions(data.promotions);
+      if (data) {
+        setPromotions(Array.isArray(data.promotions) ? data.promotions : []);
       }
     } catch {}
   }, []);
@@ -2016,9 +1965,7 @@ function PromotionsSection() {
     try {
       await apiFetch(`/api/admin/promotions/${id}`, { method: "DELETE" });
       setPromotions((prev) => {
-        const next = prev.filter((p) => p.id !== id);
-        cachedPromotionsList = next;
-        return next;
+        return prev.filter((p) => p.id !== id);
       });
     } catch (e: any) { alert(e.message); }
   };

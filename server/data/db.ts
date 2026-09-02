@@ -53,15 +53,15 @@ async function syncProductsFromRTDB(): Promise<void> {
   isSyncingProducts = true;
   try {
     const data = await rtdbGet("products");
+    inMemoryProducts.clear();
     if (data && typeof data === "object") {
-      inMemoryProducts.clear();
       Object.values(data).forEach((item: any) => {
         if (item && item.id) {
           inMemoryProducts.set(item.id, sanitizeProduct(item));
         }
       });
-      lastProductSyncTime = Date.now();
     }
+    lastProductSyncTime = Date.now();
   } catch (err: any) {
     console.warn("Background RTDB products sync notice:", err?.message || err);
   } finally {
@@ -70,14 +70,9 @@ async function syncProductsFromRTDB(): Promise<void> {
 }
 
 export async function getProducts(): Promise<Product[]> {
-  if (inMemoryProducts.size > 0) {
-    if (Date.now() - lastProductSyncTime > 10000) {
-      syncProductsFromRTDB().catch(() => {});
-    }
-    return getUniqueProducts();
+  if (Date.now() - lastProductSyncTime > 2000) {
+    await syncProductsFromRTDB();
   }
-
-  await syncProductsFromRTDB();
   return getUniqueProducts();
 }
 
@@ -179,15 +174,15 @@ async function syncOrdersFromRTDB(): Promise<void> {
   isSyncingOrders = true;
   try {
     const data = await rtdbGet("orders");
+    inMemoryOrders.clear();
     if (data && typeof data === "object") {
-      inMemoryOrders.clear();
       Object.values(data).forEach((item: any) => {
         if (item && item.id) {
           inMemoryOrders.set(item.id, item as Order);
         }
       });
-      lastOrderSyncTime = Date.now();
     }
+    lastOrderSyncTime = Date.now();
   } catch (err: any) {
     console.warn("Background RTDB orders sync notice:", err?.message || err);
   } finally {
@@ -196,14 +191,9 @@ async function syncOrdersFromRTDB(): Promise<void> {
 }
 
 export async function getOrders(): Promise<Order[]> {
-  if (inMemoryOrders.size > 0) {
-    if (Date.now() - lastOrderSyncTime > 10000) {
-      syncOrdersFromRTDB().catch(() => {});
-    }
-    return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  if (Date.now() - lastOrderSyncTime > 2000) {
+    await syncOrdersFromRTDB();
   }
-
-  await syncOrdersFromRTDB();
   return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
@@ -276,15 +266,15 @@ async function syncPromotionsFromRTDB(): Promise<void> {
   isSyncingPromotions = true;
   try {
     const data = await rtdbGet("promotions");
+    inMemoryPromotions.clear();
     if (data && typeof data === "object") {
-      inMemoryPromotions.clear();
       Object.values(data).forEach((item: any) => {
         if (item && item.id) {
           inMemoryPromotions.set(item.id, item as Promotion);
         }
       });
-      lastPromoSyncTime = Date.now();
     }
+    lastPromoSyncTime = Date.now();
   } catch (err: any) {
     console.warn("Background RTDB promotions sync notice:", err?.message || err);
   } finally {
@@ -293,14 +283,9 @@ async function syncPromotionsFromRTDB(): Promise<void> {
 }
 
 export async function getPromotions(): Promise<Promotion[]> {
-  if (inMemoryPromotions.size > 0) {
-    if (Date.now() - lastPromoSyncTime > 10000) {
-      syncPromotionsFromRTDB().catch(() => {});
-    }
-    return Array.from(inMemoryPromotions.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  if (Date.now() - lastPromoSyncTime > 2000) {
+    await syncPromotionsFromRTDB();
   }
-
-  await syncPromotionsFromRTDB();
   return Array.from(inMemoryPromotions.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
@@ -363,7 +348,7 @@ let cachedSettings: StoreSettings = {
 let lastSettingsSyncTime = 0;
 
 export async function getSettings(): Promise<StoreSettings> {
-  if (Date.now() - lastSettingsSyncTime < 15000) {
+  if (Date.now() - lastSettingsSyncTime < 2000) {
     return cachedSettings;
   }
   try {

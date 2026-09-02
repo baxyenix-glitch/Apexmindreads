@@ -41,6 +41,16 @@ export function createServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Ensure NO API responses are ever cached by browsers, edge networks, or proxies
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/products") || req.path.startsWith("/admin") || req.path.startsWith("/store") || req.path.startsWith("/geo")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+    next();
+  });
+
   // Serve uploads directly from Express
   app.use("/uploads", express.static(path.join(process.cwd(), "client/public/uploads")));
 

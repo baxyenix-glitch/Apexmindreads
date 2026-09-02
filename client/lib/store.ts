@@ -57,32 +57,29 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-let globalProductsCache: Product[] = [];
-try {
-  const local = localStorage.getItem("apexmind_products_cache");
-  if (local) {
-    globalProductsCache = JSON.parse(local);
-  }
-} catch {}
-
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>(globalProductsCache);
-  const [loading, setLoading] = useState(globalProductsCache.length === 0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Purge any stale products cache from localStorage
+    try {
+      localStorage.removeItem("apexmind_products_cache");
+    } catch {}
+
     let mounted = true;
-    fetch("/api/products")
+    fetch(`/api/products?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Pragma": "no-cache" },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load products");
         return res.json();
       })
       .then((data) => {
-        if (mounted && data.products) {
-          globalProductsCache = data.products;
-          try {
-            localStorage.setItem("apexmind_products_cache", JSON.stringify(data.products));
-          } catch {}
-          setProducts(data.products);
+        if (mounted) {
+          const list = Array.isArray(data.products) ? data.products : [];
+          setProducts(list);
           setLoading(false);
         }
       })
@@ -97,23 +94,23 @@ export function useProducts() {
 }
 
 export function useProduct(slug: string) {
-  const cached = globalProductsCache.find(
-    (p) => p.slug?.toLowerCase() === slug?.toLowerCase() || p.id === slug
-  ) || null;
-  const [product, setProduct] = useState<Product | null>(cached);
-  const [loading, setLoading] = useState(!cached);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
     let mounted = true;
-    fetch(`/api/products/${slug}`)
+    fetch(`/api/products/${slug}?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Pragma": "no-cache" },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load product");
         return res.json();
       })
       .then((data) => {
-        if (mounted && data.product) {
-          setProduct(data.product);
+        if (mounted) {
+          setProduct(data.product || null);
           setLoading(false);
         }
       })
