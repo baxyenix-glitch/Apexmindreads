@@ -586,11 +586,8 @@ export default function Checkout() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#26332f] text-xs font-bold text-white shadow-sm">
                   2
                 </span>
-                <div className="flex items-center gap-2.5">
+                <div>
                   <h2 className="font-serif text-2xl font-medium text-[#26332f]">Payment method</h2>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6ec] border border-[#d2e6cb] px-2.5 py-0.5 text-[10px] font-bold text-[#3e7849]">
-                    <Check size={11} className="stroke-[3]" /> {paymentGateway === "flutterwave" ? "Flutterwave Secure" : "Paystack Secure"}
-                  </span>
                 </div>
               </div>
 
