@@ -3,6 +3,28 @@ import { getOrders } from "../data/db.js";
 import { adminAuth } from "../lib/firebase-admin.js";
 import type { CustomerView } from "../../shared/schema";
 
+let cachedAuthUsers: any[] = [];
+let lastUsersSyncTime = 0;
+let isFetchingUsers = false;
+
+async function syncUsersFromFirebase() {
+  if (isFetchingUsers) return;
+  isFetchingUsers = true;
+  try {
+    const listUsersPromise = adminAuth.listUsers(1000);
+    const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 1200));
+    const result = await Promise.race([listUsersPromise, timeoutPromise]);
+    if (result && Array.isArray(result.users)) {
+      cachedAuthUsers = result.users;
+      lastUsersSyncTime = Date.now();
+    }
+  } catch {
+    // ignore
+  } finally {
+    isFetchingUsers = false;
+  }
+}
+
 /** GET /api/admin/customers — admin only */
 export const handleListCustomers: RequestHandler = async (_req, res) => {
   try {
@@ -35,30 +57,29 @@ export const handleListCustomers: RequestHandler = async (_req, res) => {
       }
     }
 
-    // Also include registered users who haven't ordered yet (with 1.5s timeout protection)
-    try {
-      const listUsersPromise = adminAuth.listUsers(1000);
-      const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 1500));
-      const result = await Promise.race([listUsersPromise, timeoutPromise]);
-      for (const user of result.users) {
-        if (user.email) {
-          const key = user.email.toLowerCase();
-          if (!customerMap.has(key)) {
-            customerMap.set(key, {
-              id: key,
-              email: user.email,
-              name: user.displayName || user.email.split("@")[0],
-              country: "—",
-              orderCount: 0,
-              totalSpent: 0,
-              lastOrderDate: user.metadata.creationTime || new Date().toISOString(),
-              status: "New",
-            });
-          }
+    // Include registered users (instant cache + background SWR)
+    if (lastUsersSyncTime === 0) {
+      await syncUsersFromFirebase();
+    } else if (Date.now() - lastUsersSyncTime > 30000) {
+      syncUsersFromFirebase().catch(() => {});
+    }
+
+    for (const user of cachedAuthUsers) {
+      if (user && user.email) {
+        const key = user.email.toLowerCase();
+        if (!customerMap.has(key)) {
+          customerMap.set(key, {
+            id: key,
+            email: user.email,
+            name: user.displayName || user.email.split("@")[0],
+            country: "—",
+            orderCount: 0,
+            totalSpent: 0,
+            lastOrderDate: user.metadata?.creationTime || new Date().toISOString(),
+            status: "New",
+          });
         }
       }
-    } catch {
-      // Non-blocking: continue with order-based customers immediately
     }
 
     const customers = [...customerMap.values()].sort((a, b) => b.totalSpent - a.totalSpent);
