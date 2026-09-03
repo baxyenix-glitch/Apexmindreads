@@ -22,7 +22,6 @@ import {
   Package, 
   Pencil, 
   Plus, 
-  RefreshCw,
   Search, 
   Settings, 
   ShieldCheck,
@@ -75,47 +74,6 @@ const sectionIntro: Record<Section, string> = {
   Promotions: "Create and manage promotional discount campaigns.",
   Settings: "Store configuration, currency defaults, and security.",
 };
-
-// ─── Module-Level Admin Session Cache for Instant 0ms Tab Switching & Renders ───
-interface AdminSessionData {
-  analytics: AnalyticsResponse | null;
-  orders: Order[] | null;
-  products: Product[] | null;
-  customers: CustomerView[] | null;
-  promotions: Promotion[] | null;
-}
-
-const adminSession: AdminSessionData = {
-  analytics: null,
-  orders: null,
-  products: null,
-  customers: null,
-  promotions: null,
-};
-
-function getSessionItem<T>(key: keyof AdminSessionData): T | null {
-  if (adminSession[key]) return adminSession[key] as T;
-  if (typeof window !== "undefined") {
-    try {
-      const stored = sessionStorage.getItem(`apex_adm_${key}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        (adminSession as any)[key] = parsed;
-        return parsed;
-      }
-    } catch {}
-  }
-  return null;
-}
-
-function setSessionItem<T>(key: keyof AdminSessionData, val: T): void {
-  (adminSession as any)[key] = val;
-  if (typeof window !== "undefined") {
-    try {
-      sessionStorage.setItem(`apex_adm_${key}`, JSON.stringify(val));
-    } catch {}
-  }
-}
 
 // ─── Helpers ─────────────────────────────────────────────
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -229,28 +187,6 @@ export default function AdminDashboard() {
     testNotification,
   } = useOrderLiveAlerts(currency);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const syncAll = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.allSettled([
-        apiFetch<AnalyticsResponse>("/api/admin/analytics").then((a) => { if (a) setSessionItem("analytics", a); }),
-        apiFetch<OrderListResponse>("/api/admin/orders").then((o) => { if (o?.orders) setSessionItem("orders", o.orders); }),
-        apiFetch<ProductListResponse>("/api/products").then((p) => { if (p?.products) setSessionItem("products", p.products); }),
-        apiFetch<CustomerListResponse>("/api/admin/customers").then((c) => { if (c?.customers) setSessionItem("customers", c.customers); }),
-        apiFetch<PromotionListResponse>("/api/admin/promotions").then((pr) => { if (pr?.promotions) setSessionItem("promotions", pr.promotions); }),
-      ]);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Pre-warm all admin datasets so all tabs load instantaneously
-    syncAll();
-  }, [syncAll]);
-
   const handleLogout = async () => {
     await adminLogout();
     navigate("/admin/login");
@@ -288,20 +224,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  syncAll();
-                  toast.success("Synchronizing live data...");
-                }}
-                disabled={isRefreshing}
-                className="flex items-center gap-1.5 rounded-xl border border-[#d8d0c6] dark:border-[#262626] bg-white dark:bg-[#171717] px-3 py-2 text-xs font-semibold text-[#736b61] dark:text-[#a1a1aa] hover:text-[#26332f] dark:hover:text-[#f4f4f5] hover:border-[#d86f45] transition shadow-xs disabled:opacity-50"
-                title="Synchronize live data"
-              >
-                <RefreshCw size={13} className={isRefreshing ? "animate-spin text-[#d86f45]" : ""} />
-                <span className="hidden sm:inline">{isRefreshing ? "Syncing..." : "Sync Live"}</span>
-              </button>
-            </div>
           </div>
         </header>
 
@@ -634,9 +556,9 @@ const defaultOverviewAnalytics: AnalyticsResponse = {
 };
 
 function OverviewSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse>(() => getSessionItem<AnalyticsResponse>("analytics") || defaultOverviewAnalytics);
-  const [orders, setOrders] = useState<Order[]>(() => (getSessionItem<Order[]>("orders") || []).slice(0, 6));
-  const [products, setProducts] = useState<Product[]>(() => getSessionItem<Product[]>("products") || []);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>(defaultOverviewAnalytics);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const load = useCallback(async () => {
@@ -649,17 +571,14 @@ function OverviewSection({ currency }: { currency: Currency }) {
       ]);
       if (a) {
         setAnalytics(a);
-        setSessionItem("analytics", a);
       }
       if (o) {
         const topOrders = Array.isArray(o.orders) ? o.orders.slice(0, 6) : [];
         setOrders(topOrders);
-        if (Array.isArray(o.orders)) setSessionItem("orders", o.orders);
       }
       if (p) {
         const list = Array.isArray(p.products) ? p.products : [];
         setProducts(list);
-        setSessionItem("products", list);
       }
     } catch (e: any) {
       console.warn("Background overview refresh notice:", e);
@@ -843,7 +762,7 @@ function OverviewSection({ currency }: { currency: Currency }) {
 }
 
 function OrdersSection({ currency }: { currency: Currency }) {
-  const [orders, setOrders] = useState<Order[]>(() => getSessionItem<Order[]>("orders") || []);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
 
@@ -851,9 +770,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
     try {
       const data = await apiFetch<OrderListResponse>("/api/admin/orders").catch(() => null);
       if (data) {
-        const list = Array.isArray(data.orders) ? data.orders : [];
-        setOrders(list);
-        setSessionItem("orders", list);
+        setOrders(Array.isArray(data.orders) ? data.orders : []);
       }
     } catch {}
   }, []);
@@ -864,9 +781,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
     try {
       await apiFetch(`/api/admin/orders/${orderId}`, { method: "PATCH", body: JSON.stringify({ status }) });
       setOrders((prev) => {
-        const next = prev.map((o) => o.id === orderId ? { ...o, status: status as Order["status"] } : o);
-        setSessionItem("orders", next);
-        return next;
+        return prev.map((o) => o.id === orderId ? { ...o, status: status as Order["status"] } : o);
       });
     } catch (e: any) { alert(e.message); }
   };
@@ -1009,7 +924,7 @@ function OrdersSection({ currency }: { currency: Currency }) {
 }
 
 function ProductsSection({ currency }: { currency: Currency }) {
-  const [products, setProducts] = useState<Product[]>(() => getSessionItem<Product[]>("products") || []);
+  const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
@@ -1017,9 +932,7 @@ function ProductsSection({ currency }: { currency: Currency }) {
     try {
       const data = await apiFetch<ProductListResponse>("/api/products").catch(() => null);
       if (data) {
-        const list = Array.isArray(data.products) ? data.products : [];
-        setProducts(list);
-        setSessionItem("products", list);
+        setProducts(Array.isArray(data.products) ? data.products : []);
       }
     } catch {}
   }, []);
@@ -1031,9 +944,7 @@ function ProductsSection({ currency }: { currency: Currency }) {
     try {
       await apiFetch(`/api/admin/products/${id}`, { method: "DELETE" });
       setProducts((prev) => {
-        const next = prev.filter((p) => p.id !== id);
-        setSessionItem("products", next);
-        return next;
+        return prev.filter((p) => p.id !== id);
       });
     } catch (e: any) { alert(e.message); }
   };
@@ -1883,16 +1794,14 @@ function ProductForm({ product, onSaved, onCancel }: { product: Product | null; 
 // CUSTOMERS SECTION
 // ═══════════════════════════════════════════════════════════
 function CustomersSection({ currency }: { currency: Currency }) {
-  const [customers, setCustomers] = useState<CustomerView[]>(() => getSessionItem<CustomerView[]>("customers") || []);
+  const [customers, setCustomers] = useState<CustomerView[]>([]);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<CustomerListResponse>("/api/admin/customers").catch(() => null);
       if (data) {
-        const list = Array.isArray(data.customers) ? data.customers : [];
-        setCustomers(list);
-        setSessionItem("customers", list);
+        setCustomers(Array.isArray(data.customers) ? data.customers : []);
       }
     } catch {}
   }, []);
@@ -1966,14 +1875,13 @@ function CustomersSection({ currency }: { currency: Currency }) {
 // ANALYTICS SECTION
 // ═══════════════════════════════════════════════════════════
 function AnalyticsSection({ currency }: { currency: Currency }) {
-  const [analytics, setAnalytics] = useState<AnalyticsResponse>(() => getSessionItem<AnalyticsResponse>("analytics") || defaultOverviewAnalytics);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse>(defaultOverviewAnalytics);
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<AnalyticsResponse>("/api/admin/analytics").catch(() => null);
       if (data) {
         setAnalytics(data);
-        setSessionItem("analytics", data);
       }
     } catch {}
   }, []);
@@ -2037,7 +1945,7 @@ function AnalyticsSection({ currency }: { currency: Currency }) {
 // PROMOTIONS SECTION
 // ═══════════════════════════════════════════════════════════
 function PromotionsSection() {
-  const [promotions, setPromotions] = useState<Promotion[]>(() => getSessionItem<Promotion[]>("promotions") || []);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editPromo, setEditPromo] = useState<Promotion | null>(null);
 
@@ -2045,9 +1953,7 @@ function PromotionsSection() {
     try {
       const data = await apiFetch<PromotionListResponse>("/api/admin/promotions").catch(() => null);
       if (data) {
-        const list = Array.isArray(data.promotions) ? data.promotions : [];
-        setPromotions(list);
-        setSessionItem("promotions", list);
+        setPromotions(Array.isArray(data.promotions) ? data.promotions : []);
       }
     } catch {}
   }, []);
@@ -2059,9 +1965,7 @@ function PromotionsSection() {
     try {
       await apiFetch(`/api/admin/promotions/${id}`, { method: "DELETE" });
       setPromotions((prev) => {
-        const next = prev.filter((p) => p.id !== id);
-        setSessionItem("promotions", next);
-        return next;
+        return prev.filter((p) => p.id !== id);
       });
     } catch (e: any) { alert(e.message); }
   };

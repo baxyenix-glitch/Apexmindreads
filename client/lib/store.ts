@@ -57,13 +57,16 @@ export const testimonials: Testimonial[] = [
   },
 ];
 
-let memoryProducts: Product[] | null = null;
-
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>(memoryProducts || []);
-  const [loading, setLoading] = useState(memoryProducts === null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Purge any stale products cache from localStorage
+    try {
+      localStorage.removeItem("apexmind_products_cache");
+    } catch {}
+
     let mounted = true;
     fetch(`/api/products?t=${Date.now()}`, {
       cache: "no-store",
@@ -76,7 +79,6 @@ export function useProducts() {
       .then((data) => {
         if (mounted) {
           const list = Array.isArray(data.products) ? data.products : [];
-          memoryProducts = list;
           setProducts(list);
           setLoading(false);
         }
@@ -92,9 +94,8 @@ export function useProducts() {
 }
 
 export function useProduct(slug: string) {
-  const initial = memoryProducts?.find((p) => p.slug === slug || p.id === slug) || null;
-  const [product, setProduct] = useState<Product | null>(initial);
-  const [loading, setLoading] = useState(initial === null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!slug) return;

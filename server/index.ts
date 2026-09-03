@@ -30,20 +30,11 @@ import {
   handlePushUnsubscribe, 
   handlePushTest 
 } from "./routes/push.js";
-import { syncProductsFromRTDB, syncOrdersFromRTDB, syncPromotionsFromRTDB, syncSettingsFromRTDB } from "./data/db.js";
 import path from "path";
 
 export function createServer() {
   const app = express();
   const router = express.Router();
-
-  // Pre-warm database caches in the background on server startup for instant responses
-  Promise.allSettled([
-    syncProductsFromRTDB(),
-    syncOrdersFromRTDB(),
-    syncPromotionsFromRTDB(),
-    syncSettingsFromRTDB(),
-  ]).catch(() => {});
 
   // Middleware
   app.use(cors());

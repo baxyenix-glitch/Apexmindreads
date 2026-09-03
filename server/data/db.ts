@@ -48,7 +48,7 @@ function getUniqueProducts(): Product[] {
 let lastProductSyncTime = 0;
 let isSyncingProducts = false;
 
-export async function syncProductsFromRTDB(): Promise<void> {
+async function syncProductsFromRTDB(): Promise<void> {
   if (isSyncingProducts) return;
   isSyncingProducts = true;
   try {
@@ -70,10 +70,8 @@ export async function syncProductsFromRTDB(): Promise<void> {
 }
 
 export async function getProducts(): Promise<Product[]> {
-  if (lastProductSyncTime === 0) {
+  if (Date.now() - lastProductSyncTime > 2000) {
     await syncProductsFromRTDB();
-  } else if (Date.now() - lastProductSyncTime > 5000) {
-    syncProductsFromRTDB().catch(() => {});
   }
   return getUniqueProducts();
 }
@@ -171,7 +169,7 @@ export async function deleteProduct(id: string, adminToken?: string): Promise<vo
 let lastOrderSyncTime = 0;
 let isSyncingOrders = false;
 
-export async function syncOrdersFromRTDB(): Promise<void> {
+async function syncOrdersFromRTDB(): Promise<void> {
   if (isSyncingOrders) return;
   isSyncingOrders = true;
   try {
@@ -193,10 +191,8 @@ export async function syncOrdersFromRTDB(): Promise<void> {
 }
 
 export async function getOrders(): Promise<Order[]> {
-  if (lastOrderSyncTime === 0) {
+  if (Date.now() - lastOrderSyncTime > 2000) {
     await syncOrdersFromRTDB();
-  } else if (Date.now() - lastOrderSyncTime > 5000) {
-    syncOrdersFromRTDB().catch(() => {});
   }
   return Array.from(inMemoryOrders.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
@@ -265,7 +261,7 @@ export async function getUserOrders(email: string): Promise<Order[]> {
 let lastPromoSyncTime = 0;
 let isSyncingPromotions = false;
 
-export async function syncPromotionsFromRTDB(): Promise<void> {
+async function syncPromotionsFromRTDB(): Promise<void> {
   if (isSyncingPromotions) return;
   isSyncingPromotions = true;
   try {
@@ -287,10 +283,8 @@ export async function syncPromotionsFromRTDB(): Promise<void> {
 }
 
 export async function getPromotions(): Promise<Promotion[]> {
-  if (lastPromoSyncTime === 0) {
+  if (Date.now() - lastPromoSyncTime > 2000) {
     await syncPromotionsFromRTDB();
-  } else if (Date.now() - lastPromoSyncTime > 5000) {
-    syncPromotionsFromRTDB().catch(() => {});
   }
   return Array.from(inMemoryPromotions.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
@@ -353,7 +347,10 @@ let cachedSettings: StoreSettings = {
 };
 let lastSettingsSyncTime = 0;
 
-export async function syncSettingsFromRTDB(): Promise<void> {
+export async function getSettings(): Promise<StoreSettings> {
+  if (Date.now() - lastSettingsSyncTime < 2000) {
+    return cachedSettings;
+  }
   try {
     const data = await rtdbGet("settings/store");
     if (data && typeof data === "object") {
@@ -362,20 +359,16 @@ export async function syncSettingsFromRTDB(): Promise<void> {
         ...data,
         paymentGateway: data.paymentGateway || cachedSettings.paymentGateway || "flutterwave",
       };
+      lastSettingsSyncTime = Date.now();
+      return cachedSettings;
     }
+    await rtdbPut("settings/store", cachedSettings).catch(() => {});
     lastSettingsSyncTime = Date.now();
+    return cachedSettings;
   } catch (e) {
-    console.warn("Background RTDB settings sync notice:", e);
+    console.warn("RTDB settings read notice (serving cached defaults):", e);
+    return cachedSettings;
   }
-}
-
-export async function getSettings(): Promise<StoreSettings> {
-  if (lastSettingsSyncTime === 0) {
-    await syncSettingsFromRTDB();
-  } else if (Date.now() - lastSettingsSyncTime > 10000) {
-    syncSettingsFromRTDB().catch(() => {});
-  }
-  return cachedSettings;
 }
 
 export async function updateSettings(updates: Partial<StoreSettings>, adminToken?: string): Promise<StoreSettings> {
